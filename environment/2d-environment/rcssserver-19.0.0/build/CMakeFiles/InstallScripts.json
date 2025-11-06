@@ -1,0 +1,13 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/nathan.sidib/Code/VS_Code/rcsoccersim/rcssserver-19.0.0/build/cmake_install.cmake",
+		"/Users/nathan.sidib/Code/VS_Code/rcsoccersim/rcssserver-19.0.0/build/rcss/cmake_install.cmake",
+		"/Users/nathan.sidib/Code/VS_Code/rcsoccersim/rcssserver-19.0.0/build/rcss/net/cmake_install.cmake",
+		"/Users/nathan.sidib/Code/VS_Code/rcsoccersim/rcssserver-19.0.0/build/rcss/conf/cmake_install.cmake",
+		"/Users/nathan.sidib/Code/VS_Code/rcsoccersim/rcssserver-19.0.0/build/rcss/gzip/cmake_install.cmake",
+		"/Users/nathan.sidib/Code/VS_Code/rcsoccersim/rcssserver-19.0.0/build/rcss/clang/cmake_install.cmake",
+		"/Users/nathan.sidib/Code/VS_Code/rcsoccersim/rcssserver-19.0.0/build/src/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

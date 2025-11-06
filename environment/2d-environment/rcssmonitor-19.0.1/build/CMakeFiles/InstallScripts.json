@@ -1,0 +1,10 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/nathan.sidib/Code/VS_Code/rcsoccersim/rcssmonitor-19.0.1/build/cmake_install.cmake",
+		"/Users/nathan.sidib/Code/VS_Code/rcsoccersim/rcssmonitor-19.0.1/build/rcss/cmake_install.cmake",
+		"/Users/nathan.sidib/Code/VS_Code/rcsoccersim/rcssmonitor-19.0.1/build/rcss/rcg/cmake_install.cmake",
+		"/Users/nathan.sidib/Code/VS_Code/rcsoccersim/rcssmonitor-19.0.1/build/src/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
