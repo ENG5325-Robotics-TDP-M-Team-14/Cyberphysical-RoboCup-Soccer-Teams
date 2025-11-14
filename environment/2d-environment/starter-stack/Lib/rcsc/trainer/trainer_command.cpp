@@ -44,7 +44,7 @@ namespace rcsc {
 
 */
 std::ostream &
-TrainerInitCommand::toStr( std::ostream & to ) const
+TrainerInitCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(init (version " << M_version << "))";
 }
@@ -54,7 +54,7 @@ TrainerInitCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerCheckBallCommand::toStr( std::ostream & to ) const
+TrainerCheckBallCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(check_ball)";
 }
@@ -64,7 +64,7 @@ TrainerCheckBallCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerLookCommand::toStr( std::ostream & to ) const
+TrainerLookCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(look)";
 }
@@ -74,7 +74,7 @@ TrainerLookCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerTeamNamesCommand::toStr( std::ostream & to ) const
+TrainerTeamNamesCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(team_names)";
 }
@@ -84,7 +84,7 @@ TrainerTeamNamesCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerEarCommand::toStr( std::ostream & to ) const
+TrainerEarCommand::toCommandString( std::ostream & to ) const
 {
     if ( M_on )
     {
@@ -101,7 +101,7 @@ TrainerEarCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerEyeCommand::toStr( std::ostream & to ) const
+TrainerEyeCommand::toCommandString( std::ostream & to ) const
 {
     if ( M_on )
     {
@@ -118,7 +118,7 @@ TrainerEyeCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerKickOffCommand::toStr( std::ostream & to ) const
+TrainerKickOffCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(start)";
 }
@@ -128,7 +128,7 @@ TrainerKickOffCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerChangeModeCommand::toStr( std::ostream & to ) const
+TrainerChangeModeCommand::toCommandString( std::ostream & to ) const
 {
     static const char * pmodes[] = PLAYMODE_STRINGS;
     return to << "(change_mode " << pmodes[M_playmode] << ")";
@@ -188,7 +188,7 @@ TrainerMoveBallCommand::TrainerMoveBallCommand( const Vector2D & pos,
 
 */
 std::ostream &
-TrainerMoveBallCommand::toStr( std::ostream & to ) const
+TrainerMoveBallCommand::toCommandString( std::ostream & to ) const
 {
     to << "(move (ball) " << M_pos.x << " " << M_pos.y;
 
@@ -349,7 +349,7 @@ TrainerMovePlayerCommand::check() const
 
 */
 std::ostream &
-TrainerMovePlayerCommand::toStr( std::ostream & to ) const
+TrainerMovePlayerCommand::toCommandString( std::ostream & to ) const
 {
     if ( ! check() )
     {
@@ -381,7 +381,7 @@ TrainerMovePlayerCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerRecoverCommand::toStr( std::ostream & to ) const
+TrainerRecoverCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(recover)";
 }
@@ -406,7 +406,7 @@ TrainerChangePlayerTypeCommand( const std::string & team_name,
 
 */
 std::ostream &
-TrainerChangePlayerTypeCommand::toStr( std::ostream & to ) const
+TrainerChangePlayerTypeCommand::toCommandString( std::ostream & to ) const
 {
     if ( M_type < Hetero_Unknown
          || PlayerParam::i().playerTypes() <= M_type )
@@ -429,7 +429,7 @@ TrainerChangePlayerTypeCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerSayCommand::toStr( std::ostream & to ) const
+TrainerSayCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(say " << M_message << ")";
 }
@@ -439,7 +439,7 @@ TrainerSayCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerCompressionCommand::toStr( std::ostream & to ) const
+TrainerCompressionCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(compression " << M_level << ")";
 }
@@ -449,7 +449,7 @@ TrainerCompressionCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerDoneCommand::toStr( std::ostream & to ) const
+TrainerDoneCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(done)";
 }

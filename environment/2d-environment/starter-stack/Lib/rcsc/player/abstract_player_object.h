@@ -45,21 +45,25 @@ namespace rcsc {
 class AbstractPlayerObject;
 class PlayerEvaluator;
 
-typedef std::vector< const AbstractPlayerObject * > AbstractPlayerCont;
-
 /*!
   \class AbstractPlayerObject
   \brief abstact player object class
 */
 class AbstractPlayerObject {
+public:
+
+    //! type of pointer container
+    typedef std::vector< const AbstractPlayerObject * > Cont;
+
 protected:
+
+    int M_id; //!< identical number as object ID
 
     SideID M_side; //!< team side
     int  M_unum; //!< uniform number
     int M_unum_count; //!< accuracy count
     bool M_goalie; //!< goalie flag
 
-    int M_type; //!< player type id
     const PlayerType * M_player_type; //!< player type reference
     Card M_card; //!< card information
 
@@ -83,35 +87,48 @@ protected:
     AngleDeg M_face; //!< global neck angle
     int M_face_count; //!< face angle accuracy
 
-    bool M_kicked; //!< kicking state
+    AngleDeg M_pointto_angle; //!< global pointing angle
+    int M_pointto_count; //!< time count since the last pointto observation
+
+    bool M_kicking; //!< kicking state
+
+    Vector2D M_last_seen_move;
+    int M_last_seen_move_accuracy;
 
     double M_dist_from_ball; //!< distance from ball
     AngleDeg M_angle_from_ball; //!< angle from ball
     double M_dist_from_self; //!< distance from self
     AngleDeg M_angle_from_self; //!< angle from self
 
+private:
+
+    int M_ball_reach_step; //!< estimated minimum ball interception step.
+
+    // not used
+    AbstractPlayerObject() = delete;
 public:
 
     /*!
       \brief initialize member variables.
     */
-    AbstractPlayerObject();
+    explicit
+    AbstractPlayerObject( const int id );
 
     /*!
       \brief initialize member variables using observed info
+      \param id ID number for this object
       \param side analyzed side info
       \param p analyzed seen player info
     */
-    AbstractPlayerObject( const SideID side,
+    AbstractPlayerObject( const int id,
+                          const SideID side,
                           const Localization::PlayerT & p );
 
     /*!
       \brief destructor. nothing to do
     */
     virtual
-    ~AbstractPlayerObject()
-      { }
-
+    ~AbstractPlayerObject() = default;
 
     // ------------------------------------------
     /*!
@@ -158,6 +175,8 @@ public:
     virtual
     void setPlayerType( const int type );
 
+public:
+
     /*!
       \brief update card state
       \param card new card type
@@ -167,7 +186,26 @@ public:
           M_card = card;
       }
 
-    // ------------------------------------------
+    /*!
+      \brief set the estimated minimum ball interception step.
+      \param step estimated step value
+     */
+    void setBallReachStep( const int step )
+      {
+          M_ball_reach_step = step;
+      }
+
+    //------------------------------------------
+
+    /*!
+      \brief get the ID number for this object
+      \return ID number
+     */
+    int id() const
+      {
+          return M_id;
+      }
+
 
     /*!
       \brief get team side id
@@ -206,20 +244,10 @@ public:
       }
 
     /*!
-      \brief get the player type id
-      \return player type id
-     */
-    int type() const
-      {
-          return M_type;
-      }
-
-    /*!
       \brief get the player type as a pointer.
       \return player type pointer variable
      */
-    const
-    PlayerType * playerTypePtr() const
+    const PlayerType * playerTypePtr() const
       {
           return M_player_type;
       }
@@ -237,8 +265,7 @@ public:
       \brief get global position
       \return const reference to the point object
     */
-    const
-    Vector2D & pos() const
+    const Vector2D & pos() const
       {
           return M_pos;
       }
@@ -256,8 +283,7 @@ public:
       \brief get the last seen position
       \return const reference to the point object
      */
-    const
-    Vector2D & seenPos() const
+    const Vector2D & seenPos() const
       {
           return M_seen_pos;
       }
@@ -275,8 +301,7 @@ public:
       \brief get the last heard position
       \return const reference to the point object
      */
-    const
-    Vector2D & heardPos() const
+    const Vector2D & heardPos() const
       {
           return M_heard_pos;
       }
@@ -294,8 +319,7 @@ public:
       \brief get velocity
       \return const reference to the vector object
     */
-    const
-    Vector2D & vel() const
+    const Vector2D & vel() const
       {
           return M_vel;
       }
@@ -313,8 +337,7 @@ public:
       \brief get the last seen velocity
       \return const reference to the vector object
      */
-    const
-    Vector2D & seenVel() const
+    const Vector2D & seenVel() const
       {
           return M_seen_vel;
       }
@@ -332,8 +355,7 @@ public:
       \brief get global body angle
       \return const reference to the angle object
     */
-    const
-    AngleDeg & body() const
+    const AngleDeg & body() const
       {
           return M_body; // global body angle
       }
@@ -351,8 +373,7 @@ public:
       \brief get global neck angle
       \return const reference to the angle object
     */
-    const
-    AngleDeg & face() const
+    const AngleDeg & face() const
       {
           return M_face; // global neck angle
       }
@@ -367,20 +388,75 @@ public:
       }
 
     /*!
+      \brief get global pointing angle
+      \return const reference to the angle object
+    */
+    const AngleDeg & pointtoAngle() const
+      {
+          return M_pointto_angle; // global pointing angle
+      }
+
+    /*!
+      \brief get global pointing angle accuracy
+      \return count from last observation
+    */
+    int pointtoCount() const
+      {
+          return M_pointto_count;
+      }
+
+    /*!
       \brief get kicking state information
       \return true if player performed the kick.
      */
-    bool kicked() const
+    bool isKicking() const
       {
-          return M_kicked;
+          return M_kicking;
+      }
+
+    /*!
+      \brief get the last observed movement
+      \return move vector
+     */
+    const Vector2D & lastSeenMove() const
+    {
+        return M_last_seen_move;
+    }
+
+    /*!
+      \brief get the accuracy count of the last observed moement. Time count since the last observation.
+      \return Time count since the last observation.
+     */
+    int lastSeenMoveAccuracy() const
+    {
+        return M_last_seen_move_accuracy;
+    }
+
+    /*!
+      \brief get the squared distance from this player to the target player
+      \param p target player
+      \return squared distance value
+     */
+    double dist2( const AbstractPlayerObject & p ) const
+      {
+          return this->pos().dist2( p.pos() );
+      }
+
+    /*!
+      \brief get the distance from this player to the target player
+      \param p target player
+      \return distance value
+     */
+    double dist( const AbstractPlayerObject & p ) const
+      {
+          return std::sqrt( this->dist2( p ) );
       }
 
     /*!
       \brief get distance from ball
       \return distance value from ball
     */
-    const
-    double & distFromBall() const
+    double distFromBall() const
       {
           return M_dist_from_ball;
       }
@@ -389,8 +465,7 @@ public:
       \brief get angle from ball
       \return absolute angle value from ball
     */
-    const
-    AngleDeg & angleFromBall() const
+    const AngleDeg & angleFromBall() const
       {
           return M_angle_from_ball;
       }
@@ -399,8 +474,7 @@ public:
       \brief get distance from self
       \return distance value from self
     */
-    const
-    double & distFromSelf() const
+    double distFromSelf() const
       {
           return M_dist_from_self;
       }
@@ -409,10 +483,18 @@ public:
       \brief get global angle from self position
       \return angle value from self position
     */
-    const
-    AngleDeg & angleFromSelf() const
+    const AngleDeg & angleFromSelf() const
       {
           return M_angle_from_self;
+      }
+
+    /*!
+      \brief get the estimated minimum ball interception step.
+      \return estimated step value.
+     */
+    int ballReachStep() const
+      {
+          return M_ball_reach_step;
       }
 
     /*!
@@ -431,7 +513,7 @@ public:
       {
           return ( playerTypePtr()
                    ? playerTypePtr()->inertiaPoint( pos(), vel(), n_step )
-                   : Vector2D::INVALIDATED );
+                   : pos() );
       }
 
     /*!
@@ -442,19 +524,7 @@ public:
       {
           return ( playerTypePtr()
                    ? playerTypePtr()->inertiaFinalPoint( pos(), vel() )
-                   : Vector2D::INVALIDATED );
-      }
-
-    // ------------------------------------------
-    /*!
-      \brief template method. check if player is in the region
-      \param region template resion. REGION must have method contains()
-      \return true if region contains player position
-    */
-    template < typename REGION >
-    bool isWithin( const REGION & region ) const
-      {
-          return region.contains( this->pos() );
+                   : pos() );
       }
 
     /*!
@@ -462,7 +532,7 @@ public:
       \param cont container of AbstractPlayerObject
       \param evaluator evaluator object (has to be dynamically allocated)
      */
-    static double get_minimum_evaluation( const AbstractPlayerCont & cont,
+    static double get_minimum_evaluation( const Cont & cont,
                                           const PlayerEvaluator * evaluator );
 
     /*!
@@ -470,7 +540,7 @@ public:
       \param cont container of AbstractPlayerObject
       \param evaluator evaluator object (has to be dynamically allocated)
      */
-    static double get_maximum_evaluation( const AbstractPlayerCont & cont,
+    static double get_maximum_evaluation( const Cont & cont,
                                           const PlayerEvaluator * evaluator );
 
 };

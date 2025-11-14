@@ -38,6 +38,7 @@
 #include "body_stop_ball.h"
 //#include "body_kick_to_relative.h"
 #include "body_hold_ball2008.h"
+#include "kick_table.h"
 
 #include <rcsc/player/player_agent.h>
 #include <rcsc/common/logger.h>
@@ -89,12 +90,18 @@ Body_KickOneStep::execute( PlayerAgent * agent )
 
     const AngleDeg target_angle = ( M_target_point - wm.ball().pos() ).th();
 
-    Vector2D first_vel = get_max_possible_vel( target_angle,
-                                               wm.self().kickRate(),
-                                               ball_vel );
-    if ( first_vel.r() > M_first_speed )
+    // Vector2D first_vel = get_max_possible_vel( target_angle,
+    //                                            wm.self().kickRate(),
+    //                                            ball_vel );
+    Vector2D first_vel = KickTable::calc_max_velocity( target_angle,
+                                                       wm.self().kickRate(),
+                                                       ball_vel );
+    double first_speed = first_vel.r();
+
+    if ( first_speed > M_first_speed )
     {
         first_vel.setLength( M_first_speed );
+        first_speed = M_first_speed;
     }
     else
     {
@@ -112,19 +119,29 @@ Body_KickOneStep::execute( PlayerAgent * agent )
 
     if ( kick_power > ServerParam::i().maxPower() + 0.01 )
     {
-        std::cerr << agent->config().teamName() << ' '
-                  << wm.self().unum() << ": "
-                  << wm.time() << " Body_KickOneStep unexpected reach."
-                  << std::endl;
-        dlog.addText( Logger::KICK,
-                      __FILE__": why power over??  power=%f", kick_power );
+        // std::cerr << agent->config().teamName() << ' '
+        //           << wm.self().unum() << ": "
+        //           << wm.time() << " Body_KickOneStep unexpected reach."
+        //           << " kick_power=" << kick_power << std::endl;
+        if ( first_speed < 0.001 )
+        {
+            dlog.addText( Logger::KICK,
+                          __FILE__": could not stop the ball completely, but try to stop. kick_power=%f",
+                          kick_power );
+            return Body_StopBall().execute( agent );
+        }
+
         if ( ! M_force_mode )
         {
+            dlog.addText( Logger::KICK,
+                          __FILE__": could not stop the ball completely. hold ball. kick_power=%f" ,
+                          kick_power );
             return Body_HoldBall2008( true,
                                       M_target_point,
                                       M_target_point
                                       ).execute( agent );
         }
+
         kick_power = ServerParam::i().maxPower();
     }
 
@@ -140,6 +157,7 @@ Body_KickOneStep::execute( PlayerAgent * agent )
     return agent->doKick( kick_power, kick_dir );
 }
 
+#if 0
 /*-------------------------------------------------------------------*/
 /*!
 
@@ -258,5 +276,6 @@ Body_KickOneStep::get_max_possible_vel( const AngleDeg & target_angle,
 
     return sol1;
 }
+#endif
 
 }

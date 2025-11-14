@@ -53,8 +53,8 @@ public:
       \brief defalut constructor. all values are set to 0.
      */
     Ray2D()
-        : M_origin( 0.0, 0.0 )
-        , M_direction( 0.0 )
+        : M_origin( 0.0, 0.0 ),
+          M_direction( 0.0 )
       { }
 
     /*!
@@ -64,8 +64,8 @@ public:
      */
     Ray2D( const Vector2D & origin,
            const AngleDeg & direction )
-        : M_origin( origin )
-        , M_direction( direction )
+        : M_origin( origin ),
+          M_direction( direction )
       { }
     /*!
       \brief constructor with origin and other point
@@ -74,16 +74,15 @@ public:
      */
     Ray2D( const Vector2D & origin,
            const Vector2D & dir_point )
-        : M_origin( origin )
-        , M_direction( ( dir_point - origin ).th() )
+        : M_origin( origin ),
+          M_direction( ( dir_point - origin ).th() )
       { }
 
     /*!
       \brief get origin point
       \return const referenct to the member variable
      */
-    const
-    Vector2D & origin() const
+    const Vector2D & origin() const
       {
           return M_origin;
       }
@@ -92,8 +91,7 @@ public:
       \brief get the angle of this ray line
       \return const referenct to the member variable
      */
-    const
-    AngleDeg & dir() const
+    const AngleDeg & dir() const
       {
           return M_direction;
       }
@@ -114,7 +112,7 @@ public:
       \return true or false
     */
     bool inRightDir( const Vector2D & point,
-                     const double & thr = 10.0 ) const
+                     const double thr = 10.0 ) const
       {
           return ( ( point - origin() ).th() - dir() ).abs() < thr;
       }

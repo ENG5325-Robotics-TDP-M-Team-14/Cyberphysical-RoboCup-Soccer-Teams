@@ -33,10 +33,12 @@
 #define RCSC_COACH_CONFIG_H
 
 #include <string>
+#include <iosfwd>
 
 namespace rcsc {
 
 class ParamMap;
+class ParamParser;
 
 /*!
   \class CoachConfig
@@ -44,6 +46,9 @@ class ParamMap;
  */
 class CoachConfig {
 private:
+
+    ParamMap * M_param_map; //!< parameter map instance
+
 
     // basic setting
 
@@ -72,6 +77,9 @@ private:
 
     //! if true, coach will analyze say message
     bool M_hear_say;
+
+    //! shift parameter to encrypt audio message
+    int M_audio_shift;
 
     //! if true, coach will try to analyze opponent team players' player type
     bool M_analyze_player_type;
@@ -128,7 +136,7 @@ private:
     //! the extension string of debug log file
     std::string M_debug_log_ext;
 
-    // debug outut switches
+    // debug output switches
     bool M_debug_system; //!< debug level flag
     bool M_debug_sensor; //!< debug level flag
     bool M_debug_world; //!< debug level flag
@@ -150,29 +158,42 @@ private:
     bool M_debug_communication; //!< debug level flag
     bool M_debug_analyzer; //!< debug level flag
     bool M_debug_action_chain; //!< debug level flag
+
 public:
 
     /*!
-      \brief init variables by default value. create parametermap
+      \brief init variables by default value. create ParamMap instance
      */
     CoachConfig();
 
     /*!
-      \brief nothing to do
+      \brief delete ParamMap instance
      */
     ~CoachConfig();
 
     /*!
-      \brief create parameter map
-      \param param_map reference to the parameter map instance
+      \brief set parameter values using param parser instance
+      \param parser param parser instance
      */
-    void createParamMap( ParamMap & param_map );
+    void parse( ParamParser & parser );
+
+    /*!
+      \brief print help message to the output stream
+      \param os output stream
+      \return output stream
+     */
+    std::ostream & printHelp( std::ostream & os ) const;
 
 private:
     /*!
       \brief set default value
     */
     void setDefaultParam();
+
+    /*!
+      \brief create parameter map
+     */
+    void createParamMap();
 
 public:
 
@@ -188,7 +209,7 @@ public:
       \brief get the client version
       \return client version
      */
-    const double & version() const { return M_version; }
+    double version() const { return M_version; }
 
     /*!
       \brief get the coach name string
@@ -243,6 +264,12 @@ public:
       \return true if ear mode is on, othewise false
      */
     bool hearSay() const { return M_hear_say; }
+
+    /*
+      \brief shift value to encrypt audio encoder
+      \return shift value
+     */
+    int audioShift() const { return M_audio_shift; }
 
     /*!
       \brief get the player type analyzer mode
@@ -488,6 +515,7 @@ public:
       \return debug flag
      */
     bool debugActionChain() const { return M_debug_action_chain; }
+
 };
 
 }

@@ -35,6 +35,26 @@
 
 #include "tcp_socket.h"
 
+#include <cstdio>
+#include <cerrno>
+
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h> // socket(), getaddrinfo(), freeaddrinfo()
+                       // connect(), send(), recv(), sendto(), recvfrom(),
+                       // struct sockaddr_in, SOCK_STREAM, SOCK_DGRAM
+#endif
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h> // socket(), getaddrinfo(), freeaddrinfo()
+                        // connect(), send(), recv(), sendto(), recvfrom(),
+                        // struct sockaddr_in, SOCK_STREAM, SOCK_DGRAM
+#endif
+#ifdef HAVE_ARPA_INET_H
+#include <arpa/inet.h> // inet_addr()
+#endif
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h> // struct sockaddr_in, struct in_addr, htons
+#endif
+
 namespace rcsc {
 
 /*-------------------------------------------------------------------*/
@@ -43,11 +63,11 @@ namespace rcsc {
 */
 TCPSocket::TCPSocket( const char * hostname,
                       const int port )
-    : BasicSocket()
+    : AbstractSocket()
 {
-    if ( open( BasicSocket::STREAM_TYPE )
+    if ( open( AbstractSocket::STREAM_TYPE )
          && bind( 0 )
-         && setAddr( hostname, port )
+         && setPeerAddress( hostname, port )
          && connectToPresetAddr() != -1 )
     {
         return;
@@ -62,6 +82,7 @@ TCPSocket::TCPSocket( const char * hostname,
 */
 TCPSocket::~TCPSocket()
 {
+
 }
 
 /*-------------------------------------------------------------------*/
@@ -71,29 +92,50 @@ TCPSocket::~TCPSocket()
 int
 TCPSocket::connect()
 {
-    return BasicSocket::connectToPresetAddr();
+    return AbstractSocket::connectToPresetAddr();
+}
+
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+int
+TCPSocket::writeToStream( const char * msg,
+                          const size_t len )
+{
+    int n = ::send( fd(), msg, len, 0 );
+
+    if ( n == -1 )
+    {
+        std::perror( "send" );
+    }
+
+    return n;
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 int
-TCPSocket::send( const char * data,
-                 const std::size_t len )
+TCPSocket::readFromStream( char * buf,
+                           const size_t len )
 {
-    return BasicSocket::writeToStream( data, len );
-}
+    int n = ::recv( fd(), buf, len, 0 );
+    //std::cerr << "receive: " << n << " bytes" << std::endl;
+    if ( n == -1 )
+    {
+        if ( errno == EWOULDBLOCK )
+        {
+            return 0;
+        }
 
-/*-------------------------------------------------------------------*/
-/*!
+        std::perror( "recv" );
+        return -1;
+    }
 
-*/
-int
-TCPSocket::receive( char * buf,
-                    std::size_t len )
-{
-    return BasicSocket::readFromStream( buf, len );
+    return n;
 }
 
 } // end namespace

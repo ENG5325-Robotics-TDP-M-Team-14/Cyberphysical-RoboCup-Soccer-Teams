@@ -46,6 +46,7 @@ class Rect2D;
 class Polygon2D
     : public Region2D {
 private:
+    //! the set of vertex
     std::vector< Vector2D > M_vertices;
 
 public:
@@ -89,6 +90,13 @@ public:
       {
           return M_vertices;
       }
+
+    /*!
+      \brief get area of this polygon
+      \return value of area with sign.
+    */
+    virtual
+    double area() const;
 
     /*!
       \brief check point is in this polygon or not. the point on segment lines is allowed.
@@ -137,13 +145,6 @@ public:
     */
     double dist( const Vector2D & p,
                  const bool check_as_plane = true ) const;
-
-    /*!
-      \brief get area of this polygon
-      \return value of area with sign.
-    */
-    virtual
-    double area() const;
 
     /*!
       \brief calculate doubled signed area value

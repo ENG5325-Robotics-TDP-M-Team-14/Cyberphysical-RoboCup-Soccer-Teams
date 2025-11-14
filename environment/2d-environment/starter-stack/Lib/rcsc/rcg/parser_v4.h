@@ -53,7 +53,7 @@ public:
       \return version number
      */
     virtual
-    int version() const
+    int version() const override
       {
           return REC_VERSION_4;
       }
@@ -67,7 +67,7 @@ public:
     */
     virtual
     bool parse( std::istream & is,
-                Handler & handler ) const;
+                Handler & handler ) const override;
 
     /*!
       \brief parse data line.
@@ -110,6 +110,16 @@ protected:
     bool parseMsg( const int n_line,
                    const std::string & line,
                    Handler & handler ) const;
+
+    /*!
+      \brief parse team_graphic information in msg
+      \param msg message body in msg information
+      \param handler handler object
+      \return result status
+     */
+    bool parseTeamGraphic( const int n_line,
+                           const std::string & msg,
+                           Handler & handler ) const;
 
     /*!
       \brief parse PM_MODE info(playmode)

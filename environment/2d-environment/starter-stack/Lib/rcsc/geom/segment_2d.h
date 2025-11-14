@@ -53,7 +53,7 @@ private:
     Vector2D M_terminal; //!< terminal point
 
     //! not used
-    Segment2D();
+    Segment2D() = delete;
 
     bool checkIntersectsOnLine( const Vector2D & p ) const;
 
@@ -76,10 +76,10 @@ public:
       \param terminal_x 2nd point y value of segment edge
       \param terminal_y 2nd point y value of segment edge
      */
-    Segment2D( const double & origin_x,
-               const double & origin_y,
-               const double & terminal_x,
-               const double & terminal_y )
+    Segment2D( const double origin_x,
+               const double origin_y,
+               const double terminal_x,
+               const double terminal_y )
         : M_origin( origin_x, origin_y ),
           M_terminal( terminal_x, terminal_y )
       { }
@@ -91,7 +91,7 @@ public:
       \param dir line direction from origin point
      */
     Segment2D( const Vector2D & origin,
-               const double & length,
+               const double length,
                const AngleDeg & dir )
         : M_origin( origin ),
           M_terminal( origin + Vector2D::from_polar( length, dir ) )
@@ -103,9 +103,8 @@ public:
       \param terminal second point
       \return const reference to this object
     */
-    const
-    Segment2D & assign( const Vector2D & origin,
-                        const Vector2D & terminal )
+    const Segment2D & assign( const Vector2D & origin,
+                              const Vector2D & terminal )
       {
           M_origin = origin;
           M_terminal = terminal;
@@ -120,11 +119,10 @@ public:
       \param terminal_y 2nd point y value of segment edge
       \return const reference to this object
     */
-    const
-    Segment2D & assign( const double & origin_x,
-                        const double & origin_y,
-                        const double & terminal_x,
-                        const double & terminal_y )
+    const Segment2D & assign( const double origin_x,
+                              const double origin_y,
+                              const double terminal_x,
+                              const double terminal_y )
       {
           M_origin.assign( origin_x, origin_y );
           M_terminal.assign( terminal_x, terminal_y );
@@ -138,10 +136,9 @@ public:
       \param dir line direction from origin point
       \return const reference to this object
     */
-    const
-    Segment2D & assign( const Vector2D & origin,
-                        const double & length,
-                        const AngleDeg & dir )
+    const Segment2D & assign( const Vector2D & origin,
+                              const double length,
+                              const AngleDeg & dir )
       {
           M_origin = origin;
           M_terminal = origin + Vector2D::from_polar( length, dir );
@@ -162,8 +159,7 @@ public:
       \brief get 1st point of segment edge
       \return const reference to the vector object
     */
-    const
-    Vector2D & origin() const
+    const Vector2D & origin() const
       {
           return M_origin;
       }
@@ -172,8 +168,7 @@ public:
       \brief get 2nd point of segment edge
       \return const reference to the vector object
     */
-    const
-    Vector2D & terminal() const
+    const Vector2D & terminal() const
       {
           return M_terminal;
       }
@@ -211,8 +206,7 @@ public:
       \brief swap segment edge point
       \return const reference to this object
     */
-    const
-    Segment2D & swap()
+    const Segment2D & swap()
       {
           // std::swap( M_origin, M_terminal );
           Vector2D tmp = M_origin;
@@ -225,8 +219,7 @@ public:
       \brief swap segment edge point. This method is equivalent to swap(), provided for convenience.
       \return const reference to this object
     */
-    const
-    Segment2D & reverse()
+    const Segment2D & reverse()
       {
           return swap();
       }

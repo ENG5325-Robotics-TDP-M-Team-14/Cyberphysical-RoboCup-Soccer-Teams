@@ -39,8 +39,10 @@
 #include "server_param.h"
 #include "stamina_model.h"
 
+#include <rcsc/rcg/types.h>
 #include <rcsc/rcg/util.h>
 
+#include <random>
 #include <sstream>
 #include <iostream>
 #include <algorithm>
@@ -48,6 +50,54 @@
 #include <cstdio>
 #include <cstring>
 #include <cmath>
+#include <ctime>
+
+namespace {
+
+class HeteroDelta {
+private:
+    std::mt19937 M_engine;
+
+public:
+
+    explicit
+    HeteroDelta( const int seed = -1 )
+      {
+          if ( seed >= 0 )
+          {
+              std::cout << "Using given Hetero Player Seed: "
+                        << seed << std::endl;
+              M_engine.seed( seed );
+          }
+          else
+          {
+              std::random_device seed_gen;
+              std::random_device::result_type s = seed_gen();
+              std::cout << "Hetero Player Seed: " << s << std::endl;
+              M_engine.seed( s );
+          }
+      }
+
+    double operator()( double min,
+                       double max )
+      {
+          if ( min == max )
+          {
+              return min;
+          }
+
+          if ( min > max )
+          {
+              std::swap( min, max );
+          }
+
+          // std::uniform_real_distribution< double > dst( min, max );
+          // return dst( M_engine );
+          return std::uniform_real_distribution< double >( min, max )( M_engine );
+      }
+};
+
+}
 
 namespace rcsc {
 
@@ -60,6 +110,17 @@ PlayerType::PlayerType()
 {
     setDefault();
     initAdditionalParams();
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+PlayerType::PlayerType( const PlayerType & other,
+                        const int id )
+{
+    *this = other;
+    M_id = id;
 }
 
 /*-------------------------------------------------------------------*/
@@ -117,6 +178,151 @@ PlayerType::PlayerType( const rcg::player_type_t & from )
 /*!
 
 */
+PlayerType::PlayerType( const rcg::PlayerTypeT & from )
+    : M_id( Hetero_Unknown )
+{
+    setDefault();
+
+    M_id = from.id_;
+    M_player_speed_max = from.player_speed_max_;
+    M_stamina_inc_max = from.stamina_inc_max_;
+    M_player_decay = from.player_decay_;
+    M_inertia_moment = from.inertia_moment_;
+    M_dash_power_rate = from.dash_power_rate_;
+    M_player_size = from.player_size_;
+    M_kickable_margin = from.kickable_margin_;
+    M_kick_rand = from.kick_rand_;
+    M_extra_stamina = from.extra_stamina_;
+    M_effort_max = from.effort_max_;
+    M_effort_min = from.effort_min_;
+
+    M_kick_power_rate = from.kick_power_rate_;
+    M_foul_detect_probability = from.foul_detect_probability_;
+    M_catchable_area_l_stretch = from.catchable_area_l_stretch_;
+
+    M_unum_far_length = from.unum_far_length_;
+    M_unum_too_far_length = from.unum_too_far_length_;
+    M_team_far_length = from.team_far_length_;
+    M_team_too_far_length = from.team_too_far_length_;
+    M_player_max_observation_length = from.player_max_observation_length_;
+    M_ball_vel_far_length = from.ball_vel_far_length_;
+    M_ball_vel_too_far_length = from.ball_vel_too_far_length_;
+    M_ball_max_observation_length = from.ball_max_observation_length_;
+    M_flag_chg_far_length = from.flag_chg_far_length_;
+    M_flag_chg_too_far_length = from.flag_chg_too_far_length_;
+    M_flag_max_observation_length = from.flag_max_observation_length_;
+
+    M_dist_noise_rate = from.dist_noise_rate_;
+    M_focus_dist_noise_rate = from.focus_dist_noise_rate_;
+    M_land_dist_noise_rate = from.land_dist_noise_rate_;
+    M_land_focus_dist_noise_rate = from.land_focus_dist_noise_rate_;
+
+    initAdditionalParams();
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+template< typename DeltaFunc >
+PlayerType::PlayerType( const int id,
+                        DeltaFunc & delta )
+    : M_id( id )
+{
+    const int MAX_TRIAL = 1000;
+
+    const ServerParam & SP = ServerParam::instance();
+    const PlayerParam & PP = PlayerParam::instance();
+
+    int trial = 0;
+    while ( ++trial <= MAX_TRIAL )
+    {
+        // trade-off player_speed_max with stamina_inc_max (actually unused)
+        double tmp_delta = delta( PP.playerSpeedMaxDeltaMin(),
+                                  PP.playerSpeedMaxDeltaMax() );
+        M_player_speed_max = SP.defaultPlayerSpeedMax() + tmp_delta;
+        if ( M_player_speed_max <= 0.0 ) continue;
+        M_stamina_inc_max = SP.defaultStaminaIncMax() + tmp_delta * PP.staminaIncMaxDeltaFactor();
+        if ( M_stamina_inc_max <= 0.0 ) continue;
+
+        // trade-off player_decay with inertia_moment
+        tmp_delta = delta( PP.playerDecayDeltaMin(),
+                           PP.playerDecayDeltaMax() );
+        M_player_decay = SP.defaultPlayerDecay() + tmp_delta;
+        if ( M_player_decay <= 0.0 ) continue;
+        M_inertia_moment = SP.defaultInertiaMoment() + tmp_delta * PP.inertiaMomentDeltaFactor();
+        if ( M_inertia_moment < 0.0 ) continue;
+
+        // trade-off dash_power_rate with player_size (actually unused)
+        tmp_delta = delta( PP.dashPowerRateDeltaMin(),
+                           PP.dashPowerRateDeltaMax() );
+        M_dash_power_rate = SP.defaultDashPowerRate() + tmp_delta;
+        if ( M_dash_power_rate <= 0.0 ) continue;
+        M_player_size = SP.defaultPlayerSize() + tmp_delta * PP.playerSizeDeltaFactor();
+        if ( M_player_size <= 0.0 ) continue;
+
+        // trade-off stamina_inc_max with dash_power_rate
+        tmp_delta = delta( PP.newDashPowerRateDeltaMin(),
+                           PP.newDashPowerRateDeltaMax() );
+        M_dash_power_rate = SP.defaultDashPowerRate() + tmp_delta;
+        if ( M_dash_power_rate <= 0.0 ) continue;
+        M_stamina_inc_max = SP.defaultStaminaIncMax() + tmp_delta * PP.newStaminaIncMaxDeltaFactor();
+        if ( M_stamina_inc_max <= 0.0 ) continue;
+
+        // trade-off kickable_margin with kick_rand
+        tmp_delta = delta( PP.kickableMarginDeltaMin(),
+                           PP.kickableMarginDeltaMax() );
+        M_kickable_margin = SP.defaultKickableMargin() + tmp_delta;
+        if ( M_kickable_margin <= 0.0 ) continue;
+        M_kick_rand = SP.defaultKickRand() + tmp_delta * PP.kickRandDeltaFactor();
+        if ( M_kick_rand < 0.0 ) continue;
+
+        // trade-off extra_stamina with effort_{min,max}
+        tmp_delta = delta( PP.extraStaminaDeltaMin(),
+                           PP.extraStaminaDeltaMax() );
+        M_extra_stamina = SP.defaultExtraStamina() + tmp_delta;
+        if ( M_extra_stamina < 0.0 ) continue;
+        M_effort_max = SP.effortInit() + tmp_delta * PP.effortMaxDeltaFactor();
+        M_effort_min = SP.defaultEffortMin()  + tmp_delta * PP.effortMinDeltaFactor();
+        if ( M_effort_max <= 0.0 ) continue;
+        if ( M_effort_min <= 0.0 ) continue;
+
+        // v14
+        // trade-off kick_power_rate with foul_detect_probability
+        tmp_delta = delta( PP.kickPowerRateDeltaMin(),
+                           PP.kickPowerRateDeltaMax() );
+        M_kick_power_rate = SP.kickPowerRate() + tmp_delta;
+        M_foul_detect_probability = SP.foulDetectProbability()
+            + tmp_delta * PP.foulDetectProbabilityDeltaFactor();
+
+        // trade-off catchable_area_l with catch probability
+        tmp_delta = delta( PP.catchAreaLengthStretchMin(),
+                           PP.catchAreaLengthStretchMax() );
+        M_catchable_area_l_stretch = tmp_delta;
+
+        //
+        double real_speed_max
+            = ( SP.maxPower() * M_dash_power_rate * M_effort_max )
+            / ( 1.0 - M_player_decay );
+        if ( SP.playerSpeedMaxMin() - EPS < real_speed_max
+             && real_speed_max < M_player_speed_max + EPS )
+        {
+            break;
+        }
+    }
+
+    std::cout << "HeteroPlayer creation trial = " << trial << std::endl;
+
+    if ( trial > MAX_TRIAL )
+    {
+        std::cout << "HeteroPlayer set default parameters." << std::endl;
+        setDefault();
+    }
+
+    initAdditionalParams();
+}
+
+/*-------------------------------------------------------------------*/
 void
 PlayerType::convertTo( rcg::player_type_t & to ) const
 {
@@ -139,11 +345,47 @@ PlayerType::convertTo( rcg::player_type_t & to ) const
 }
 
 /*-------------------------------------------------------------------*/
-/*!
+void
+PlayerType::convertTo( rcg::PlayerTypeT & to ) const
+{
+    to.id_ = M_id;
+    to.player_speed_max_ = M_player_speed_max;
+    to.stamina_inc_max_ = M_stamina_inc_max;
+    to.player_decay_ = M_player_decay;
+    to.inertia_moment_ = M_inertia_moment;
+    to.dash_power_rate_ = M_dash_power_rate;
+    to.player_size_ = M_player_size;
+    to.kickable_margin_ = M_kickable_margin;
+    to.kick_rand_ = M_kick_rand;
+    to.extra_stamina_ = M_extra_stamina;
+    to.effort_max_ = M_effort_max;
+    to.effort_min_ = M_effort_min;
+    // v14
+    to.kick_power_rate_ = M_kick_power_rate;
+    to.foul_detect_probability_ = M_foul_detect_probability;
+    to.catchable_area_l_stretch_ = M_catchable_area_l_stretch;
+    // v18
+    to.unum_far_length_ = M_unum_far_length;
+    to.unum_too_far_length_ = M_unum_too_far_length;
+    to.team_far_length_ = M_team_far_length;
+    to.team_too_far_length_ = M_team_too_far_length;
+    to.player_max_observation_length_ = M_player_max_observation_length;
+    to.ball_vel_far_length_ = M_ball_vel_far_length;
+    to.ball_vel_too_far_length_ = M_ball_vel_too_far_length;
+    to.ball_max_observation_length_ = M_ball_max_observation_length;
+    to.flag_chg_far_length_ = M_flag_chg_far_length;
+    to.flag_chg_too_far_length_ = M_flag_chg_too_far_length;
+    to.flag_max_observation_length_ = M_flag_max_observation_length;
+    // v19
+    to.dist_noise_rate_ = M_dist_noise_rate;
+    to.focus_dist_noise_rate_ = M_focus_dist_noise_rate;
+    to.land_dist_noise_rate_ = M_land_dist_noise_rate;
+    to.land_focus_dist_noise_rate_= M_land_focus_dist_noise_rate;
+}
 
-*/
+/*-------------------------------------------------------------------*/
 std::string
-PlayerType::toStr() const
+PlayerType::toServerString() const
 {
     std::ostringstream os;
 
@@ -163,6 +405,21 @@ PlayerType::toStr() const
        << "(kick_power_rate " << M_kick_power_rate << ')'
        << "(foul_detect_probability " << M_foul_detect_probability << ')'
        << "(catchable_area_l_stretch " << M_catchable_area_l_stretch << ')'
+       << "(unum_far_length " <<  M_unum_far_length << ')'
+       << "(unum_too_far_length " << M_unum_too_far_length << ')'
+       << "(team_far_length " << M_team_far_length << ')'
+       << "(team_too_far_length " << M_team_too_far_length << ')'
+       << "(player_max_observation_length " << M_player_max_observation_length << ')'
+       << "(ball_vel_far_length " << M_ball_vel_far_length << ')'
+       << "(ball_vel_too_far_length " << M_ball_vel_too_far_length << ')'
+       << "(ball_max_observation_length " << M_ball_max_observation_length << ')'
+       << "(flag_chg_far_length " << M_flag_chg_far_length << ')'
+       << "(flag_chg_too_far_length " << M_flag_chg_too_far_length << ')'
+       << "(flag_max_observation_length " << M_flag_max_observation_length << ')'
+       << "(dist_noise_rate " << distNoiseRate() << ')'
+       << "(focus_dist_noise_rate " << focusDistNoiseRate() << ')'
+       << "(land_dist_noise_rate " << landDistNoiseRate() << ')'
+       << "(land_focus_dist_noise_rate " << landFocusDistNoiseRate() << ')'
        << ')';
 
     return os.str();
@@ -191,6 +448,27 @@ PlayerType::setDefault()
     M_kick_power_rate = SP.kickPowerRate();
     M_foul_detect_probability = SP.foulDetectProbability();
     M_catchable_area_l_stretch = 1.0;
+
+    const double maximum_dist_in_pitch = std::sqrt( std::pow( ServerParam::DEFAULT_PITCH_LENGTH, 2 )
+                                                    + std::pow( ServerParam::DEFAULT_PITCH_WIDTH, 2 ) );
+    // v18
+    M_unum_far_length = 20.0;
+    M_unum_too_far_length = 40.0;
+    M_team_far_length = maximum_dist_in_pitch;
+    M_team_too_far_length = maximum_dist_in_pitch;
+    M_player_max_observation_length = maximum_dist_in_pitch;
+    M_ball_vel_far_length = 20.0;
+    M_ball_vel_too_far_length = 40.0;
+    M_ball_max_observation_length = maximum_dist_in_pitch;
+    M_flag_chg_far_length = 20.0;
+    M_flag_chg_too_far_length = 40.0;
+    M_flag_max_observation_length = maximum_dist_in_pitch;
+
+    // v19
+    M_dist_noise_rate = SP.distNoiseRate();
+    M_focus_dist_noise_rate = SP.focusDistNoiseRate();
+    M_land_dist_noise_rate = SP.landDistNoiseRate();
+    M_land_focus_dist_noise_rate = SP.landFocusDistNoiseRate();
 }
 
 /*-------------------------------------------------------------------*/
@@ -221,11 +499,11 @@ PlayerType::parseV8( const char * msg )
     if ( std::sscanf( msg, " ( player_type ( %s %d ) %n ",
                       name, &id, &n_read ) != 2
          || n_read == 0
+         || std::strcmp( name, "id" ) != 0
          || id < 0 )
     {
-        std::cerr << "PlayerType id read error. "
-                  << msg
-                  << std::endl;
+        std::cerr << "(PlayerType::parseV8) "
+                  << "ERROR: could not read the id value " << msg << std::endl;
         return;
     }
     msg += n_read;
@@ -240,8 +518,8 @@ PlayerType::parseV8( const char * msg )
                           name, &val, &n_read ) != 2
              || n_read == 0 )
         {
-            std::cerr << "PlayerType parameter read error: "
-                      << msg << std::endl;
+            std::cerr << "(PlayerType::parseV8) "
+                      << " ERROR: illegal parameter format " << msg << std::endl;
             break;
         }
         msg += n_read;
@@ -302,9 +580,70 @@ PlayerType::parseV8( const char * msg )
         {
             M_catchable_area_l_stretch = val;
         }
+        else if ( ! std::strcmp( name, "unum_far_length" ) )
+        {
+            M_unum_far_length = val;
+        }
+        else if ( ! std::strcmp( name, "unum_too_far_length" ) )
+        {
+            M_unum_too_far_length = val;
+        }
+        else if ( ! std::strcmp( name, "team_far_length" ) )
+        {
+            M_team_far_length = val;
+        }
+        else if ( ! std::strcmp( name, "team_too_far_length" ) )
+        {
+            M_team_too_far_length = val;
+        }
+        else if ( ! std::strcmp( name, "player_max_observation_length" ) )
+        {
+            M_player_max_observation_length = val;
+        }
+        else if ( ! std::strcmp( name, "ball_vel_far_length" ) )
+        {
+            M_ball_vel_far_length = val;
+        }
+        else if ( ! std::strcmp( name, "ball_vel_too_far_length" ) )
+        {
+            M_ball_vel_too_far_length = val;
+        }
+        else if ( ! std::strcmp( name, "ball_max_observation_length" ) )
+        {
+            M_ball_max_observation_length = val;
+        }
+        else if ( ! std::strcmp( name, "flag_chg_far_length" ) )
+        {
+            M_flag_chg_far_length = val;
+        }
+        else if ( ! std::strcmp( name, "flag_chg_too_far_length" ) )
+        {
+            M_flag_chg_too_far_length = val;
+        }
+        else if ( ! std::strcmp( name, "flag_max_observation_length" ) )
+        {
+            M_flag_max_observation_length = val;
+        }
+        else if ( ! std::strcmp( name, "dist_noise_rate" ) )
+        {
+            M_dist_noise_rate = val;
+        }
+        else if ( ! std::strcmp( name, "focus_dist_noise_rate" ) )
+        {
+            M_focus_dist_noise_rate = val;
+        }
+        else if ( ! std::strcmp( name, "land_dist_noise_rate" ) )
+        {
+            M_land_dist_noise_rate = val;
+        }
+        else if ( ! std::strcmp( name, "land_focus_dist_noise_rate" ) )
+        {
+            M_land_focus_dist_noise_rate = val;
+        }
         else
         {
-            std::cerr << "player_type: param name error " << msg << std::endl;
+            std::cerr << "(PlayerType::parseV8) "
+                      << " ERROR: unsupported parameter name " << name << std::endl;
             break;
         }
 
@@ -344,22 +683,22 @@ PlayerType::parseV7( const char * msg )
       }
     */
 
-    std::istringstream msg_strm( msg );
+    std::istringstream istr( msg );
     std::string tmp;
 
-    msg_strm >> tmp // skip "(player_type"
-             >> M_id
-             >> M_player_speed_max
-             >> M_stamina_inc_max
-             >> M_player_decay
-             >> M_inertia_moment
-             >> M_dash_power_rate
-             >> M_player_size
-             >> M_kickable_margin
-             >> M_kick_rand
-             >> M_extra_stamina
-             >> M_effort_max
-             >> M_effort_min;
+    istr >> tmp // skip "(player_type"
+         >> M_id
+         >> M_player_speed_max
+         >> M_stamina_inc_max
+         >> M_player_decay
+         >> M_inertia_moment
+         >> M_dash_power_rate
+         >> M_player_size
+         >> M_kickable_margin
+         >> M_kick_rand
+         >> M_extra_stamina
+         >> M_effort_max
+         >> M_effort_min;
 }
 
 /*-------------------------------------------------------------------*/
@@ -374,9 +713,8 @@ PlayerType::initAdditionalParams()
     M_kickable_area = playerSize() + kickableMargin() + SP.ballSize();
 
     /////////////////////////////////////////////////////////////////////
-    const double catch_stretch_length_x = ( catchAreaLengthStretch() - 1.0 ) * SP.catchAreaLength();
-    const double catch_length_min_x = SP.catchAreaLength() - catch_stretch_length_x;
-    const double catch_length_max_x = SP.catchAreaLength() + catch_stretch_length_x;
+    const double catch_length_min_x = reliableCatchLength();
+    const double catch_length_max_x = maxCatchLength();
 
     const double catch_half_width2 = std::pow( SP.catchAreaWidth() / 2.0, 2 );
 
@@ -445,21 +783,36 @@ PlayerType::initAdditionalParams()
 }
 
 /*-------------------------------------------------------------------*/
+double
+PlayerType::maxCatchLength() const
+{
+    return catchAreaLengthStretch() * ServerParam::i().catchAreaLength();
+}
+
+/*-------------------------------------------------------------------*/
+double
+PlayerType::reliableCatchLength() const
+{
+    ///return ServerParam::i().catchAreaLength() - ( catchAreaLengthStretch() - 1.0 ) * ServerParam::i().catchAreaLength();
+    return ( 2.0 - catchAreaLengthStretch() ) * ServerParam::i().catchAreaLength();
+}
+
+/*-------------------------------------------------------------------*/
 /*!
 
 */
-double
-PlayerType::reliableCatchableDist() const
-{
-    if ( ServerParam::i().catchProbability() < 1.0 )
-    {
-        return 0.0;
-    }
-    else
-    {
-        return M_reliable_catchable_dist;
-    }
-}
+// double
+// PlayerType::reliableCatchableDist() const
+// {
+//     if ( ServerParam::i().catchProbability() < 1.0 )
+//     {
+//         return 0.0;
+//     }
+//     else
+//     {
+//         return M_reliable_catchable_dist;
+//     }
+// }
 
 /*-------------------------------------------------------------------*/
 /*!
@@ -470,15 +823,15 @@ PlayerType::reliableCatchableDist( const double prob ) const
 {
     if ( prob > 1.0 )
     {
-        std::cerr << "internal error at PlayerType::reliableCatchableDist(): "
-                  << "probability " << prob << " too big" << std::endl;
+        std::cerr << __FILE__ << ":(PlayerType::reliableCatchableDist) "
+                  << "ERROR: probability " << prob << " too big" << std::endl;
 
         return reliableCatchableDist();
     }
     else if ( prob < 0.0 )
     {
-        std::cerr << "internal error at PlayerType::reliableCatchableDist(): "
-                  << "probability " << prob << " too small" << std::endl;
+        std::cerr << __FILE__ << ":(PlayerType::reliableCatchableDist) "
+                  << "ERROR: probability " << prob << " too small" << std::endl;
 
         return maxCatchableDist();
     }
@@ -491,8 +844,8 @@ PlayerType::reliableCatchableDist( const double prob ) const
         return 0.0;
     }
 
-    const double catch_stretch_length_x = ( catchAreaLengthStretch() - 1.0 ) * SP.catchAreaLength();
-    const double catch_length_min_x = SP.catchAreaLength() - catch_stretch_length_x;
+    const double catch_stretch_length_x = ( catchAreaLengthStretch() - 1.0 ) * ServerParam::i().catchAreaLength();
+    const double catch_length_min_x = reliableCatchLength();
 
     const double dist_x = catch_length_min_x + ( catch_stretch_length_x * 2.0 * ( 1.0 - target_prob ) );
 
@@ -500,6 +853,7 @@ PlayerType::reliableCatchableDist( const double prob ) const
                                               + std::pow( SP.catchAreaWidth() / 2.0, 2 ) );
     return diagonal_length;
 }
+
 /*-------------------------------------------------------------------*/
 /*!
 
@@ -513,8 +867,8 @@ PlayerType::getCatchProbability( const double dist ) const
     {
         if ( dist < 0.0 )
         {
-            std::cerr << "internal error at PlayerType::getCatchProbability(dist): negative distance "
-                      << dist << std::endl;
+            std::cerr << __FILE__ << ":(PlayerType::getCatchProbability) "
+                      << "ERROR: negative distance value " << dist << std::endl;
         }
 
         return SP.catchProbability();
@@ -535,7 +889,123 @@ PlayerType::getCatchProbability( const double dist ) const
     return ( 1.0 - fail_prob ) * SP.catchProbability();
 }
 
+/*-------------------------------------------------------------------*/
+double
+PlayerType::getCatchProbability( const Vector2D & player_pos,
+                                 const AngleDeg & player_body,
+                                 const Vector2D & ball_pos,
+                                 const double dist_buf,
+                                 const double dir_buf ) const
+{
+    const Vector2D ball_rel = ( ball_pos - player_pos ).rotatedVector( -player_body );
+    const double ball_dist = ball_rel.r();
+    const AngleDeg ball_dir = ball_rel.th();
 
+    //
+    // check the reliable region
+    //
+
+    // check the angle and the distrance to the ball
+    {
+        const double reliable_diagonal_angle = AngleDeg::atan2_deg( ServerParam::i().catchAreaWidth() * 0.5, reliableCatchLength() );
+        //const double reliable_min_angle = ServerParam::i().minCatchAngle() - diagonal_angle;
+        const double reliable_max_angle = ServerParam::i().maxCatchAngle() + reliable_diagonal_angle;
+
+        // catable in any direction
+        if ( reliable_max_angle > 180.0 )
+        {
+            return getCatchProbability( ball_dist + dist_buf );
+        }
+
+        // ball is within the reliable arc
+        if ( -reliable_max_angle + dir_buf < ball_dir.degree()
+             && ball_dir.degree() < reliable_max_angle - dir_buf
+             && ball_dist < reliableCatchableDist() - dist_buf )
+        {
+            return ServerParam::i().catchProbability();
+        }
+    }
+
+    // check the rectangle at min/max angle
+    {
+        const Vector2D ball_rel_min_angle = ball_rel.rotatedVector( -ServerParam::i().minCatchAngle() );
+        if ( 0.0 <= ball_rel_min_angle.x
+             && ball_rel_min_angle.x < reliableCatchLength() - dist_buf
+             && ball_rel_min_angle.absY() < ServerParam::i().catchAreaWidth() * 0.5 - dist_buf )
+        {
+            return ServerParam::i().catchProbability();
+        }
+    }
+    {
+        const Vector2D ball_rel_max_angle = ball_rel.rotatedVector( -ServerParam::i().maxCatchAngle() );
+        if ( 0.0 <= ball_rel_max_angle.x
+             && ball_rel_max_angle.x < reliableCatchLength() - dist_buf
+             && ball_rel_max_angle.absY() < ServerParam::i().catchAreaWidth() * 0.5 - dist_buf )
+        {
+            return ServerParam::i().catchProbability();
+        }
+    }
+
+    //
+    // check the unreliable region
+    //
+
+    // check the angle and the distrance to the ball
+    {
+        const double unreliable_diagonal_angle = AngleDeg::atan2_deg( ServerParam::i().catchAreaWidth() * 0.5, maxCatchLength() );
+        const double unreliable_max_angle = ServerParam::i().maxCatchAngle() + unreliable_diagonal_angle;
+
+        // catable in any direction
+        if ( unreliable_max_angle > 180.0 )
+        {
+            return getCatchProbability( ball_dist + dist_buf );
+        }
+
+        // ball is within the unreliable arc
+        if ( -unreliable_max_angle + dir_buf < ball_dir.degree()
+             && ball_dir.degree() < unreliable_max_angle - dir_buf
+             && ball_dist < maxCatchableDist() - dist_buf )
+        {
+            return getCatchProbability( ball_dist + dist_buf );
+        }
+    }
+
+    // check the rectangle at min/max angle
+    {
+        const Vector2D ball_rel_min_angle = ball_rel.rotatedVector( -ServerParam::i().minCatchAngle() );
+        if ( 0.0 <= ball_rel_min_angle.x
+             && ball_rel_min_angle.x < maxCatchLength() - dist_buf
+             && ball_rel_min_angle.absY() < ServerParam::i().catchAreaWidth() * 0.5 - dist_buf )
+        {
+            const double catch_stretch_length_x = ( catchAreaLengthStretch() - 1.0 ) * ServerParam::i().catchAreaLength();
+            const double catch_length_min_x = ServerParam::i().catchAreaLength() - catch_stretch_length_x;
+            const double fail_prob = ( ball_rel_min_angle.x - catch_length_min_x + dist_buf ) / ( catch_stretch_length_x * 2.0 );
+            return ( fail_prob < 0.0
+                     ? ServerParam::i().catchProbability()
+                     : fail_prob > 1.0
+                     ? 0.0
+                     : ( 1.0 - fail_prob ) * ServerParam::i().catchProbability() );
+        }
+    }
+    {
+        const Vector2D ball_rel_max_angle = ball_rel.rotatedVector( -ServerParam::i().maxCatchAngle() );
+        if ( 0.0 <= ball_rel_max_angle.x
+             && ball_rel_max_angle.x < maxCatchLength() - dist_buf
+             && ball_rel_max_angle.absY() < ServerParam::i().catchAreaWidth() * 0.5 - dist_buf )
+        {
+            const double catch_stretch_length_x = ( catchAreaLengthStretch() - 1.0 ) * ServerParam::i().catchAreaLength();
+            const double catch_length_min_x = ServerParam::i().catchAreaLength() - catch_stretch_length_x;
+            const double fail_prob = ( ball_rel_max_angle.x - catch_length_min_x ) / ( catch_stretch_length_x * 2.0 );
+            return ( fail_prob < 0.0
+                     ? ServerParam::i().catchProbability()
+                     : fail_prob > 1.0
+                     ? 0.0
+                     : ( 1.0 - fail_prob ) * ServerParam::i().catchProbability() );
+        }
+    }
+
+    return 0.0;
+}
 
 /*-------------------------------------------------------------------*/
 /*!
@@ -665,6 +1135,25 @@ PlayerType::cyclesToReachDistance( const double & dash_dist ) const
 }
 
 /*-------------------------------------------------------------------*/
+double
+PlayerType::getMovableDistance( const size_t step ) const
+{
+    if ( step == 0 )
+    {
+        return 0.0;
+    }
+
+    size_t index = step - 1;
+    if ( index >= M_dash_distance_table.size() )
+    {
+        return M_dash_distance_table.back()
+            + realSpeedMax() * ( index - M_dash_distance_table.size() + 1 );
+    }
+
+    return M_dash_distance_table[index];
+}
+
+/*-------------------------------------------------------------------*/
 /*!
 
 */
@@ -705,6 +1194,67 @@ PlayerType::dashRate( const double & effort,
                       const double & rel_dir ) const
 {
     return dashRate( effort ) * ServerParam::i().dashDirRate( rel_dir );
+}
+
+/*-------------------------------------------------------------------*/
+double
+PlayerType::getBipedalRotation( const double dash_power_left,
+                                const double dash_dir_left,
+                                const double dash_power_right,
+                                const double dash_dir_right,
+                                const double effort ) const
+{
+    const ServerParam & SP = ServerParam::i();
+
+    const Vector2D accel_left
+        = Vector2D::from_polar( SP.normalizeDashPower( dash_power_left ) * dashRate( effort, dash_dir_left ),
+                                SP.discretizeDashAngle( dash_dir_left ) );
+    const Vector2D accel_right
+        = Vector2D::from_polar( SP.normalizeDashPower( dash_power_right ) * dashRate( effort, dash_dir_right ),
+                                SP.discretizeDashAngle( dash_dir_right ) );
+
+    return AngleDeg::normalize_angle( AngleDeg::RAD2DEG * ( accel_left.x - accel_right.x ) / ( playerSize() * 2.0 ) );
+}
+
+/*-------------------------------------------------------------------*/
+double
+PlayerType::getBipedalRotation( const double dash_power_backward,
+                                const double effort ) const
+{
+    // the magnitude of the forward accel must be same as the backward one.
+    const double accel = ServerParam::i().normalizeDashPower( dash_power_backward )
+        * dashRate( effort )
+        * ServerParam::i().backDashRate();
+    // the difference between the forward accel and the backward one is the twile of the backword accel
+    return AngleDeg::normalize_angle( AngleDeg::RAD2DEG * ( accel * 2.0 ) / ( playerSize() * 2.0 ) );
+}
+
+/*-------------------------------------------------------------------*/
+std::pair< double, double >
+PlayerType::getBipedalPowers( const AngleDeg & rotation,
+                              const double effort ) const
+{
+    /*
+      (accel_outer + accel_inner) / (player_size * 2) = rotation_radian
+      accel_outer + accel_inner = rotation_radian * player_size * 2
+
+      accel_outer = outer_power * dprate * effort
+      accel_inner = inner_power * back_dash_rate * dprate * effort
+
+      outer_power = inner_power * back_dash_rate
+      accel_outer = inner_power * back_dash_rate * dprate * effort
+      accel_inner = inner_power * back_dash_rate * dprate * effort
+
+      2 * accel_inner = rotation_radian * player_size * 2
+      accel_inner = rotation_radian * player_size
+      inner_power * back_dash_rate * dprate * effort = rotation_radian * player_size
+      inner_power = ( rotation_radian * player_size ) / (back_dash_rate * dprate * effort)
+     */
+    const double inner_power
+        = ( std::fabs( rotation.radian() ) * playerSize() )
+        / ( dashRate( effort ) * ServerParam::i().backDashRate() );
+    return std::make_pair( inner_power * ServerParam::i().backDashRate(),
+                           inner_power );
 }
 
 /*-------------------------------------------------------------------*/
@@ -784,7 +1334,6 @@ PlayerType::print( std::ostream & os ) const
 }
 
 
-
 ///////////////////////////////////////////////////////////////////////////////
 
 /*-------------------------------------------------------------------*/
@@ -794,8 +1343,8 @@ PlayerType::print( std::ostream & os ) const
 PlayerTypeSet &
 PlayerTypeSet::instance()
 {
-    static PlayerTypeSet S_instance;
-    return S_instance;
+    static PlayerTypeSet s_instance;
+    return s_instance;
 }
 
 /*-------------------------------------------------------------------*/
@@ -821,11 +1370,40 @@ PlayerTypeSet::~PlayerTypeSet()
 
 */
 void
+PlayerTypeSet::clear()
+{
+    M_player_type_map.clear();
+    resetDefaultType();
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+PlayerTypeSet::generate( const int seed )
+{
+    clear();
+    HeteroDelta delta( seed );
+
+    M_player_type_map.insert( std::make_pair( Hetero_Default, PlayerType() ) );
+    for ( int i = 1; i < PlayerParam::i().playerTypes(); ++i )
+    {
+        M_player_type_map.insert( std::make_pair( i, PlayerType( i, delta ) ) );
+    }
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
 PlayerTypeSet::resetDefaultType()
 {
-    PlayerType default_type;
-    insert( default_type );
-    M_dummy_type = default_type;
+    M_default_type = PlayerType();
+    M_dummy_type = PlayerType( M_default_type, Hetero_Unknown );
+
+    insert( M_default_type );
 }
 
 /*-------------------------------------------------------------------*/
@@ -835,19 +1413,22 @@ PlayerTypeSet::resetDefaultType()
 void
 PlayerTypeSet::insert( const PlayerType & param )
 {
-    if ( static_cast< int >( M_player_type_map.size() )
-         >= PlayerParam::i().playerTypes() )
+    if ( M_player_type_map.find( param.id() ) != M_player_type_map.end() )
     {
-        std::cerr << "# of player type over flow" << std::endl;
-        return;
+        if ( param.id() != Hetero_Default )
+        {
+            std::cerr << __FILE__ << ":(PlayerTypeSet::insert) "
+                      << "WARNING: player type " << param.id()
+                      << " already exists." << std::endl;
+        }
+        M_player_type_map[ param.id() ] = param;
+    }
+    else
+    {
+        M_player_type_map.insert( std::make_pair( param.id(), param ) );
     }
 
-    // insert new type
-    M_player_type_map.insert( std::make_pair( param.id(), param ) );
-
-
-    if ( static_cast< int >( M_player_type_map.size() )
-         == PlayerParam::i().playerTypes() )
+    if ( static_cast< int >( M_player_type_map.size() ) == PlayerParam::i().playerTypes() )
     {
         createDummyType();
     }
@@ -860,18 +1441,19 @@ PlayerTypeSet::insert( const PlayerType & param )
 void
 PlayerTypeSet::createDummyType()
 {
-    for ( PlayerTypeMap::iterator it = M_player_type_map.begin();
-          it != M_player_type_map.end();
+    for ( Map::iterator it = M_player_type_map.begin(),
+              end = M_player_type_map.end();
+          it != end;
           ++it )
     {
         if ( it->second.realSpeedMax() > M_dummy_type.realSpeedMax() )
         {
-            M_dummy_type = it->second;
+            M_dummy_type = PlayerType( it->second, Hetero_Unknown );
         }
         else if ( std::fabs( it->second.realSpeedMax() - M_dummy_type.realSpeedMax() ) < 0.01
                   && it->second.cyclesToReachMaxSpeed() < M_dummy_type.cyclesToReachMaxSpeed() )
         {
-            M_dummy_type = it->second;
+            M_dummy_type = PlayerType( it->second, Hetero_Unknown );
         }
     }
 }
@@ -890,15 +1472,16 @@ PlayerTypeSet::get( const int id ) const
     }
     else
     {
-        PlayerTypeMap::const_iterator it = M_player_type_map.find( id );
+        Map::const_iterator it = M_player_type_map.find( id );
         if ( it != M_player_type_map.end() )
         {
             return &( it->second );
         }
     }
 
-    std::cerr << "PlayerTypeSet: get : player type id error " << id << std::endl;
-    return static_cast< PlayerType * >( 0 );
+    std::cerr << __FILE__ << ":(PlayerTypeSet::get) "
+              << "ERROR: type " << id << " is not registered."<< std::endl;
+    return nullptr;
 }
 
 /*-------------------------------------------------------------------*/
@@ -910,11 +1493,11 @@ PlayerTypeSet::print( std::ostream & os ) const
 {
     os << "All Player Types: n";
 
-    PlayerTypeMap::const_iterator it = M_player_type_map.begin();
-    while ( it != M_player_type_map.end() )
+    for ( Map::const_iterator it = M_player_type_map.begin(), end = M_player_type_map.end();
+          it != end;
+          ++it )
     {
         it->second.print( os );
-        ++it;
     }
     return os;
 }

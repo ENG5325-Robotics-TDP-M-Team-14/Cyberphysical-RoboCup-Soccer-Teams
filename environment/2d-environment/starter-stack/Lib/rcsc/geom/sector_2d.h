@@ -58,7 +58,7 @@ private:
     AngleDeg M_angle_right_end;
 
     //! not used
-    Sector2D();
+    Sector2D() = delete;
 public:
 
     /*!
@@ -70,8 +70,8 @@ public:
       \param end end angle(turn clockwise)
     */
     Sector2D( const Vector2D & c,
-              const double & min_r,
-              const double & max_r,
+              const double min_r,
+              const double max_r,
               const AngleDeg & start,
               const AngleDeg & end );
 
@@ -83,19 +83,17 @@ public:
       \param start start angle(turn clockwise)
       \param end end angle(turn clockwise)
     */
-    const
-    Sector2D & assign( const Vector2D & c,
-                       const double & min_r,
-                       const double & max_r,
-                       const AngleDeg & start,
-                       const AngleDeg & end );
+    const Sector2D & assign( const Vector2D & c,
+                             const double min_r,
+                             const double max_r,
+                             const AngleDeg & start,
+                             const AngleDeg & end );
 
     /*!
       \brief get the center point
       \return const reference to the member variable
      */
-    const
-    Vector2D & center() const
+    const Vector2D & center() const
       {
           return M_center;
       }
@@ -104,8 +102,7 @@ public:
       \brief get the small side radius
       \return const reference to the member variable
      */
-    const
-    double & radiusMin() const
+    double radiusMin() const
       {
           return M_min_radius;
       }
@@ -114,8 +111,7 @@ public:
       \brief get the big side radius
       \return const reference to the member variable
      */
-    const
-    double & radiusMax() const
+    double radiusMax() const
       {
           return M_max_radius;
       }
@@ -124,8 +120,7 @@ public:
       \brief get the left start angle
       \return const reference to the member variable
      */
-    const
-    AngleDeg & angleLeftStart() const
+    const AngleDeg & angleLeftStart() const
       {
           return M_angle_left_start;
       }
@@ -134,8 +129,7 @@ public:
       \brief get the right end angle
       \return const reference to the member variable
      */
-    const
-    AngleDeg & angleRightEnd() const
+    const AngleDeg & angleRightEnd() const
       {
           return M_angle_right_end;
       }

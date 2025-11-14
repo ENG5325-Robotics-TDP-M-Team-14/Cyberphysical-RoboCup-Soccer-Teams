@@ -32,75 +32,14 @@
 #ifndef RCSC_PLAYER_SAY_MESSAGE_BUILDER_H
 #define RCSC_PLAYER_SAY_MESSAGE_BUILDER_H
 
-#include <rcsc/geom/vector_2d.h>
+#include <rcsc/common/say_message.h>
 #include <rcsc/common/say_message_parser.h>
+#include <rcsc/geom/vector_2d.h>
 
 #include <string>
 #include <iostream>
 
 namespace rcsc {
-
-/*-------------------------------------------------------------------*/
-/*!
-  \class SayMessage
-  \brief abstract player's say message encoder
-*/
-class SayMessage {
-private:
-
-    // not used
-    SayMessage( const SayMessage & );
-    SayMessage & operator=( const SayMessage & );
-
-protected:
-
-    /*!
-      \brief protected constructer
-    */
-    SayMessage()
-      { }
-
-public:
-
-    /*!
-      \brief virtual destruct. do nothing.
-    */
-    virtual
-    ~SayMessage()
-      { }
-
-    /*!
-      \brief pure virtual method. get the header character of this message
-      \return header character of this message
-     */
-    virtual
-    char header() const = 0;
-
-    /*!
-      \brief pure virtual method. get the length of this message
-      \return the length of encoded message
-    */
-    virtual
-    int length() const = 0;
-
-    /*!
-      \brief append the audio message to be sent
-      \param to reference to the message string instance
-      \return result status of encoding
-    */
-    virtual
-    bool toStr( std::string & to ) const = 0;
-
-    /*!
-      \brief append the debug message
-      \param os reference to the output stream
-      \return reference to the output stream
-     */
-    virtual
-    std::ostream & printDebug( std::ostream & os ) const = 0;
-
-};
-
 
 /*-------------------------------------------------------------------*/
 /*!
@@ -127,8 +66,8 @@ public:
     */
     BallMessage( const Vector2D & ball_pos,
                  const Vector2D & ball_vel )
-        : M_ball_pos( ball_pos )
-        , M_ball_vel( ball_vel )
+        : M_ball_pos( ball_pos ),
+          M_ball_vel( ball_vel )
       { }
 
     /*!
@@ -164,7 +103,7 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message
@@ -207,10 +146,10 @@ public:
                  const Vector2D & receive_point,
                  const Vector2D & ball_pos,
                  const Vector2D & ball_vel )
-        : M_receiver_unum( receiver_unum )
-        , M_receive_point( receive_point )
-        , M_ball_pos( ball_pos )
-        , M_ball_vel( ball_vel )
+        : M_receiver_unum( receiver_unum ),
+          M_receive_point( receive_point ),
+          M_ball_pos( ball_pos ),
+          M_ball_vel( ball_vel )
       { }
 
     /*!
@@ -246,7 +185,7 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message
@@ -285,9 +224,9 @@ public:
     InterceptMessage( const bool our,
                       const int unum,
                       const int cycle )
-        : M_our( our )
-        , M_unum( unum )
-        , M_cycle( cycle )
+        : M_our( our ),
+          M_unum( unum ),
+          M_cycle( cycle )
       { }
 
     /*!
@@ -323,7 +262,7 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message
@@ -362,9 +301,9 @@ public:
     GoalieMessage( const int goalie_unum,
                    const Vector2D & goalie_pos,
                    const AngleDeg & goalie_body )
-        : M_goalie_unum( goalie_unum )
-        , M_goalie_pos( goalie_pos )
-        , M_goalie_body( goalie_body )
+        : M_goalie_unum( goalie_unum ),
+          M_goalie_pos( goalie_pos ),
+          M_goalie_body( goalie_body )
       { }
 
     /*!
@@ -400,7 +339,7 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message
@@ -486,7 +425,7 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message
@@ -556,7 +495,7 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message
@@ -626,7 +565,7 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message
@@ -691,7 +630,76 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
+
+    /*!
+      \brief append the debug message
+      \param os reference to the output stream
+      \return reference to the output stream
+     */
+    std::ostream & printDebug( std::ostream & os ) const;
+
+};
+
+/*-------------------------------------------------------------------*/
+/*!
+  \class SetplayMessage
+  \brief setplay message encoder
+
+  format:
+  "F<wait:1>"
+  the length of message == 2
+*/
+class SetplayMessage
+    : public SayMessage {
+private:
+
+    int M_wait_step;
+
+public:
+
+    /*!
+      \brief construct with raw information
+    */
+    explicit
+    SetplayMessage( const int wait_step )
+        : M_wait_step( wait_step )
+      { }
+
+    /*!
+      \brief get the header character of this message
+      \return header character of this message
+     */
+    char header() const
+      {
+          return SetplayMessageParser::sheader();
+      }
+
+    /*!
+      \brief get the length of this message.
+      \return the length of encoded message
+    */
+    static
+    int slength()
+      {
+          return SetplayMessageParser::slength();
+      }
+
+    /*!
+      \brief get the length of this message
+      \return the length of encoded message
+    */
+    int length() const
+      {
+          return slength();
+      }
+
+    /*!
+      \brief append this info to the audio message
+      \param to reference to the message string instance
+      \return result status of encoding
+    */
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message
@@ -761,7 +769,7 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message
@@ -831,7 +839,7 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message
@@ -901,7 +909,77 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
+
+    /*!
+      \brief append the debug message
+      \param os reference to the output stream
+      \return reference to the output stream
+     */
+    std::ostream & printDebug( std::ostream & os ) const;
+
+};
+
+/*-------------------------------------------------------------------*/
+/*!
+  \class StaminaCapacityMessage
+  \brief stamina info message encoder
+
+  format:
+  "c<rate:1>"
+  the length of message == 2
+*/
+class StaminaCapacityMessage
+    : public SayMessage {
+private:
+
+    double M_stamina_capacity; //!< raw value
+
+public:
+
+    /*!
+      \brief construct with raw information
+      \param value raw stamina capacity value
+    */
+    explicit
+    StaminaCapacityMessage( const double value )
+        : M_stamina_capacity( value )
+      { }
+
+    /*!
+      \brief get the header character of this message
+      \return header character of this message
+     */
+    char header() const
+      {
+          return StaminaCapacityMessageParser::sheader();
+      }
+
+    /*!
+      \brief get the length of this message.
+      \return the length of encoded message
+    */
+    static
+    int slength()
+      {
+          return StaminaCapacityMessageParser::slength();
+      }
+
+    /*!
+      \brief get the length of this message
+      \return the length of encoded message
+    */
+    int length() const
+      {
+          return slength();
+      }
+
+    /*!
+      \brief append this info to the audio message
+      \param to reference to the message string instance
+      \return result status of encoding
+    */
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message
@@ -937,8 +1015,8 @@ public:
     */
     DribbleMessage( const Vector2D & target_point,
                     const int queue_count )
-        : M_target_point( target_point )
-        , M_queue_count( queue_count )
+        : M_target_point( target_point ),
+          M_queue_count( queue_count )
       { }
 
     /*!
@@ -974,7 +1052,7 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message
@@ -1016,10 +1094,10 @@ public:
                        const Vector2D & ball_vel,
                        const Vector2D & goalie_pos,
                        const AngleDeg & goalie_body )
-        : M_ball_pos( ball_pos )
-        , M_ball_vel( ball_vel )
-        , M_goalie_pos( goalie_pos )
-        , M_goalie_body( goalie_body )
+        : M_ball_pos( ball_pos ),
+          M_ball_vel( ball_vel ),
+          M_goalie_pos( goalie_pos ),
+          M_goalie_body( goalie_body )
       { }
 
     /*!
@@ -1055,7 +1133,7 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message
@@ -1091,8 +1169,8 @@ public:
     */
     OnePlayerMessage( const int unum,
                       const Vector2D & player_pos )
-        : M_unum( unum )
-        , M_player_pos( player_pos )
+        : M_unum( unum ),
+          M_player_pos( player_pos )
       { }
 
     /*!
@@ -1128,7 +1206,7 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message
@@ -1204,7 +1282,7 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message
@@ -1282,7 +1360,7 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message
@@ -1321,9 +1399,9 @@ public:
     SelfMessage( const Vector2D & self_pos,
                  const AngleDeg & self_body,
                  const double & self_stamina )
-        : M_self_pos( self_pos )
-        , M_self_body( self_body )
-        , M_self_stamina( self_stamina )
+        : M_self_pos( self_pos ),
+          M_self_body( self_body ),
+          M_self_stamina( self_stamina )
       { }
 
     /*!
@@ -1359,7 +1437,7 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message
@@ -1398,9 +1476,9 @@ public:
     TeammateMessage( const int unum,
                      const Vector2D & player_pos,
                      const AngleDeg & player_body )
-        : M_unum( unum )
-        , M_player_pos( player_pos )
-        , M_player_body( player_body )
+        : M_unum( unum ),
+          M_player_pos( player_pos ),
+          M_player_body( player_body )
       { }
 
     /*!
@@ -1436,7 +1514,7 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message
@@ -1475,9 +1553,9 @@ public:
     OpponentMessage( const int unum,
                      const Vector2D & player_pos,
                      const AngleDeg & player_body )
-        : M_unum( unum )
-        , M_player_pos( player_pos )
-        , M_player_body( player_body )
+        : M_unum( unum ),
+          M_player_pos( player_pos ),
+          M_player_body( player_body )
       { }
 
     /*!
@@ -1513,7 +1591,7 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message
@@ -1559,11 +1637,11 @@ public:
                        const int unum,
                        const Vector2D & player_pos,
                        const AngleDeg & player_body )
-        : M_ball_pos( ball_pos )
-        , M_ball_vel( ball_vel )
-        , M_unum( unum )
-        , M_player_pos( player_pos )
-        , M_player_body( player_body )
+        : M_ball_pos( ball_pos ),
+          M_ball_vel( ball_vel ),
+          M_unum( unum ),
+          M_player_pos( player_pos ),
+          M_player_body( player_body )
       { }
 
     /*!
@@ -1599,7 +1677,7 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const;
+    bool appendTo( std::string & to ) const;
 
     /*!
       \brief append the debug message

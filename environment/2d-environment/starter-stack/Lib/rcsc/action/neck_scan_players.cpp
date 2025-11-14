@@ -141,14 +141,21 @@ Neck_ScanPlayers::get_best_angle( const PlayerAgent * agent,
     const double view_half_width = view_width * 0.5;
     const double neck_min = ( min_neck_angle == INVALID_ANGLE
                               ? SP.minNeckAngle()
-                              : std::max( SP.minNeckAngle(), min_neck_angle ) );
+                              : bound( SP.minNeckAngle(),
+                                       min_neck_angle,
+                                       SP.maxNeckAngle() ) );
     const double neck_max = ( max_neck_angle == INVALID_ANGLE
                               ? SP.maxNeckAngle()
-                              : std::min( SP.maxNeckAngle(), max_neck_angle ) );
+                              : bound( SP.minNeckAngle(),
+                                       max_neck_angle,
+                                       SP.maxNeckAngle() ) );
     const double neck_step = std::max( 1.0, ( neck_max - neck_min ) / 36.0 );
 
 
 #ifdef DEBUG_PRINT
+    dlog.addText( Logger::ACTION,
+                  __FILE__": (get_best_angle) args min_neck_angle=%.1f max_neck_angle=%.1f",
+                  min_neck_angle, max_neck_angle );
     dlog.addText( Logger::ACTION,
                   __FILE__": (get_best_angle) next_body=%.1f min_neck=%.1f max_neck=%.1f neck_step=%.1f",
                   next_self_body.degree(),
@@ -157,9 +164,8 @@ Neck_ScanPlayers::get_best_angle( const PlayerAgent * agent,
 #endif
 
     double best_dir = INVALID_ANGLE;
-    double best_score = -std::numeric_limits< double >::max();
+    double best_score = 0.0; //-std::numeric_limits< double >::max();
 
-    const AbstractPlayerCont::const_iterator end = wm.allPlayers().end();
     for ( double dir = neck_min; dir < neck_max + 0.5; dir += neck_step )
     {
         const AngleDeg left_angle = next_self_body + ( dir - ( view_half_width - 0.01 ) );
@@ -198,7 +204,8 @@ Neck_ScanPlayers::get_best_angle( const PlayerAgent * agent,
 #endif
     }
 
-    if ( best_dir == INVALID_ANGLE )
+    if ( best_dir == INVALID_ANGLE
+         || std::fabs( best_score ) < 1.0e-5 )
     {
 #ifdef DEBUG_PRINT
         dlog.addText( Logger::ACTION,
@@ -240,25 +247,27 @@ Neck_ScanPlayers::calculate_score( const WorldModel & wm,
     const int opp_min = wm.interceptTable()->opponentReachCycle();
     const bool our_ball = ( our_min <= opp_min );
 
-    const AbstractPlayerCont::const_iterator end = wm.allPlayers().end();
-    for ( AbstractPlayerCont::const_iterator p = wm.allPlayers().begin();
-          p != end;
-          ++p )
-    {
-        if ( (*p)->isSelf() ) continue;
+    const AngleDeg reduced_left_angle = left_angle + 5.0;
+    const AngleDeg reduced_right_angle = right_angle - 5.0;
 
-        Vector2D pos = (*p)->pos() + (*p)->vel();
+    for ( const AbstractPlayerObject * p : wm.allPlayers() )
+    {
+        if ( p->isSelf() ) continue;
+
+        Vector2D pos = p->pos() + p->vel();
         AngleDeg angle = ( pos - next_self_pos ).th();
 
-        if ( ! angle.isRightOf( left_angle )
-             || ! angle.isLeftOf( right_angle ) )
+        if ( ! angle.isRightOf( reduced_left_angle )
+             || ! angle.isLeftOf( reduced_right_angle ) )
         {
             continue;
         }
 
-        double pos_count = (*p)->seenPosCount();
-        if ( (*p)->isGhost()
-             && (*p)->ghostCount() % 2 == 1 )
+        if ( p->ghostCount() >= 5 ) continue;
+
+        double pos_count = p->seenPosCount();
+        if ( p->isGhost()
+             && p->ghostCount() % 2 == 1 )
         {
             pos_count = std::min( 2.0, pos_count );
         }
@@ -266,16 +275,16 @@ Neck_ScanPlayers::calculate_score( const WorldModel & wm,
 
         if ( our_ball )
         {
-            if ( (*p)->side() == wm.ourSide()
-                 && ( (*p)->pos().x > wm.ball().pos().x - 10.0
-                      || (*p)->pos().x > 30.0 ) )
+            if ( p->side() == wm.ourSide()
+                 && ( p->pos().x > wm.ball().pos().x - 10.0
+                      || p->pos().x > 30.0 ) )
             {
                 pos_count *= 2.0;
             }
         }
 
         double base_val = std::pow( pos_count, 2 );
-        double rate = std::exp( - std::pow( (*p)->distFromSelf(), 2 )
+        double rate = std::exp( - std::pow( p->distFromSelf(), 2 )
                                 / ( 2.0 * std::pow( 20.0, 2 ) ) ); // Magic Number
         score += base_val * rate;
 
@@ -284,10 +293,10 @@ Neck_ScanPlayers::calculate_score( const WorldModel & wm,
 #ifdef DEBUG_PRINT
         dlog.addText( Logger::ACTION,
                       "__ %c_%d (%.2f %.2f) count=%d base=%f rate=%f +%f buf=%.1f",
-                      (*p)->side() == LEFT ? 'L' : (*p)->side() == RIGHT ? 'R' : 'N',
-                      (*p)->unum(),
-                      (*p)->pos().x, (*p)->pos().y,
-                      (*p)->posCount(),
+                      p->side() == LEFT ? 'L' : p->side() == RIGHT ? 'R' : 'N',
+                      p->unum(),
+                      p->pos().x, p->pos().y,
+                      p->posCount(),
                       base_val, rate, base_val * rate,
                       buf );
 #endif

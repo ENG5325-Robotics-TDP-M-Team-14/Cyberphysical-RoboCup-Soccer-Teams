@@ -52,27 +52,9 @@ class WorldModel;
 class KickTable {
 public:
 
-    static const double NEAR_SIDE_RATE; //!< kickable margin rate for the near side sub-target
-    static const double MID_RATE; //!< kickable margin rate for the middle distance sub-target
-    static const double FAR_SIDE_RATE; //!< kickable margin rate for the far side sub-target
-
     enum {
-        MAX_DEPTH = 2,
-    };
-
-    enum {
-        STATE_DIVS_NEAR = 8,
-        STATE_DIVS_MID = 12,
-        STATE_DIVS_FAR = 15,
-        NUM_STATE = STATE_DIVS_NEAR + STATE_DIVS_MID + STATE_DIVS_FAR,
-    };
-
-    enum {
-        DEST_DIR_DIVS = 72, // step: 5 degree
-    };
-
-    enum {
-        MAX_TABLE_SIZE = 256,
+        MAX_DEPTH = 2, //!< max search depth
+        DEST_DIR_DIVS = 72, //! max division of target angles, step = 5 degree
     };
 
     /*!
@@ -107,10 +89,10 @@ public:
           \brief construct an illegal state object
          */
         State()
-            : index_( -1 )
-            , dist_( 0.0 )
-            , kick_rate_( 0.0 )
-            , flag_( 0xFFFF )
+            : index_( -1 ),
+              dist_( 0.0 ),
+              kick_rate_( 0.0 ),
+              flag_( 0xFFFF )
           { }
 
         /*!
@@ -121,14 +103,14 @@ public:
           \param kick_rate kick rate at this state
          */
         State( const int index,
-               const double & dist,
+               const double dist,
                const Vector2D & pos,
-               const double & kick_rate )
-            : index_( index )
-            , dist_( dist )
-            , pos_( pos )
-            , kick_rate_( kick_rate )
-            , flag_( SAFETY )
+               const double kick_rate )
+            : index_( index ),
+              dist_( dist ),
+              pos_( pos ),
+              kick_rate_( kick_rate ),
+              flag_( SAFETY )
           { }
 
     };
@@ -150,10 +132,10 @@ public:
          */
         Path( const int origin,
               const int dest )
-            : origin_( origin )
-            , dest_( dest )
-            , max_speed_( 0.0 )
-            , power_( 1000.0 )
+            : origin_( origin ),
+              dest_( dest ),
+              max_speed_( 0.0 ),
+              power_( 1000.0 )
           { }
 
     };
@@ -163,6 +145,7 @@ public:
       \brief simulated kick sequence
      */
     struct Sequence {
+        int index_;
         int flag_; //!< safety level flags. usually the combination of State flags
         std::vector< Vector2D > pos_list_; //!< ball positions
         double speed_; //!< released ball speed
@@ -173,68 +156,14 @@ public:
           \brief constuct an illegal sequence object
          */
         Sequence()
-            : flag_( 0x0000 )
-            , speed_( 0.0 )
-            , power_( 10000.0 )
-            , score_( 0.0 )
+            : index_( -1 ),
+              flag_( 0x0000 ),
+              speed_( 0.0 ),
+              power_( 10000.0 ),
+              score_( 0.0 )
           { }
 
-        /*!
-          \brief copy constructor
-          \param arg another instance
-         */
-        Sequence( const Sequence & arg )
-            : flag_( arg.flag_ )
-            , pos_list_( arg.pos_list_ )
-            , speed_( arg.speed_ )
-            , power_( arg.power_ )
-            , score_( arg.score_ )
-          { }
-
-        /*!
-          \brief copy operator
-          \param arg another instance
-          \return const reference to this instance
-         */
-        const
-        Sequence & operator=( const Sequence & arg )
-          {
-              if ( this != &arg )
-              {
-                  flag_ = arg.flag_;
-                  pos_list_ = arg.pos_list_;
-                  speed_ = arg.speed_;
-                  power_ = arg.power_;
-                  score_ = arg.score_;
-              }
-
-              return *this;
-          }
     };
-
-    /*!
-      \brief caclulate the distance of near side sub-target
-      \param player_type calculated PlayerType
-      \return distance from the center of the player
-     */
-    static
-    double calc_near_dist( const PlayerType & player_type );
-
-    /*!
-      \brief caclulate the distance of middile distance sub-target
-      \param player_type calculated PlayerType
-      \return distance from the center of the player
-     */
-    static
-    double calc_mid_dist( const PlayerType & player_type );
-
-    /*!
-      \brief caclulate the distance of far side sub-target
-      \param player_type calculated PlayerType
-      \return distance from the center of the player
-     */
-    static
-    double calc_far_dist( const PlayerType & player_type );
 
     /*!
       \brief calculate maxmum velocity for the target angle by one step kick with krate and ball_vel
@@ -245,7 +174,7 @@ public:
      */
     static
     Vector2D calc_max_velocity( const AngleDeg & target_angle,
-                                const double & krate,
+                                const double krate,
                                 const Vector2D & ball_vel );
 
 private:
@@ -280,14 +209,21 @@ private:
     //! result kick sequences
     std::vector< Sequence > M_candidates;
 
+
+    //
+    // other parameters
+    //
+
+    bool M_use_risky_node;
+
     /*!
       \brief private constructor for singleton
      */
     KickTable();
 
     // not used
-    KickTable( const KickTable & );
-    const KickTable & operator=( const KickTable & );
+    KickTable( const KickTable & ) = delete;
+    const KickTable & operator=( const KickTable & ) = delete;
 
 private:
 
@@ -324,16 +260,16 @@ private:
      */
     void checkCollisionAfterRelease( const WorldModel & world,
                                      const Vector2D & target_point,
-                                     const double & first_speed );
+                                     const double first_speed );
 
     /*!
       \brief update interfere level at state
       \param world const reference to the WorldModel
-      \param cycle the cycle delay for state
+      \param step state represents the state after this step value
       \param state reference to the State variable to be updated
      */
     void checkInterfereAt( const WorldModel & world,
-                           const int cycle,
+                           const int step,
                            State & state );
 
     /*!
@@ -344,7 +280,7 @@ private:
      */
     void checkInterfereAfterRelease( const WorldModel & world,
                                      const Vector2D & target_point,
-                                     const double & first_speed );
+                                     const double first_speed );
 
     /*!
       \brief update interfere level after release kick for each state
@@ -356,7 +292,7 @@ private:
      */
     void checkInterfereAfterRelease( const WorldModel & world,
                                      const Vector2D & target_point,
-                                     const double & first_speed,
+                                     const double first_speed,
                                      const int cycle,
                                      State & state );
 
@@ -368,7 +304,7 @@ private:
      */
     bool simulateOneStep( const WorldModel & world,
                           const Vector2D & target_point,
-                          const double & first_speed );
+                          const double first_speed );
 
     /*!
       \brief simulate two step kicks
@@ -378,7 +314,7 @@ private:
      */
     bool simulateTwoStep( const WorldModel & world,
                           const Vector2D & target_point,
-                          const double & first_speed );
+                          const double first_speed );
 
     /*!
       \brief simulate three step kicks
@@ -388,15 +324,30 @@ private:
      */
     bool simulateThreeStep( const WorldModel & world,
                             const Vector2D & target_point,
-                            const double & first_speed );
+                            const double first_speed );
 
     /*!
       \brief evaluate candidate kick sequences
+      \param wm const reference to the WorldModel
       \param first_speed required first speed
       \param allowable_speed required first speed threshold
      */
-    void evaluate( const double & first_speed,
-                   const double & allowable_speed );
+    void evaluate( const WorldModel & wm,
+                   const double first_speed,
+                   const double allowable_speed );
+
+    /*!
+      \brief output debugging information to Logger
+     */
+    void debugPrintStateCache();
+
+    /*!
+      \brief output debugging information to Logger
+      \param wm world model instance
+      \param seq kick sequence instance
+     */
+    void debugPrintSequence( const WorldModel & wm,
+                             const Sequence & seq );
 
 public:
 
@@ -439,8 +390,8 @@ public:
      */
     bool simulate( const WorldModel & world,
                    const Vector2D & target_point,
-                   const double & first_speed,
-                   const double & allowable_speed,
+                   const double first_speed,
+                   const double allowable_speed,
                    const int max_step,
                    Sequence & sequence );
 
@@ -448,8 +399,7 @@ public:
       \brief get the candidate kick sequences
       \return const reference to the container of Sequence
      */
-    const
-    std::vector< Sequence > & candidates() const
+    const std::vector< Sequence > & candidates() const
       {
           return M_candidates;
       }

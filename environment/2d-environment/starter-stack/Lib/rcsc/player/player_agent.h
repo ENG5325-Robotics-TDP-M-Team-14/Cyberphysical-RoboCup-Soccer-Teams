@@ -33,36 +33,32 @@
 #define RCSC_PLAYER_AGENT_H
 
 #include <rcsc/player/world_model.h>
-#include <rcsc/player/penalty_kick_state.h>
 #include <rcsc/player/action_effector.h>
 #include <rcsc/player/debug_client.h>
 #include <rcsc/player/player_config.h>
 #include <rcsc/player/see_state.h>
 #include <rcsc/common/soccer_agent.h>
-#include <rcsc/common/periodic_callback.h>
 #include <rcsc/timer.h>
 #include <rcsc/types.h>
 
-#include <boost/scoped_ptr.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/function.hpp>
-
+#include <memory>
 #include <vector>
 
 namespace rcsc {
 
-class BodySensor;
-class VisualSensor;
 class AudioSensor;
-class FreeformParser;
-class FullstateSensor;
-class SeeState;
 class ArmAction;
-class NeckAction;
-class ViewAction;
+class BodySensor;
+class FullstateSensor;
+class FreeformMessageParser;
 class SayMessage;
 class SayMessageParser;
+class SeeState;
 class SoccerIntention;
+class NeckAction;
+class ViewAction;
+class FocusAction;
+class VisualSensor;
 
 /*!
   \class PlayerAgent
@@ -73,10 +69,9 @@ class PlayerAgent
 private:
 
     struct Impl; //!< pimpl idiom
-    friend struct Impl;
 
     //! internal implementation object
-    boost::scoped_ptr< Impl > M_impl;
+    std::unique_ptr< Impl > M_impl;
 
 protected:
 
@@ -97,14 +92,6 @@ protected:
     //! action info manager
     ActionEffector M_effector;
 
-private:
-
-    //! callback functions called just before decision making
-    PeriodicCallback::Cont M_pre_action_callbacks;
-
-    //! callback functions called just after command sending
-    PeriodicCallback::Cont M_post_action_callbacks;
-
 public:
     /*!
       \brief create internal modules
@@ -118,6 +105,13 @@ public:
     ~PlayerAgent();
 
     /*!
+      \brief create a client object (online or offline) according to the command line option.
+      \return client object pointer.
+     */
+    virtual
+    std::shared_ptr< AbstractClient > createConsoleClient();
+
+    /*!
       \brief finalize all things when the process exits
     */
     void finalize();
@@ -126,8 +120,7 @@ public:
       \brief get configuration set
       \return const reference to the configuration class object
     */
-    const
-    PlayerConfig & config() const
+    const PlayerConfig & config() const
       {
           return M_config;
       }
@@ -145,8 +138,7 @@ public:
       \brief get worldmodel
       \return const reference to world model instance
     */
-    const
-    WorldModel & world() const
+    const WorldModel & world() const
       {
           return M_worldmodel;
       }
@@ -155,8 +147,7 @@ public:
       \brief get fullstate worldmodel
       \return const reference to fullstate world model instance
     */
-    const
-    WorldModel & fullstateWorld() const
+    const WorldModel & fullstateWorld() const
       {
           return M_fullstate_worldmodel;
       }
@@ -165,8 +156,7 @@ public:
       \brief get action effector
       \return reference to action effector
     */
-    const
-    ActionEffector & effector() const
+    const ActionEffector & effector() const
       {
           return M_effector;
       }
@@ -175,50 +165,43 @@ public:
       \brief get body sensor
       \return const reference to the body sensor instance
      */
-    const
-    BodySensor & bodySensor() const;
+    const BodySensor & bodySensor() const;
 
     /*!
       \brief get visual sensor
       \return const reference to the visual sensor instance
      */
-    const
-    VisualSensor & visualSensor() const;
+    const VisualSensor & visualSensor() const;
 
     /*!
       \brief get audio sensor
       \return const reference to the audio sensor instance
      */
-    const
-    AudioSensor & audioSensor() const;
+    const AudioSensor & audioSensor() const;
 
     /*!
       \brief get fullstate sensor
       \return const reference to the fullstate sensor instance
      */
-    const
-    FullstateSensor & fullstateSensor() const;
+    const FullstateSensor & fullstateSensor() const;
 
     /*!
       \brief get see state
       \return const reference to the see state instance
      */
-    const
-    SeeState & seeState() const;
+    const SeeState & seeState() const;
 
     /*!
       \brief get time stamp when sense_body message is received
       \return const reference to the time stamp object
     */
-    const
-    TimeStamp & bodyTimeStamp() const;
+    const TimeStamp & bodyTimeStamp() const;
 
     /*!
       \brief get time stamp of see message when see message is received
       \return const reference to the time stamp object
     */
-    const
-    TimeStamp & seeTimeStamp() const;
+    const TimeStamp & seeTimeStamp() const;
 
     /*!
       \brief register kick command
@@ -237,6 +220,19 @@ public:
     */
     bool doDash( const double & power,
                  const AngleDeg & rel_dir = 0.0 );
+
+    /*!
+      \brief register dash command for each leg
+      \param left_power command argument: dash power
+      \param left_dir command argument: dash direction relative to body (or reverse body) angle
+      \param right_power command argument: dash power
+      \param right_dir command argument: dash direction relative to body (or reverse body) angle
+      \return true if successfully registered.
+    */
+    bool doDash( const double left_power,
+                 const AngleDeg & left_dir,
+                 const double right_power,
+                 const AngleDeg & right_dir );
 
     /*!
       \brief register turn command
@@ -284,6 +280,14 @@ public:
       ViewQuality should not be changed by user
     */
     bool doChangeView( const ViewWidth & width );
+
+    /*!
+      \brief register change_focus command
+      \param moment_dist distance added to the current focus point
+      \param moment_dir direction added to the current focus point
+     */
+    bool doChangeFocus( const double moment_dist,
+                        const AngleDeg & moment_dir );
 
     /*
       brief register say command.
@@ -342,10 +346,17 @@ public:
     void setViewAction( ViewAction * act );
 
     /*!
+      \brief reserve change_focus action
+      \param act pointer to the action. must be a dynamically allocated object.
+    */
+    void setFocusAction( FocusAction * act );
+
+
+    /*!
       \brief add say message to the action effector
-      \param message pointer to the say mesage builder. this must be a dynamically allocated object.
+      \param message pointer to the dynamically allocated object.
      */
-    void addSayMessage( const SayMessage * message );
+    void addSayMessage( SayMessage * message );
 
     /*!
       \brief remove the registered say message if exist
@@ -355,9 +366,13 @@ public:
     bool removeSayMessage( const char header );
 
     /*!
+      \brief remove all registered say messages
+     */
+    void clearSayMessage();
+
+    /*!
       \brief set intention object
-      \param intention pointer to the intention. this must be a dynamically
-      allocated object.
+      \param intention pointer to the dynamically allocated object.
     */
     void setIntention( SoccerIntention * intention );
 
@@ -409,7 +424,7 @@ protected:
       \brief handle start event in offline client mode.
       \return status of start procedure.
 
-      This method is called on the top of BasicClient::run() method.
+      This method is called at the top of AbstractClient::run() method.
       The concrete agent must connect to the server and send init command.
       Do NOT call this method by yourself!
      */
@@ -419,7 +434,7 @@ protected:
     /*!
       \brief handle server message event
 
-      This method is called from BasicClient::run() method.
+      This method is called from AbstractClient::run() method.
       Do NOT call this method by yourself!
     */
     virtual
@@ -437,7 +452,7 @@ protected:
       \brief handle timeout event
       \param timeout_count count of timeout without sensory message.
       \param waited_msec elapsed milliseconds since last sensory message.
-      This method is called from BasicClient::run() method.
+      This method is called from AbstractClient::run() method.
       Do NOT call this method by yourself!
     */
     virtual
@@ -491,6 +506,14 @@ protected:
       { }
 
     /*!
+      \brief this method is called just after analyzing init message.
+      Do *not* call this method by yourself.
+     */
+    virtual
+    void handleInitMessage()
+      { }
+
+    /*!
       \brief this method is called just after analyzing server_param message.
       Do *not* call this method by yourself.
      */
@@ -514,15 +537,23 @@ protected:
     void handlePlayerType()
       { }
 
+    /*!
+      \brief this method is called just after analyzing online coach's say message.
+      Do *not* call this method by yourself.
+     */
+    virtual
+    void handleOnlineCoachAudio()
+      { }
+
     //
     //
     //
 
     /*!
       \brief register new say message parser object
-      \param parser pointer to the say mesage parser.
+      \param parser pointer to the dynamically allocated parser object.
      */
-    void addSayMessageParser( boost::shared_ptr< SayMessageParser > parser );
+    void addSayMessageParser( SayMessageParser * parser );
 
     /*!
       \brief remove registered parser object
@@ -532,23 +563,17 @@ protected:
 
     /*!
       \brief set new freeform message parser
-      \param parser pointer to the freeform message parser.
+      \param parser pointer to the dynamically allocated parser object.
      */
-    void setFreeformParser( boost::shared_ptr< FreeformParser > parser );
-
-public:
+    void addFreeformMessageParser( FreeformMessageParser * parser );
 
     /*!
-      \brief register pre-action callback
-      \param ptr callback object
+      \brief remove registered parser object
+      \param type freeform message type string
      */
-    void addPreActionCallback( const PeriodicCallback::Ptr & ptr );
+    void removeFreeformMessageParser( const std::string & type );
 
-    /*!
-      \brief register post-action callback
-      \param ptr callback object
-     */
-    void addPostActionCallback( const PeriodicCallback::Ptr & ptr );
+
 };
 
 }

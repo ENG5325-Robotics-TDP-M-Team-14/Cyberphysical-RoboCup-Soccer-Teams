@@ -65,8 +65,8 @@ public:
       \brief create a zero area circle at (0,0)
      */
     Circle2D()
-        : M_center( 0.0, 0.0 )
-        , M_radius( 0.0 )
+        : M_center( 0.0, 0.0 ),
+          M_radius( 0.0 )
       { }
 
     /*!
@@ -75,9 +75,9 @@ public:
       \param r radius value
      */
     Circle2D( const Vector2D & c,
-              const double & r )
-        : M_center( c )
-        , M_radius( r )
+              const double r )
+        : M_center( c ),
+          M_radius( r )
       {
           if ( r < 0.0 )
           {
@@ -93,9 +93,8 @@ public:
       \param r radius value
       \return const reference to this
      */
-    const
-    Circle2D & assign( const Vector2D & c,
-                       const double & r )
+    const Circle2D & assign( const Vector2D & c,
+                       const double r )
       {
           M_center = c;
           M_radius = r;
@@ -133,8 +132,7 @@ public:
       \brief get the center point
       \return center point coordinate value
      */
-    const
-    Vector2D & center() const
+    const Vector2D & center() const
       {
           return M_center;
       }
@@ -143,8 +141,7 @@ public:
       \brief get the radius value
       \return radius value
      */
-    const
-    double & radius() const
+    double radius() const
       {
           return M_radius;
       }

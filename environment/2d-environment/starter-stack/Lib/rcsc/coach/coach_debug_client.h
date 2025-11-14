@@ -37,17 +37,15 @@
 #include <rcsc/geom/rect_2d.h>
 #include <rcsc/geom/circle_2d.h>
 
-#include <boost/shared_ptr.hpp>
-
+#include <memory>
 #include <fstream>
-#include <vector>
-#include <map>
 #include <string>
 
 namespace rcsc {
 
 class UDPSocket;
-class GlobalWorldModel;
+class CoachPlayerObject;
+class CoachWorldModel;
 
 class CoachDebugClient {
 public:
@@ -59,6 +57,10 @@ public:
 
 private:
 
+    struct Impl; //!< pimpl ideom
+
+    Impl * M_impl;
+
     //! if false, all debug info are not created.
     bool M_on;
 
@@ -66,7 +68,7 @@ private:
     bool M_connected;
 
     //! connection to a debug server
-    boost::shared_ptr< UDPSocket > M_socket;
+    std::shared_ptr< UDPSocket > M_socket;
 
     //! output file stream
     std::ofstream M_server_log;
@@ -83,15 +85,6 @@ private:
     Vector2D M_target_point;
     //! message shown in display
     std::string M_message;
-
-    //! lines drawin in display
-    std::vector< Segment2D > M_lines;
-    //! triangles drawin in display
-    std::vector< Triangle2D > M_triangles;
-    //! rectanbles drawin in display
-    std::vector< Rect2D > M_rectangles;
-    //! circles drawin in display
-    std::vector< Circle2D > M_circles;
 
 public:
 
@@ -128,7 +121,7 @@ public:
       \brief output to stream or socket
       \param world const reference to the world model instance
     */
-    void writeAll( const GlobalWorldModel & world );
+    void writeAll( const CoachWorldModel & world );
 
 private:
     /*!
@@ -140,7 +133,7 @@ private:
       \brief make debug message
       \param world const reference to the world mode instance
     */
-    void toStr( const GlobalWorldModel & world );
+    void buildString( const CoachWorldModel & world );
 
     /*!
       \brief send debug message to a debug server
@@ -167,6 +160,20 @@ public:
                      ... );
 
     /*!
+      \brief add formated string to buffer
+      \param msg formated text
+    */
+    void addMessage( const std::string & msg );
+
+    /*!
+      \brief add formated message for the player
+      \param player pointer to the target player
+     */
+    void addComment( const CoachPlayerObject * player,
+                     const char * msg,
+                     ... );
+
+    /*!
       \brief set target player
       \param unum target player's uniform number
     */
@@ -190,7 +197,8 @@ public:
       \param to line end point
     */
     void addLine( const Vector2D & from,
-                  const Vector2D & to );
+                  const Vector2D & to,
+                  const char * color = "" );
 
     /*!
       \brief set triangle info to be drawn
@@ -200,11 +208,12 @@ public:
     */
     void addTriangle( const Vector2D & v1,
                       const Vector2D & v2,
-                      const Vector2D & v3 )
+                      const Vector2D & v3,
+                      const char * color = "" )
       {
           if ( M_on )
           {
-              addTriangle( Triangle2D( v1, v2, v3 ) );
+              addTriangle( Triangle2D( v1, v2, v3 ), color );
           }
       }
 
@@ -212,13 +221,15 @@ public:
       \brief set triangle info to be drawn
       \param tri triangle object
     */
-    void addTriangle( const Triangle2D & tri );
+    void addTriangle( const Triangle2D & tri,
+                      const char * color = "" );
 
     /*!
       \brief set rectangle info to be drawn
       \param rect rectanble object
     */
-    void addRectangle( const Rect2D & rect );
+    void addRectangle( const Rect2D & rect,
+                       const char * color = "" );
 
     /*!
       \brief set circle info to be drawn
@@ -226,16 +237,21 @@ public:
       \param radius radius value
      */
     void addCircle( const Vector2D & center,
-                    const double & radius )
+                    const double & radius,
+                    const char * color = "" )
       {
-          addCircle( Circle2D( center, radius ) );
+          if ( M_on )
+          {
+              addCircle( Circle2D( center, radius ), color );
+          }
       }
 
     /*!
       \brief set circle info to be drawn
       \param circle circle object
      */
-    void addCircle( const Circle2D & circle );
+    void addCircle( const Circle2D & circle,
+                    const char * color = "" );
 };
 
 }

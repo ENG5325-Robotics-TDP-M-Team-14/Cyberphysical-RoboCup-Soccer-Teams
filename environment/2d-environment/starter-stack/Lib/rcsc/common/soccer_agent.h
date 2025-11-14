@@ -29,12 +29,16 @@
 
 /////////////////////////////////////////////////////////////////////
 
-#ifndef RCSC_SOCCER_AGENT_H
-#define RCSC_SOCCER_AGENT_H
+#ifndef RCSC_COMMON_SOCCER_AGENT_H
+#define RCSC_COMMON_SOCCER_AGENT_H
+
+#include <memory>
+#include <list>
+#include <string>
 
 namespace rcsc {
 
-class BasicClient;
+class AbstractClient;
 class CmdLineParser;
 
 /*!
@@ -49,11 +53,11 @@ class CmdLineParser;
  */
 class SoccerAgent {
 public:
-    friend class BasicClient;
+    friend class AbstractClient;
 
 protected:
-    //! interface to the rcssserver
-    BasicClient * M_client;
+    //! interface to the rcssserver or offline log.
+    std::shared_ptr< AbstractClient > M_client;
 
 private:
 
@@ -76,20 +80,28 @@ public:
 
     /*!
       \brief initialize with command line options.
-      \param client pointer to the client instance
-      \param argc number of options.
-      \param argv array of option string.
+      \param cmd_parser command line parser instance that contains option strings
       \return initialization result of the derived class.
 
       Connection must be created after this method.
       You should specify the server host name, port number
-      and wait interval msec in doInit() virtual method in
+      and wait interval msec in initImpl() virtual method in
       the derived class.
-      (init) commad is sent in run() method. So,do not call it yourself!
+      (init) commad is sent in run() method. So, do not call it yourself!
     */
-    bool init( BasicClient * client,
-               const int argc,
-               const char * const * argv );
+    bool init( CmdLineParser & cmd_parser );
+
+    /*!
+      \param client pointer to the client object instance
+     */
+    void setClient( std::shared_ptr< AbstractClient > client );
+
+    /*!
+      \brief create standard console client object (online or offline) according to the command line option.
+      \return client object pointer.
+     */
+    virtual
+    std::shared_ptr< AbstractClient > createConsoleClient() = 0;
 
 protected:
 
@@ -98,7 +110,7 @@ protected:
       \param cmd_parser command line parser object
       \return derived class should return the status of initialization result.
 
-      This method is called from init(argc,argv);
+      This method is called from init(client,argc,argv);
       This method must be overrided in the derived class.
     */
     virtual
@@ -108,7 +120,7 @@ protected:
       \brief (pure virtual) handle start event
       \return status of start procedure.
 
-      This method is called on the top of BasicClient::run() method.
+      This method is called at the top of AbstractClient::run() method.
       The concrete agent must connect to the server and send init command.
       Do NOT call this method by yourself!
      */
@@ -119,7 +131,7 @@ protected:
       \brief (virtual) handle start event in offline client mode.
       \return status of start procedure.
 
-      This method is called on the top of BasicClient::run() method.
+      This method is called at the top of AbstractClient::run() method.
       The concrete agent must connect to the server and send init command.
       Do NOT call this method by yourself!
      */

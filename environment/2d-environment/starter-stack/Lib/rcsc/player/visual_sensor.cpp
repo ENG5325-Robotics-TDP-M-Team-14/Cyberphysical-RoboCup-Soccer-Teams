@@ -109,7 +109,7 @@ operator<<( std::ostream & os,
        << " body=" << data.body_
        << " neck=" << data.face_
        << " point_dir=" << data.arm_
-       << " kicked=" << data.kicked_
+       << " kicked=" << data.kicking_
        << " tackle=" << data.tackle_;
 
     return os;
@@ -166,8 +166,8 @@ const double VisualSensor::DIR_ERR = -360;
 
 */
 VisualSensor::VisualSensor()
-    : M_time( -1, 0 )
-    , M_opponent_team_name( "" )
+    : M_time( -1, 0 ),
+      M_their_team_name( "" )
 {
     using namespace rcsc;
     typedef std::pair< std::string, MarkerID > MarkerPair;
@@ -309,7 +309,7 @@ VisualSensor::VisualSensor()
 */
 void
 VisualSensor::parse( const char * msg,
-                     const char * team_name,
+                     const std::string & team_name,
                      const double & version,
                      const GameTime & current )
 {
@@ -329,8 +329,6 @@ VisualSensor::parse( const char * msg,
     LineT seen_line;
     BallT seen_ball;
     PlayerT seen_player;
-
-    const int team_name_len = std::strlen( team_name );
 
     seen_marker.reset();
     seen_line.reset();
@@ -384,7 +382,7 @@ VisualSensor::parse( const char * msg,
         // player
         else if ( object_type == Obj_Player )
         {
-            switch ( parsePlayer( msg, team_name, team_name_len, &seen_player ) ) {
+            switch ( parsePlayer( msg, team_name, &seen_player ) ) {
             case Player_Teammate:
                 M_teammates.push_back( seen_player );
                 break;
@@ -440,7 +438,6 @@ VisualSensor::parse( const char * msg,
 
 
     // sort by distance
-#ifdef USE_LIST_VISUAL_OBJECT
     M_teammates.sort( SeenDistCmp() );
     M_unknown_teammates.sort( SeenDistCmp() );
     M_opponents.sort( SeenDistCmp() );
@@ -452,27 +449,6 @@ VisualSensor::parse( const char * msg,
 
     // line sort is very important !!
     M_lines.sort( SeenDistCmp() );
-#else
-    std::sort( M_teammates.begin(), M_teammates.end().
-               SeenDistCmp() );
-    std::sort( M_unknown_teammates.begin(), M_unknown_teammates.end(),
-               SeenDistCmp() );
-    std::sort( M_opponents.begin(), M_opponents.end(),
-               SeenDistCmp() );
-    std::sort( M_unknown_opponents.begin(), M_unknown_opponents.end(),
-               SeenDistCmp() );
-    std::sort( M_unknown_players.begin(), M_unknown_players.end(),
-               SeenDistCmp() );
-
-    std::sort( M_markers.begin(), M_markers.end(),
-               SeenDistCmp() );
-    std::sort( M_behind_markers.begin(), M_behind_markers.end(),
-               SeenDistCmp() );
-
-    // line sort very important!!
-    std::sort( M_lines.begin(), M_lines.end(),
-               SeenDistCmp() );
-#endif
 
 #if 0
     dlog.addText( Logger::SENSOR,
@@ -502,7 +478,7 @@ VisualSensor::parse( const char * msg,
 */
 bool
 VisualSensor::parseMarker( const char * tok,
-                           const double & version,
+                           const double version,
                            MarkerT * info )
 {
     // get marker id
@@ -529,8 +505,7 @@ VisualSensor::parseMarker( const char * tok,
         info->id_ = Marker_Unknown;
         if ( version >= 6.0 )
         {
-            std::map< std::string, MarkerID >::iterator
-                it = M_marker_map.find( marker_name );
+            MarkerMap::const_iterator it = M_marker_map.find( marker_name );
             if ( it != M_marker_map.end() )
             {
                 info->id_ = it->second;
@@ -538,8 +513,7 @@ VisualSensor::parseMarker( const char * tok,
         }
         else
         {
-            std::map< std::string, MarkerID >::iterator
-                it = M_marker_map_old.find( marker_name );
+            MarkerMap::const_iterator it = M_marker_map_old.find( marker_name );
             if ( it != M_marker_map_old.end() )
             {
                 info->id_ = it->second;
@@ -548,7 +522,7 @@ VisualSensor::parseMarker( const char * tok,
 
         if ( info->id_ == Marker_Unknown )
         {
-            std::cerr << "VisualSensor::parseMarker. unknown marker "
+            std::cerr << "(VisualSensor::parseMarker) unknown marker "
                       << std::string( tok, 16 ) << "]"
                       << std::endl;
             return false;
@@ -799,27 +773,22 @@ VisualSensor::parseBall( const char * tok,
 /*!
 
 */
-VisualSensor::PlayerType
+VisualSensor::PlayerInfoType
 VisualSensor::parsePlayer( const char * tok,
-                           const char * team_name,
-                           const int team_name_len,
+                           const std::string & team_name,
                            PlayerT * info )
 {
-    PlayerType result_type = Player_Illegal;
+    PlayerInfoType result_type = Player_Illegal;
 
     // skip to first of object name
     while ( *tok == '(' ) ++tok;
 
     // count the space in object name for player identify
     // (p), (p "TEAMNAME"), (p "TEAMNAME" UNUM), (p "TEAMNAME" UNUM goalie)
-    int i = 1, n_space = 0;
-    //bool quated = false;
-    while ( *(tok + i) != ')' )
+    int n_space = 0;
+    for ( int i = 1; *(tok + i) != ')' && *(tok + i) != '\0'; ++i )
     {
-        if (*(tok+i) == ' ') ++n_space;
-        //if (*(tok+i) == ' ' && !quated) n_space++;
-        //if (*(tok+i) == '\"') quated = !quated; // "
-        ++i;
+        if ( *(tok + i) == ' ' ) ++n_space;
     }
 
     // check player name
@@ -831,17 +800,19 @@ VisualSensor::parsePlayer( const char * tok,
         while ( *tok != '\"' ) ++tok; // " skip to team name
         ++tok; // skip '"'
 
-        if ( *( tok + team_name_len ) == '\"' // "
-             && ! std::strncmp( team_name, tok, team_name_len ) )
+        const size_t len = team_name.length();
+
+        if ( *( tok + len ) == '\"' // "
+             && team_name.compare( 0, len, tok, len ) == 0 )
         {
             result_type = Player_Unknown_Teammate;
         }
         else
         {
             result_type = Player_Unknown_Opponent;
-            if ( M_opponent_team_name.empty() )
+            if ( M_their_team_name.empty() )
             {
-                while (*tok != '\"') M_opponent_team_name += *tok++; // "
+                while ( *tok != '\"' ) M_their_team_name += *tok++; // "
                 // std::cerr << "copy opponent team name : "
                 // << M_opponent_team_name << std::endl;
             }
@@ -893,11 +864,10 @@ VisualSensor::parsePlayer( const char * tok,
     // " <DIR>)" : space = 1
 
     // count space in positional info
-    i = n_space = 0;
-    while ( *( tok + i ) != ')' )
+    n_space = 0;
+    for ( int i = 0; *(tok + i) != ')' && *(tok + i) != '\0'; ++i )
     {
         if ( *( tok + i ) == ' ' ) ++n_space;
-        ++i;
     }
 
     char *next;
@@ -915,7 +885,7 @@ VisualSensor::parsePlayer( const char * tok,
         info->face_ = std::strtod( tok, &next ); tok = next;
         info->arm_ = std::strtod( tok, &next ); tok = next;
         info->has_vel_ = true;
-        if ( *(tok + 1) == 'k' ) info->kicked_ = true;
+        if ( *(tok + 1) == 'k' ) info->kicking_ = true;
         if ( *(tok + 1) == 't' ) info->tackle_ = true;
     }
     // <DIST> <DIR> <DISTCH> <DIRCH> <BODY> <HEAD> <POINTDIR>
@@ -931,7 +901,7 @@ VisualSensor::parsePlayer( const char * tok,
         info->has_vel_ = true;
         if ( *(tok + 1) == 'k' )
         {
-            info->kicked_ = true;
+            info->kicking_ = true;
         }
         else if ( *(tok + 1) == 't' )
         {
@@ -974,7 +944,7 @@ VisualSensor::parsePlayer( const char * tok,
         if ( *(tok + 1) == 'k' )
         {
             info->arm_ = tmp;
-            info->kicked_ = true;
+            info->kicking_ = true;
         }
         else if ( *(tok + 1) == 't' )
         {
@@ -995,7 +965,7 @@ VisualSensor::parsePlayer( const char * tok,
         info->dir_  = std::strtod( tok, &next ); tok = next;
         if ( *(tok + 1) == 'k' )
         {
-            info->kicked_ = true;
+            info->kicking_ = true;
         }
         else if ( *(tok + 1) == 't' )
         {

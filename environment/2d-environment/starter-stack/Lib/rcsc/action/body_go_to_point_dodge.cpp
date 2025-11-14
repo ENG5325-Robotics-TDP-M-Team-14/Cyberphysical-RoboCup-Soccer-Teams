@@ -137,49 +137,38 @@ Body_GoToPointDodge::get_dodge_point( const PlayerAgent * agent,
     const double consider_dist_max = 1.5;
 
     double mindist = 100.0;
-
     bool found = false;
 
-    PlayerPtrCont::const_iterator it;
-
-    const PlayerPtrCont::const_iterator t_end
-        = wm.teammatesFromSelf().end();
-    for ( it = wm.teammatesFromSelf().begin();
-          it != t_end;
-          ++it )
+    for ( const PlayerObject * t : wm.teammatesFromSelf() )
     {
-        if ( (*it)->distFromSelf() > consider_dist_max )
+        if ( t->distFromSelf() > consider_dist_max )
         {
             break;
         }
         // this player is near to target trajectry
-        if ( mindist > (*it)->distFromSelf()
-             && line2target.dist2( (*it)->pos() ) < dodge_perpend_dist2
-             && (target_angle - (*it)->angleFromSelf()).abs() < 90.0 )
+        if ( mindist > t->distFromSelf()
+             && line2target.dist2( t->pos() ) < dodge_perpend_dist2
+             && (target_angle - t->angleFromSelf()).abs() < 90.0 )
         {
-            mindist = (*it)->distFromSelf();
-            *sol = (*it)->pos();
+            mindist = t->distFromSelf();
+            *sol = t->pos();
             found = true;
         }
     }
 
-    const PlayerPtrCont::const_iterator o_end
-        = wm.opponentsFromSelf().end();
-    for ( it = wm.opponentsFromSelf().begin();
-          it != o_end;
-          ++it )
+    for ( const PlayerObject * o : wm.opponentsFromSelf() )
     {
-        if ( (*it)->distFromSelf() > consider_dist_max )
+        if ( o->distFromSelf() > consider_dist_max )
         {
             break;
         }
         // this player is near to target trajectry
-        if ( mindist > (*it)->distFromSelf()
-             && line2target.dist2( (*it)->pos() ) < dodge_perpend_dist2
-             && ( target_angle - (*it)->angleFromSelf() ).abs() < 90.0 )
+        if ( mindist > o->distFromSelf()
+             && line2target.dist2( o->pos() ) < dodge_perpend_dist2
+             && ( target_angle - o->angleFromSelf() ).abs() < 90.0 )
         {
-            mindist = (*it)->distFromSelf();
-            *sol = (*it)->pos();
+            mindist = o->distFromSelf();
+            *sol = o->pos();
             found = true;
         }
     }
@@ -191,9 +180,7 @@ Body_GoToPointDodge::get_dodge_point( const PlayerAgent * agent,
     {
         if ( wm.ball().distFromSelf() < consider_dist_max
              && line2target.dist( wm.ball().pos() ) < 1.5
-             && ( ( target_angle - ( wm.ball().pos()
-                                     - wm.self().pos() ).th() ).abs()
-                  < 90.0 ) )
+             && ( ( target_angle - ( wm.ball().pos() - wm.self().pos() ).th() ).abs() < 90.0 ) )
         {
             if ( mindist > wm.ball().distFromSelf() )
             {

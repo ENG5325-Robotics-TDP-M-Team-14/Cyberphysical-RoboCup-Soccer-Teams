@@ -51,7 +51,10 @@ class FreeMessageParser
     : public SayMessageParser {
 private:
     //! pointer to the audio memory
-    boost::shared_ptr< AudioMemory > M_memory;
+    std::shared_ptr< AudioMemory > M_memory;
+
+    // not used
+    FreeMessageParser() = delete;
 
 public:
 
@@ -60,7 +63,7 @@ public:
       \param memory pointer to the memory
      */
     explicit
-    FreeMessageParser( boost::shared_ptr< AudioMemory > memory )
+    FreeMessageParser( std::shared_ptr< AudioMemory > memory )
         : M_memory( memory )
       { }
 

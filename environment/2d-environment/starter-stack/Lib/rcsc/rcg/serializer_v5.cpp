@@ -33,13 +33,6 @@
 #include <config.h>
 #endif
 
-#ifdef HAVE_NETINET_IN_H
-#include <netinet/in.h>
-#endif
-#ifdef HAVE_WINDOWS_H
-#include <windows.h>
-#endif
-
 #include "serializer_v5.h"
 
 #include "util.h"
@@ -47,16 +40,12 @@
 #include <cstring>
 #include <cmath>
 
-namespace {
-inline
-double
-quantize( const double & val,
-          const double & prec = 0.0001 )
-{
-    return rint( val / prec ) * prec;
-}
-
-}
+#ifdef HAVE_ARPA_INET_H
+#include <arpa/inet.h>
+#endif
+#ifdef HAVE_WINDOWS_H
+#include <windows.h>
+#endif
 
 namespace rcsc {
 namespace rcg {
@@ -66,7 +55,9 @@ namespace rcg {
 
  */
 std::ostream &
-SerializerV5::serializeHeader( std::ostream & os )
+SerializerV5::serializeBegin( std::ostream & os,
+                              const std::string &,
+                              const std::string & )
 {
     return os << "ULG5\n";
 }

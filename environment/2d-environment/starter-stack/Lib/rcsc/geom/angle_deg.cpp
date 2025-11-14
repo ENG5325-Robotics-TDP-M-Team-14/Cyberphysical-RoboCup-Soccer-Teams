@@ -87,7 +87,7 @@ AngleDeg::isWithin( const AngleDeg & left,
 
  */
 void
-AngleDeg::sinMinMax( const double & angle_err,
+AngleDeg::sinMinMax( const double angle_err,
                      double * minsin,
                      double * maxsin ) const
 {
@@ -132,7 +132,7 @@ AngleDeg::sinMinMax( const double & angle_err,
 
 */
 void
-AngleDeg::cosMinMax( const double & angle_err,
+AngleDeg::cosMinMax( const double angle_err,
                      double * mincos,
                      double * maxcos ) const
 {

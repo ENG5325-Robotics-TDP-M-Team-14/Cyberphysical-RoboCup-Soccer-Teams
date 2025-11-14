@@ -79,7 +79,7 @@ public:
       This means that we can use this class as follows.
       AngleDeg angle = 3.0;
     */
-    AngleDeg( const double & deg )
+    AngleDeg( const double deg )
         : M_degree( deg )
       {
           normalize();
@@ -90,8 +90,7 @@ public:
       \param deg initialization parameter
       \return const reference to itself
     */
-    const
-    AngleDeg & operator=( const double & deg )
+    const AngleDeg & operator=( const double deg )
       {
           M_degree = deg;
           return normalize();
@@ -102,8 +101,7 @@ private:
       \brief normalize the value to [-180, 180].
       \return const reference to itself.
     */
-    const
-    AngleDeg & normalize()
+    const AngleDeg & normalize()
       {
           if ( M_degree < -360.0 || 360.0 < M_degree )
           {
@@ -129,8 +127,7 @@ public:
       \brief get value of this angle
       \return const reference to the member variable
      */
-    const
-    double & degree() const
+    double degree() const
       {
           return M_degree;
       }
@@ -173,8 +170,7 @@ public:
       \param angle added value
       \return const reference to this
     */
-    const
-    AngleDeg & operator+=( const AngleDeg & angle )
+    const AngleDeg & operator+=( const AngleDeg & angle )
       {
           M_degree += angle.degree();
           return normalize();
@@ -185,8 +181,7 @@ public:
       \param deg added value
       \return const reference to this
     */
-    const
-    AngleDeg & operator+=( const double & deg )
+    const AngleDeg & operator+=( const double deg )
       {
           M_degree += deg;
           return normalize();
@@ -197,8 +192,7 @@ public:
       \param angle subtract argument
       \return const reference to this
      */
-    const
-    AngleDeg & operator-=( const AngleDeg & angle )
+    const AngleDeg & operator-=( const AngleDeg & angle )
       {
           M_degree -= angle.degree();
           return normalize();
@@ -209,8 +203,7 @@ public:
       \param deg subtract argument
       \return const reference to this
      */
-    const
-    AngleDeg & operator-=( const double & deg )
+    const AngleDeg & operator-=( const double deg )
       {
           M_degree -= deg;
           return normalize();
@@ -221,8 +214,7 @@ public:
       \param scalar multiply argument
       \return const reference to this
      */
-    const
-    AngleDeg & operator*=( const double & scalar )
+    const AngleDeg & operator*=( const double scalar )
       {
           M_degree *= scalar;
           return normalize();
@@ -233,8 +225,7 @@ public:
       \param scalar division argument
       \return const reference to this
      */
-    const
-    AngleDeg & operator/=( const double & scalar )
+    const AngleDeg & operator/=( const double scalar )
       {
           if ( std::fabs( scalar ) < EPSILON )
           {
@@ -336,7 +327,7 @@ public:
       \param minsin pointer to the solution variable to store the min value
       \param maxsin pointer to the solution variable to store the max value
     */
-    void sinMinMax( const double & angle_err,
+    void sinMinMax( const double angle_err,
                     double * minsin,
                     double * maxsin ) const;
 
@@ -346,7 +337,7 @@ public:
       \param mincos pointer to the solution variable to store the min value
       \param maxcos pointer to the solution variable to store the max value
     */
-    void cosMinMax( const double & angle_err,
+    void cosMinMax( const double angle_err,
                     double * mincos,
                     double * maxcos ) const;
 
@@ -387,7 +378,7 @@ public:
     */
     inline
     static
-    double rad2deg( const double & rad )
+    double rad2deg( const double rad )
       {
           return rad * RAD2DEG;
       }
@@ -399,7 +390,7 @@ public:
     */
     inline
     static
-    double deg2rad( const double & deg )
+    double deg2rad( const double deg )
       {
           return deg * DEG2RAD;
       }
@@ -411,7 +402,7 @@ public:
     */
     inline
     static
-    double cos_deg( const double & deg )
+    double cos_deg( const double deg )
       {
           return std::cos( deg2rad( deg ) );
       }
@@ -423,7 +414,7 @@ public:
     */
     inline
     static
-    double sin_deg( const double & deg )
+    double sin_deg( const double deg )
       {
           return std::sin( deg2rad( deg ) );
       }
@@ -435,7 +426,7 @@ public:
     */
     inline
     static
-    double tan_deg( const double & deg )
+    double tan_deg( const double deg )
       {
           return std::tan( deg2rad( deg ) );
       }
@@ -447,7 +438,7 @@ public:
     */
     inline
     static
-    double acos_deg( const double & cosine )
+    double acos_deg( const double cosine )
       {
           return ( cosine >= 1.0
                    ? 0.0
@@ -463,7 +454,7 @@ public:
     */
     inline
     static
-    double asin_deg( const double & sine )
+    double asin_deg( const double sine )
       {
           return ( sine >= 1.0
                    ? 90.0
@@ -479,7 +470,7 @@ public:
     */
     inline
     static
-    double atan_deg( const double & tangent )
+    double atan_deg( const double tangent )
       {
           return rad2deg( std::atan( tangent ) );
       }
@@ -492,8 +483,8 @@ public:
     */
     inline
     static
-    double atan2_deg( const double & y,
-                      const double & x )
+    double atan2_deg( const double y,
+                      const double x )
       {
           return ( ( x == 0.0 && y == 0.0 )
                    ? 0.0
@@ -531,55 +522,12 @@ public:
       \return reference to the output stream
      */
     std::ostream & printRound( std::ostream & os,
-                               const double & step = 0.1 ) const
+                               const double step = 0.1 ) const
       {
           return os << rint( degree() / step ) * step;
       }
 
-    ////////////////////////////////////////////////////////
-    /*!
-      \brief predicate function object.
-      this compares two angles by degree value
-    */
-    class DegreeCmp
-        : public std::binary_function< AngleDeg, AngleDeg, bool > {
-    public:
-        //! operator method
-        result_type operator()( const first_argument_type & lhs,
-                                const second_argument_type & rhs ) const
-          {
-              return lhs.degree() < rhs.degree();
-          }
-    };
-
 };
-
-
-////////////////////////////////////////////////////////
-/*!
-  \brief predicate function object.
-
-  this checks if input angle is within specific range.
-*/
-class AngleIsWithin
-    : public std::unary_function< AngleDeg, bool > {
-    const AngleDeg M_left; //!< left threshold
-    const AngleDeg M_right; //!< right threshold
-public:
-    //! constructor
-    AngleIsWithin( const AngleDeg & left,
-                   const AngleDeg & right )
-        : M_left( left )
-        , M_right( right )
-      { }
-
-    //! operator method
-    result_type operator()( const argument_type & angle ) const
-      {
-          return angle.isWithin( M_left, M_right );
-      }
-};
-
 
 } // end of namespace
 
@@ -614,7 +562,7 @@ inline
 const
 rcsc::AngleDeg
 operator+( const rcsc::AngleDeg & lhs,
-           const double & rhs )
+           const double rhs )
 {
     return rcsc::AngleDeg( lhs ) += rhs;
 }
@@ -629,7 +577,7 @@ operator+( const rcsc::AngleDeg & lhs,
 inline
 const
 rcsc::AngleDeg
-operator+( const double & lhs,
+operator+( const double lhs,
            const rcsc::AngleDeg & rhs )
 {
     return rcsc::AngleDeg( rhs ) += lhs;
@@ -662,7 +610,7 @@ inline
 const
 rcsc::AngleDeg
 operator-( const rcsc::AngleDeg & lhs,
-           const double & rhs )
+           const double rhs )
 {
     return rcsc::AngleDeg( lhs ) -= rhs;
 }
@@ -677,7 +625,7 @@ operator-( const rcsc::AngleDeg & lhs,
 inline
 const
 rcsc::AngleDeg
-operator-( const double & lhs,
+operator-( const double lhs,
            const rcsc::AngleDeg & rhs )
 {
     return rcsc::AngleDeg( lhs ) -= rhs;
@@ -711,7 +659,7 @@ operator!=( const rcsc::AngleDeg & lhs,
 inline
 bool
 operator!=( const rcsc::AngleDeg & lhs,
-            const double & rhs )
+            const double rhs )
 {
     return std::fabs( lhs.degree() - rhs ) > rcsc::AngleDeg::EPSILON;
 }
@@ -725,7 +673,7 @@ operator!=( const rcsc::AngleDeg & lhs,
  */
 inline
 bool
-operator!=( const double & lhs,
+operator!=( const double lhs,
             const rcsc::AngleDeg & rhs )
 {
     return std::fabs( lhs - rhs.degree() ) > rcsc::AngleDeg::EPSILON;
@@ -756,7 +704,7 @@ operator==( const rcsc::AngleDeg & lhs,
 inline
 bool
 operator==( const rcsc::AngleDeg & lhs,
-            const double & rhs )
+            const double rhs )
 {
     return std::fabs( lhs.degree() - rhs ) < rcsc::AngleDeg::EPSILON;
 }
@@ -770,7 +718,7 @@ operator==( const rcsc::AngleDeg & lhs,
  */
 inline
 bool
-operator==( const double & lhs,
+operator==( const double lhs,
             const rcsc::AngleDeg & rhs )
 {
     return std::fabs( lhs - rhs.degree() ) < rcsc::AngleDeg::EPSILON;

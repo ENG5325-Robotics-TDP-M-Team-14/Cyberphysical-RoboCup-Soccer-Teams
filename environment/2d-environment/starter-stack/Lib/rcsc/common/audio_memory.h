@@ -54,7 +54,7 @@ public:
       \brief heard ball info
      */
     struct Ball {
-        int sender_; //!< info sender number
+        int sender_; //!< message sender number
         Vector2D pos_; //!< heard ball position
         Vector2D vel_; //!< heard ball velocity
 
@@ -64,9 +64,9 @@ public:
         Ball( const int sender,
               const Vector2D & pos,
               const Vector2D & vel )
-            : sender_( sender )
-            , pos_( pos )
-            , vel_( vel )
+            : sender_( sender ),
+              pos_( pos ),
+              vel_( vel )
           { }
     };
 
@@ -75,7 +75,7 @@ public:
       \brief heard pass info
      */
     struct Pass {
-        int sender_; //!< info sender number
+        int sender_; //!< message sender number
         int receiver_; //!< heard pass receiver number
         Vector2D receive_pos_; //!< heard pass receive pos
 
@@ -85,9 +85,9 @@ public:
         Pass( const int sender,
               const int receiver,
               const Vector2D & pos )
-            : sender_( sender )
-            , receiver_( receiver )
-            , receive_pos_( pos )
+            : sender_( sender ),
+              receiver_( receiver ),
+              receive_pos_( pos )
           { }
     };
 
@@ -96,7 +96,7 @@ public:
       \brief heard our intercept info
      */
     struct OurIntercept {
-        int sender_; //!< info sender number
+        int sender_; //!< message sender number
         int interceptor_; //!< interceptor number
         int cycle_; //!< intercept cycle
 
@@ -106,9 +106,9 @@ public:
         OurIntercept( const int sender,
                       const int interceptor,
                       const int cycle )
-            : sender_( sender )
-            , interceptor_( interceptor )
-            , cycle_( cycle )
+            : sender_( sender ),
+              interceptor_( interceptor ),
+              cycle_( cycle )
           { }
     };
 
@@ -117,7 +117,7 @@ public:
       \brief heard opp intercept info
      */
     struct OppIntercept {
-        int sender_; //!< info sender number
+        int sender_; //!< message sender number
         int interceptor_; //!< interceptor number
         int cycle_; //!< intercept cycle
 
@@ -138,7 +138,7 @@ public:
       \brief opponent goalie info
      */
     struct Goalie {
-        int sender_; //!< goalie info sender number
+        int sender_; //!< goalie message sender number
         Vector2D pos_; //!< heard goalie positon
         AngleDeg body_; //!< heard goalie's body angle
 
@@ -148,9 +148,9 @@ public:
         Goalie( const int sender,
                 const Vector2D & pos,
                 const AngleDeg & body )
-            : sender_( sender )
-            , pos_( pos )
-            , body_( body )
+            : sender_( sender ),
+              pos_( pos ),
+              body_( body )
           { }
     };
 
@@ -159,7 +159,7 @@ public:
       \brief player info
      */
     struct Player {
-        int sender_; //!< player info sender number
+        int sender_; //!< player message sender number
         int unum_; //!< heard player unum. if opponent player, += 11
         Vector2D pos_; //!< heard player position
         double body_; //!< heard player's body angle
@@ -173,11 +173,11 @@ public:
                 const Vector2D & pos,
                 const double & body = -360.0,
                 const double & stamina = -1.0 )
-            : sender_( sender )
-            , unum_( unum )
-            , pos_( pos )
-            , body_( body )
-            , stamina_( stamina )
+            : sender_( sender ),
+              unum_( unum ),
+              pos_( pos ),
+              body_( body ),
+              stamina_( stamina )
           { }
     };
 
@@ -194,8 +194,8 @@ public:
         */
         OffsideLine( const int sender,
                      const double & x )
-            : sender_( sender )
-            , x_( x )
+            : sender_( sender ),
+              x_( x )
           { }
     };
 
@@ -204,7 +204,7 @@ public:
       \brief defense line info
      */
     struct DefenseLine {
-        int sender_; //!< defense line info sender number
+        int sender_; //!< defense line message sender number
         double x_; //!< heard defense line value
 
         /*!
@@ -212,8 +212,8 @@ public:
         */
        DefenseLine( const int sender,
                     const double & x )
-            : sender_( sender )
-            , x_( x )
+            : sender_( sender ),
+              x_( x )
           { }
     };
 
@@ -222,13 +222,31 @@ public:
       \brief wait request info
      */
     struct WaitRequest {
-        int sender_; //!< wait request info sender number;
+        int sender_; //!< wait request message sender number;
 
         /*!
           \brief initialize all member
         */
         WaitRequest( const int sender )
             : sender_( sender )
+          { }
+    };
+
+    /*!
+      \struct Setplay
+      \brief setplay info
+     */
+    struct Setplay {
+        int sender_; //!< wait request message sender number;
+        int wait_step_;
+
+        /*!
+          \brief initialize all member
+        */
+        Setplay( const int sender,
+                 const int wait_step )
+            : sender_( sender ),
+              wait_step_( wait_step )
           { }
     };
 
@@ -245,8 +263,8 @@ public:
         */
         PassRequest( const int sender,
                      const Vector2D & pos )
-            : sender_( sender )
-            , pos_( pos )
+            : sender_( sender ),
+              pos_( pos )
           { }
     };
 
@@ -265,9 +283,9 @@ public:
         RunRequest( const int sender,
                     const int runner,
                     const Vector2D & pos )
-            : sender_( sender )
-            , runner_( runner )
-            , pos_( pos )
+            : sender_( sender ),
+              runner_( runner ),
+              pos_( pos )
           { }
     };
 
@@ -284,8 +302,8 @@ public:
         */
         Stamina( const int sender,
                  const double & rate )
-            : sender_( sender )
-            , rate_( rate )
+            : sender_( sender ),
+              rate_( rate )
           { }
     };
 
@@ -302,8 +320,26 @@ public:
         */
         Recovery( const int sender,
                   const double & rate )
-            : sender_( sender )
-            , rate_( rate )
+            : sender_( sender ),
+              rate_( rate )
+          { }
+    };
+
+    /*!
+      \struct StaminaCapacity
+      \brief stamina capacity data
+     */
+    struct StaminaCapacity {
+        int sender_; //!< stamina sender number
+        double rate_; //!< heard stamina rate
+
+        /*!
+          \brief initialize all member
+        */
+        StaminaCapacity( const int sender,
+                         const double & rate )
+            : sender_( sender ),
+              rate_( rate )
           { }
     };
 
@@ -322,9 +358,9 @@ public:
         Dribble( const int sender,
                  const Vector2D & target,
                  const int queue_count )
-            : sender_( sender )
-            , target_( target )
-            , queue_count_( queue_count )
+            : sender_( sender ),
+              target_( target ),
+              queue_count_( queue_count )
           { }
     };
 
@@ -341,8 +377,8 @@ public:
         */
         FreeMessage( const int sender,
                      const std::string & message )
-            : sender_( sender )
-            , message_( message )
+            : sender_( sender ),
+              message_( message )
           { }
     };
 
@@ -356,49 +392,55 @@ protected:
     GameTime M_time;
 
     std::vector< Ball > M_ball; //!< heard info
-    GameTime M_ball_time; //!< info heard time
+    GameTime M_ball_time; //!< heard time
 
     std::vector< Pass > M_pass; //!< heard info
-    GameTime M_pass_time; //!< info heard time
+    GameTime M_pass_time; //!< heard time
 
     std::vector< OurIntercept > M_our_intercept; //!< heard info
-    GameTime M_our_intercept_time; //!< info heard time
+    GameTime M_our_intercept_time; //!< heard time
 
     std::vector< OppIntercept > M_opp_intercept; //!< heard info
-    GameTime M_opp_intercept_time; //!< info heard time
+    GameTime M_opp_intercept_time; //!< heard time
 
     std::vector< Goalie > M_goalie; //!< heard info
-    GameTime M_goalie_time; //!< info heard time
+    GameTime M_goalie_time; //!< heard time
 
     std::vector< Player > M_player; //!< heard info
-    GameTime M_player_time; //!< info heard time
+    GameTime M_player_time; //!< heard time
 
     std::vector< OffsideLine > M_offside_line; //!< heard info
-    GameTime M_offside_line_time; //!< info heard time
+    GameTime M_offside_line_time; //!< heard time
 
     std::vector< DefenseLine > M_defense_line; //!< heard info
-    GameTime M_defense_line_time; //!< info heard time
+    GameTime M_defense_line_time; //!< heard time
 
     std::vector< WaitRequest > M_wait_request; //!< heard info
-    GameTime M_wait_request_time; //!< info heard time
+    GameTime M_wait_request_time; //!< heard time
+
+    std::vector< Setplay > M_setplay; //!< heard info
+    GameTime M_setplay_time; //!< heard time
 
     std::vector< PassRequest > M_pass_request; //!< heard info
-    GameTime M_pass_request_time; //!< info heard time
+    GameTime M_pass_request_time; //!< heard time
 
     std::vector< RunRequest > M_run_request; //!< heard info
-    GameTime M_run_request_time; //!< info heard time
+    GameTime M_run_request_time; //!< heard time
 
     std::vector< Stamina > M_stamina; //!< heard info
-    GameTime M_stamina_time; //!< info heard time
+    GameTime M_stamina_time; //!< heard time
 
     std::vector< Recovery > M_recovery; //!< heard info
-    GameTime M_recovery_time; //!< info heard time
+    GameTime M_recovery_time; //!< heard time
+
+    std::vector< StaminaCapacity > M_stamina_capacity; //!< heard info
+    GameTime M_stamina_capacity_time; //!< heard time
 
     std::vector< Dribble > M_dribble; //!< heard info
-    GameTime M_dribble_time; //!< info heard time
+    GameTime M_dribble_time; //!< heard time
 
     std::vector< FreeMessage > M_free_message; //!< heard info
-    GameTime M_free_message_time; //!< info heard time
+    GameTime M_free_message_time; //!< heard time
 
 
     //! memory of heared players
@@ -407,8 +449,8 @@ protected:
 
 private:
     // not used
-    AudioMemory( const AudioMemory & );
-    AudioMemory & operator=( const AudioMemory & );
+    AudioMemory( const AudioMemory & ) = delete;
+    AudioMemory & operator=( const AudioMemory & ) = delete;
 
 public:
 
@@ -421,13 +463,11 @@ public:
       \brief virtual destructor
     */
     virtual
-    ~AudioMemory()
-      { }
+    ~AudioMemory() = default;
 
     // accessor methods
 
-    const
-    GameTime & time() const
+    const GameTime & time() const
       {
           return M_time;
       }
@@ -436,8 +476,7 @@ public:
       \brief get heard ball info
       \return ball info container
     */
-    const
-    std::vector< Ball > & ball() const
+    const std::vector< Ball > & ball() const
       {
           return M_ball;
       }
@@ -446,8 +485,7 @@ public:
       \brief ball info heard time
       \return time value
     */
-    const
-    GameTime & ballTime() const
+    const GameTime & ballTime() const
       {
           return M_ball_time;
       }
@@ -456,8 +494,7 @@ public:
       \brief get heard pass info
       \return pass info container
     */
-    const
-    std::vector< Pass > & pass() const
+    const std::vector< Pass > & pass() const
       {
           return M_pass;
       }
@@ -466,8 +503,7 @@ public:
       \brief get pas info heard time
       \return time value
     */
-    const
-    GameTime & passTime() const
+    const GameTime & passTime() const
       {
           return M_pass_time;
       }
@@ -476,8 +512,7 @@ public:
       \brief get heard our interceptor info
       \return our intercept info container
     */
-    const
-    std::vector< OurIntercept > & ourIntercept() const
+    const std::vector< OurIntercept > & ourIntercept() const
       {
           return M_our_intercept;
       }
@@ -486,8 +521,7 @@ public:
       \brief get our intercept info heard time
       \return time value
     */
-    const
-    GameTime & ourInterceptTime() const
+    const GameTime & ourInterceptTime() const
       {
           return M_our_intercept_time;
       }
@@ -496,8 +530,7 @@ public:
       \brief get opp intercept info
       \return opp intercept info container
     */
-    const
-    std::vector< OppIntercept > & oppIntercept() const
+    const std::vector< OppIntercept > & oppIntercept() const
       {
           return M_opp_intercept;
       }
@@ -506,8 +539,7 @@ public:
       \brief get opp intercept info heard time
       \return time value
     */
-    const
-    GameTime & oppInterceptTime() const
+    const GameTime & oppInterceptTime() const
       {
           return M_opp_intercept_time;
       }
@@ -516,8 +548,7 @@ public:
       \brief get heard goalie info
       \return goalie info container
     */
-    const
-    std::vector< Goalie > & goalie() const
+    const std::vector< Goalie > & goalie() const
       {
           return M_goalie;
       }
@@ -526,8 +557,7 @@ public:
       \brief get goalie info heard time
       \return time value
     */
-    const
-    GameTime & goalieTime() const
+    const GameTime & goalieTime() const
       {
           return M_goalie_time;
       }
@@ -536,8 +566,7 @@ public:
       \brief get heard player
       \return player info container
     */
-    const
-    std::vector< Player > & player() const
+    const std::vector< Player > & player() const
       {
           return M_player;
       }
@@ -546,8 +575,7 @@ public:
       \brief get player info heard time
       \return time value
     */
-    const
-    GameTime & playerTime() const
+    const GameTime & playerTime() const
       {
           return M_player_time;
       }
@@ -562,8 +590,7 @@ public:
       \brief get heard offside line info
       \return offside line info container
     */
-    const
-    std::vector< OffsideLine > & offsideLine() const
+    const std::vector< OffsideLine > & offsideLine() const
       {
           return M_offside_line;
       }
@@ -572,8 +599,7 @@ public:
       \brief get offside line heard time
       \return time value
     */
-    const
-    GameTime & offsideLineTime() const
+    const GameTime & offsideLineTime() const
       {
           return M_offside_line_time;
       }
@@ -582,8 +608,7 @@ public:
       \brief get heard defense line
       \return defense line info container
     */
-    const
-    std::vector< DefenseLine > & defenseLine() const
+    const std::vector< DefenseLine > & defenseLine() const
       {
           return M_defense_line;
       }
@@ -592,8 +617,7 @@ public:
       \brief get defense line heard time
       \return time value
     */
-    const
-    GameTime & defenseLineTime() const
+    const GameTime & defenseLineTime() const
       {
           return M_defense_line_time;
       }
@@ -602,8 +626,7 @@ public:
       \brief get wait request info
       \return wait request info container
     */
-    const
-    std::vector< WaitRequest > & waitRequest() const
+    const std::vector< WaitRequest > & waitRequest() const
       {
           return M_wait_request;
       }
@@ -612,18 +635,34 @@ public:
       \brief get wait request heard time
       \return time value
     */
-    const
-    GameTime & waitRequestTime() const
+    const GameTime & waitRequestTime() const
       {
           return M_wait_request_time;
+      }
+
+    /*!
+      \brief get setplay info
+      \return setplay info container
+     */
+    const std::vector< Setplay > & setplay() const
+      {
+          return M_setplay;
+      }
+
+    /*!
+      \brief get setplay heared time
+      \return time value
+     */
+    const GameTime & setplayTime() const
+      {
+          return M_setplay_time;
       }
 
     /*!
       \brief get pass request info
       \return pass request info container
     */
-    const
-    std::vector< PassRequest > & passRequest() const
+    const std::vector< PassRequest > & passRequest() const
       {
           return M_pass_request;
       }
@@ -632,8 +671,7 @@ public:
       \brief get pass request heard time
       \return time value
     */
-    const
-    GameTime & passRequestTime() const
+    const GameTime & passRequestTime() const
       {
           return M_pass_request_time;
       }
@@ -642,8 +680,7 @@ public:
       \brief get run request info
       \return run request info container
     */
-    const
-    std::vector< RunRequest > & runRequest() const
+    const std::vector< RunRequest > & runRequest() const
       {
           return M_run_request;
       }
@@ -652,8 +689,7 @@ public:
       \brief get run request heard time
       \return time value
     */
-    const
-    GameTime & runRequestTime() const
+    const GameTime & runRequestTime() const
       {
           return M_run_request_time;
       }
@@ -662,8 +698,7 @@ public:
       \brief get heard stamina info
       \return stamina info container
     */
-    const
-    std::vector< Stamina > & stamina() const
+    const std::vector< Stamina > & stamina() const
       {
           return M_stamina;
       }
@@ -672,8 +707,7 @@ public:
       \brief get stamina info heard time
       \return time value
     */
-    const
-    GameTime & staminaTime() const
+    const GameTime & staminaTime() const
       {
           return M_stamina_time;
       }
@@ -682,8 +716,7 @@ public:
       \brief get heard recovery info
       \return recovery info container
     */
-    const
-    std::vector< Recovery > & recovery() const
+    const std::vector< Recovery > & recovery() const
       {
           return M_recovery;
       }
@@ -692,18 +725,34 @@ public:
       \brief get recovery info heard time
       \return time value
     */
-    const
-    GameTime & recoveryTime() const
+    const GameTime & recoveryTime() const
       {
           return M_recovery_time;
+      }
+
+    /*!
+      \brief get heard stamina capacity info
+      \return stamina capacity info container
+    */
+    const std::vector< StaminaCapacity > & staminaCapacity() const
+      {
+          return M_stamina_capacity;
+      }
+
+    /*!
+      \brief get stamina info heard time
+      \return time value
+    */
+    const GameTime & staminaCapacityTime() const
+      {
+          return M_stamina_capacity_time;
       }
 
     /*!
       \brief get dribble info
       \return dribble info container
     */
-    const
-    std::vector< Dribble > & dribble() const
+    const std::vector< Dribble > & dribble() const
       {
           return M_dribble;
       }
@@ -712,8 +761,7 @@ public:
       \brief get dribble info heard time
       \return time value
     */
-    const
-    GameTime & dribbleTime() const
+    const GameTime & dribbleTime() const
       {
           return M_dribble_time;
       }
@@ -722,8 +770,7 @@ public:
       \brief get free message
       \return free message container
      */
-    const
-    std::vector< FreeMessage > & freeMessage() const
+    const std::vector< FreeMessage > & freeMessage() const
       {
           return M_free_message;
       }
@@ -732,8 +779,7 @@ public:
       \brief get free message heard time
       \return time value
      */
-    const
-    GameTime & freeMessageTime() const
+    const GameTime & freeMessageTime() const
       {
           return M_free_message_time;
       }
@@ -855,6 +901,17 @@ public:
                          const GameTime & current );
 
     /*!
+      \brief set heard setplay info
+      \param sender sender's uniform number
+      \param wait_step time step until the setplay will start
+      \param current current game time
+     */
+    virtual
+    void setSetplay( const int sender,
+                     const int wait_step,
+                     const GameTime & current );
+
+    /*!
       \brief set heard pass request info
       \param sender message sender's uniform number
       \param request_pos request position
@@ -899,6 +956,17 @@ public:
     void setRecovery( const int sender,
                       const double & rate,
                       const GameTime & current );
+
+    /*!
+      \brief set heard stamina capacity info
+      \param sender message sender's uniform number
+      \param rate stamina value rate
+      \param current current game time
+    */
+    virtual
+    void setStaminaCapacity( const int sender,
+                             const double & rate,
+                             const GameTime & current );
 
     /*!
       \brief set heard dribble target point

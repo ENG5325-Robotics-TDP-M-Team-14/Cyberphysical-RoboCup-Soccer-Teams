@@ -33,10 +33,12 @@
 #define RCSC_PLAYER_PLAYER_CONFIG_H
 
 #include <string>
+#include <iosfwd>
 
 namespace rcsc {
 
 class ParamMap;
+class ParamParser;
 
 /*!
   \class PlayerConfig
@@ -44,6 +46,8 @@ class ParamMap;
 */
 class PlayerConfig {
 private:
+
+    ParamMap * M_param_map;
 
     // basic setting
 
@@ -73,11 +77,13 @@ private:
 
     bool M_use_communication; //!< if true, communiction is used
     bool M_hear_opponent_audio; //!< if true, opponent communication is heared
+    int M_audio_shift; //!< shift parameter to encrypt audio message
 
     bool M_use_fullstate; //!< if true, WorldModel is updated by fullstate.
     bool M_debug_fullstate; //!< if true, the virtual fullstate worldmodel is used.
 
     bool M_synch_see; //!< if true, synchronous see mode is used.
+    bool M_gaussian_see; //!< gaussian observation mode or not
 
     // confidence value
 
@@ -133,6 +139,9 @@ private:
     // debug logging
     //
 
+    int M_debug_start_time; //!< the start time for recording the debug log
+    int M_debug_end_time; //!< the end time for recording the debug log
+
     std::string M_debug_log_ext; //!< the extension string of debug log file
 
     bool M_debug_system; //!< debug level flag
@@ -157,31 +166,43 @@ private:
     bool M_debug_analyzer; //!< debug level flag
     bool M_debug_action_chain; //!< debug level flag
 
+    bool M_debug_training; //!< debug level flag
+
 public:
 
     /*!
-      \brief init variables by default value. create parametermap
+      \brief init variables by default value. create ParamMap instance
      */
     PlayerConfig();
 
     /*!
-      \brief nothing to do
+      \brief delete ParamMap instance
      */
     ~PlayerConfig();
 
+    /*!
+      \brief set parameter values using param parser instance
+      \param parser param parser instance
+     */
+    void parse( ParamParser & parser );
 
     /*!
-      \brief create parameter map
-      \param param_map reference to the parameter map instance
+      \brief print help message to the output stream
+      \param os output stream
+      \return output stream
      */
-    void createParamMap( ParamMap & param_map );
-
+    std::ostream & printHelp( std::ostream & os ) const;
 
 protected:
     /*!
       \brief set default value
     */
     void setDefaultParam();
+
+    /*!
+      \brief set parameter entries
+     */
+    void createParamMap();
 
 public:
 
@@ -197,7 +218,7 @@ public:
       \brief get the client version
       \return client version
      */
-    const double & version() const { return M_version; }
+    double version() const { return M_version; }
 
     /*!
       \brief get the uniform numver for a reconnect command
@@ -283,6 +304,12 @@ public:
      */
     bool hearOpponentAudio() const { return M_hear_opponent_audio; }
 
+    /*
+      \brief shift value to encrypt audio encoder
+      \return shift value
+     */
+    int audioShift() const { return M_audio_shift; }
+
     /*!
       \brief get the fullstate mode flag that determines whether the world model is updated by fullstate information
       \return fullstate mode flag
@@ -300,6 +327,12 @@ public:
       \return synch_see mode flag
      */
     bool synchSee() const { return M_synch_see; }
+
+    /*!
+      \brief get the gaussian_see mode flag
+      \return gaussian_see mode flag
+     */
+    bool gaussianSee() const { return M_gaussian_see; }
 
     // confidence value
 
@@ -447,6 +480,18 @@ public:
     //
 
     /*!
+      \brief get the start time for receoding the debug log
+      \return the start time for receoding the debug log
+     */
+    int debugStartTime() const { return M_debug_start_time; }
+
+    /*!
+      \brief get the end time for receoding the debug log
+      \return the end time for receoding the debug log
+     */
+    int debugEndTime() const { return M_debug_end_time; }
+
+    /*!
       \brief get the debug log file extention string.
       \return the debug log file extention string.
      */
@@ -580,6 +625,11 @@ public:
      */
     bool debugActionChain() const { return M_debug_action_chain; }
 
+    /*!
+      \brief get the debug flag
+      \return debug flag
+     */
+    bool debugTraining() const { return M_debug_training; }
 };
 
 }

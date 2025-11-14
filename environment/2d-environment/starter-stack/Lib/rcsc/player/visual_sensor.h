@@ -35,7 +35,7 @@
 #include <rcsc/game_time.h>
 #include <rcsc/types.h>
 
-#include <map>
+#include <unordered_map>
 #include <list>
 #include <vector>
 #include <string>
@@ -70,7 +70,7 @@ public:
     /*!
       \brief seen player identification type
     */
-    enum PlayerType {
+    enum PlayerInfoType {
         Player_Teammate = 10,
         Player_Unknown_Teammate = 11,
         Player_Opponent = 20,
@@ -219,21 +219,21 @@ public:
         double body_; //!< seen body dir. (relative to self face)
         double face_; //!< seen face dir. (relative to self face)
         double arm_; //!< seen pointing dir. (relative to self face)
-        bool   kicked_; //!< true if kicked
+        bool   kicking_; //!< true if kicked
         bool   tackle_; //!< true if tackling
 
         /*!
           \brief init member variables by error value
         */
         PlayerT()
-            : MovableT()
-            , unum_( Unum_Unknown )
-            , goalie_( false )
-            , body_( VisualSensor::DIR_ERR )
-            , face_( VisualSensor::DIR_ERR )
-            , arm_( VisualSensor::DIR_ERR )
-            , kicked_( false )
-            , tackle_( false )
+            : MovableT(),
+              unum_( Unum_Unknown ),
+              goalie_( false ),
+              body_( VisualSensor::DIR_ERR ),
+              face_( VisualSensor::DIR_ERR ),
+              arm_( VisualSensor::DIR_ERR ),
+              kicking_( false ),
+              tackle_( false )
           { }
         /*!
           \brief clear all data
@@ -246,35 +246,28 @@ public:
               body_ = VisualSensor::DIR_ERR;
               face_ = VisualSensor::DIR_ERR;
               arm_ = VisualSensor::DIR_ERR;
-              kicked_ = false;
+              kicking_ = false;
               tackle_ = false;
           }
     };
 
-#define USE_LIST_VISUAL_OBJECT
+    typedef std::unordered_map< std::string, MarkerID > MarkerMap;
 
-#ifdef USE_LIST_VISUAL_OBJECT
     typedef std::vector< BallT > BallCont; //!< observed ball container
     typedef std::list< MarkerT > MarkerCont; //!< observed marker container
     typedef std::list< LineT > LineCont; //!< observed line container
     typedef std::list< PlayerT > PlayerCont; //!< observed player container
-#else
-    typedef std::vector< BallT > BallCont; //!< observed ball container
-    typedef std::vector< MarkerT > MarkerCont; //!< observed marker container
-    typedef std::vector< LineT > LineCont; //!< observed line container
-    typedef std::vector< PlayerT > PlayerCont; //!< observed player container
-#endif
 
 private:
 
     GameTime M_time; //!< last updated time
 
-    std::string M_opponent_team_name; //!< seen opponent team name
+    std::string M_their_team_name; //!< seen opponent team name
 
     //! marker ID map
-    std::map< std::string, MarkerID > M_marker_map;
+    MarkerMap M_marker_map;
     //! marker ID map, old name
-    std::map< std::string, MarkerID > M_marker_map_old;
+    MarkerMap M_marker_map_old;
 
     BallCont M_balls; //!< seen ball
     MarkerCont M_markers; //!< seen markers
@@ -302,7 +295,7 @@ public:
       \param current received game time.
     */
     void parse( const char * msg,
-                const char * team_name, // self team name
+                const std::string & team_name, // self team name
                 const double & version, // client version
                 const GameTime & current );
 
@@ -310,18 +303,16 @@ public:
       \brief get observed opponent team name
       \return team name string
     */
-    const
-    std::string & opponentTeamName() const
+    const std::string & theirTeamName() const
       {
-          return M_opponent_team_name;
+          return M_their_team_name;
       }
 
     /*!
       \brief get last updated time
       \return game time object
     */
-    const
-    GameTime & time() const
+    const GameTime & time() const
       {
           return M_time;
       }
@@ -330,8 +321,7 @@ public:
       \brief get observed ball info
       \return const reference to the ball container
     */
-    const
-    BallCont & balls() const
+    const BallCont & balls() const
       {
           return M_balls;
       }
@@ -340,8 +330,7 @@ public:
       \brief get observed marker(flag) info
       \return const reference to the marker container
     */
-    const
-    MarkerCont & markers() const
+    const MarkerCont & markers() const
       {
           return M_markers;
       }
@@ -350,8 +339,7 @@ public:
       \brief get observed behind marker(flag) info
       \return const reference to the marker container
     */
-    const
-    MarkerCont & behindMarkers() const
+    const MarkerCont & behindMarkers() const
       {
           return M_behind_markers;
       }
@@ -360,8 +348,7 @@ public:
       \brief get observed line info
       \return const reference to the line container
     */
-    const
-    LineCont & lines() const
+    const LineCont & lines() const
       {
           return M_lines;
       }
@@ -370,8 +357,7 @@ public:
       \brief get observed teammate info
       \return const reference to the player container
     */
-    const
-    PlayerCont & teammates() const
+    const PlayerCont & teammates() const
       {
           return M_teammates;
       }
@@ -380,8 +366,7 @@ public:
       \brief get observed unknown teammate info
       \return const reference to the player container
     */
-    const
-    PlayerCont & unknownTeammates() const
+    const PlayerCont & unknownTeammates() const
       {
           return M_unknown_teammates;
       }
@@ -390,8 +375,7 @@ public:
       \brief get observed opponent info
       \return const reference to the player container
     */
-    const
-    PlayerCont & opponents() const
+    const PlayerCont & opponents() const
       {
           return M_opponents;
       }
@@ -400,8 +384,7 @@ public:
       \brief get observed unknown opponent info
       \return const reference to the player container
     */
-    const
-    PlayerCont & unknownOpponents() const
+    const PlayerCont & unknownOpponents() const
       {
           return M_unknown_opponents;
       }
@@ -410,8 +393,7 @@ public:
       \brief get observed completely unknown player info
       \return const reference to the player container
     */
-    const
-    PlayerCont & unknownPlayers() const
+    const PlayerCont & unknownPlayers() const
       {
           return M_unknown_players;
       }
@@ -448,7 +430,7 @@ private:
       get positional data from object info token
     */
     bool parseMarker( const char * tok,
-                      const double & version,
+                      const double version,
                       MarkerT * info );
 
     /*!
@@ -477,15 +459,13 @@ private:
       \brief parse player info
       \param tok pointer to the top of object info
       \param team_name our team name
-      \param team_name_len the length of our team name
       \param info pointer to the varialbe to store the data.
 
       get positional data from object info token
     */
-    PlayerType parsePlayer( const char * tok,
-                            const char * team_name,
-                            const int team_name_len,
-                            PlayerT * info );
+    PlayerInfoType parsePlayer( const char * tok,
+                                const std::string & team_name,
+                                PlayerT * info );
 
     /*!
       \brief reset all data. called just before new parsing process

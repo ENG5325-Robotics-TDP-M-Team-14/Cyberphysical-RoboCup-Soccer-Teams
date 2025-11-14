@@ -2,7 +2,7 @@
 
 /*!
   \file coach_debug_client.cpp
-  \brief interface for visual debug server Header File
+  \brief interface for visual debug server Source File
 */
 
 /*
@@ -35,11 +35,13 @@
 
 #include "coach_debug_client.h"
 
-#include "global_world_model.h"
+#include "coach_world_model.h"
 
 #include <rcsc/net/udp_socket.h>
 #include <rcsc/types.h>
 
+#include <vector>
+#include <map>
 #include <algorithm>
 #include <sstream>
 #include <cstdio>
@@ -67,6 +69,166 @@ ROUND( const double & val,
     return rint( val / step ) * step;
 }
 
+/*!
+  \struct LineT
+  \brief draw info
+*/
+struct LineT {
+    Segment2D line_; //!< line segment data
+    std::string color_; //!< color name or #RGB
+
+    /*!
+      \brief construct with values
+      \param l line segment
+      \param color color name or #RGB
+    */
+    LineT( const Segment2D & l,
+           const char * color )
+        : line_( l ),
+          color_( color )
+      { }
+};
+
+/*!
+  \struct TriangleT
+  \brief draw info
+*/
+struct TriangleT {
+    Triangle2D triangle_; //!< triangle data
+    std::string color_; //!< color name or #RGB
+
+    /*!
+      \brief construct with values
+      \param t triangle
+      \param color color name or #RGB
+    */
+    TriangleT( const Triangle2D & t,
+               const char * color )
+        : triangle_( t ),
+          color_( color )
+      { }
+};
+
+/*!
+  \struct RectangleT
+  \brief draw info
+*/
+struct RectangleT {
+    Rect2D rect_; //!< rectangle data
+    std::string color_; //!< color name or #RGB
+
+    /*!
+      \brief construct with values
+      \param r rectangle
+      \param color color name or #RGB
+    */
+    RectangleT( const Rect2D & r,
+                const char * color )
+        : rect_( r ),
+          color_( color )
+      { }
+};
+
+/*!
+  \struct CircleT
+  \brief draw info
+*/
+struct CircleT {
+    Circle2D circle_; //!< circle data
+    std::string color_; //!< color name or #RGB
+
+    /*!
+      \brief construct with values
+      \param c circle
+      \param color color name or #RGB
+    */
+    CircleT( const Circle2D & c,
+             const char * color )
+        : circle_( c ),
+          color_( color )
+      { }
+};
+
+/*-------------------------------------------------------------------*/
+
+class PlayerPrinter {
+private:
+    std::ostream & M_os;
+    const char M_tag;
+    const std::map< const CoachPlayerObject *, std::string > & message_map_;
+public:
+    PlayerPrinter( std::ostream & os,
+                   const char tag,
+                   const std::map< const CoachPlayerObject *, std::string > & message_map )
+        : M_os( os ),
+          M_tag( tag ),
+          message_map_( message_map )
+      { }
+
+    void operator()( const CoachPlayerObject * p )
+      {
+          M_os << " (";
+          M_os << M_tag << ' ' << p->unum() << ' ' << p->type();
+
+          M_os << ' ' << ROUND( p->pos().x, 0.01 )
+               << ' ' << ROUND( p->pos().y, 0.01 );
+          M_os << " (bd " << rint( p->body().degree() ) << ')';
+          if ( p->pointtoCycle() > 0 )
+          {
+              M_os << " (pt " << rint( p->pointtoAngle().degree() ) << ')';
+          }
+
+          M_os << " (c \"";
+
+          if ( M_tag == 'o' )
+          {
+              M_os << 'h' << p->type();
+          }
+
+          if  ( p->goalie() )
+          {
+              M_os << 'G';
+          }
+
+          if ( M_tag == 't' )
+          {
+              M_os << 'r' << ROUND( p->recovery(), 0.01 );
+          }
+
+          if ( p->isPointing() )
+          {
+              M_os << 'p'  << p->pointtoCycle() << ','
+                   << rint( p->pointtoAngle().degree() );
+          }
+
+          if ( p->isTackling() )
+          {
+              M_os << 't' << p->tackleCycle();
+          }
+          else if ( p->isKicking() )
+          {
+              M_os << 'k';
+          }
+          else if ( p->isCharged() )
+          {
+              M_os << 'f' << p->chargedCycle();
+          }
+
+          if ( p->card() == YELLOW )
+          {
+              M_os << 'y';
+          }
+
+          std::map< const CoachPlayerObject *, std::string >::const_iterator it = message_map_.find( p );
+          if ( it != message_map_.end() )
+          {
+              M_os << '|' << it->second;
+          }
+
+          M_os << "\"))";
+      }
+};
+
 /*-------------------------------------------------------------------*/
 
 class LinePrinter {
@@ -76,13 +238,18 @@ public:
     LinePrinter( std::ostream & os )
         : M_os( os )
       { }
-    void operator()( const Segment2D & line )
+    void operator()( const LineT & line )
       {
           M_os << " (line "
-               << ROUND( line.origin().x, 0.001 ) << ' '
-               << ROUND( line.origin().y, 0.001 ) << ' '
-               << ROUND( line.terminal().x, 0.001 ) << ' '
-               << ROUND( line.terminal().y, 0.001 ) << ')';
+               << ROUND( line.line_.origin().x, 0.001 ) << ' '
+               << ROUND( line.line_.origin().y, 0.001 ) << ' '
+               << ROUND( line.line_.terminal().x, 0.001 ) << ' '
+               << ROUND( line.line_.terminal().y, 0.001 );
+          if ( ! line.color_.empty() )
+          {
+              M_os << " \"" << line.color_ << '"';
+          }
+          M_os << ')';
       }
 };
 
@@ -94,15 +261,20 @@ public:
     TrianglePrinter( std::ostream & os )
         : M_os( os )
       { }
-    void operator()( const Triangle2D & tri )
+    void operator()( const TriangleT & tri )
       {
           M_os << " (tri "
-               << ROUND( tri.a().x, 0.001 ) << ' '
-               << ROUND( tri.a().y, 0.001 ) << ' '
-               << ROUND( tri.b().x, 0.001 ) << ' '
-               << ROUND( tri.b().y, 0.001 ) << ' '
-               << ROUND( tri.c().x, 0.001 ) << ' '
-               << ROUND( tri.c().y, 0.001 ) << ')';
+               << ROUND( tri.triangle_.a().x, 0.001 ) << ' '
+               << ROUND( tri.triangle_.a().y, 0.001 ) << ' '
+               << ROUND( tri.triangle_.b().x, 0.001 ) << ' '
+               << ROUND( tri.triangle_.b().y, 0.001 ) << ' '
+               << ROUND( tri.triangle_.c().x, 0.001 ) << ' '
+               << ROUND( tri.triangle_.c().y, 0.001 );
+          if ( ! tri.color_.empty() )
+          {
+              M_os << " \"" << tri.color_ << '"';
+          }
+          M_os << ')';
       }
 };
 
@@ -113,13 +285,18 @@ public:
     RectPrinter( std::ostream & os )
         : M_os( os )
       { }
-    void operator()( const Rect2D & rect )
+    void operator()( const RectangleT & rect )
       {
           M_os << " (rect "
-               << ROUND( rect.left(), 0.001 ) << ' '
-               << ROUND( rect.top(), 0.001 ) << ' '
-               << ROUND( rect.right(), 0.001 ) << ' '
-               << ROUND( rect.bottom(), 0.001 ) << ')';
+               << ROUND( rect.rect_.left(), 0.001 ) << ' '
+               << ROUND( rect.rect_.top(), 0.001 ) << ' '
+               << ROUND( rect.rect_.right(), 0.001 ) << ' '
+               << ROUND( rect.rect_.bottom(), 0.001 );
+          if ( ! rect.color_.empty() )
+          {
+              M_os << " \"" << rect.color_ << '"';
+          }
+          M_os << ')';
       }
 };
 
@@ -130,23 +307,42 @@ public:
     CirclePrinter( std::ostream & os )
         : M_os( os )
       { }
-    void operator()( const Circle2D & circle )
+    void operator()( const CircleT & circle )
       {
           M_os << " (circle "
-               << ROUND( circle.center().x, 0.001 ) << ' '
-               << ROUND( circle.center().y, 0.001 ) << ' '
-               << ROUND( circle.radius(), 0.001 ) << ')';
+               << ROUND( circle.circle_.center().x, 0.001 ) << ' '
+               << ROUND( circle.circle_.center().y, 0.001 ) << ' '
+               << ROUND( circle.circle_.radius(), 0.001 );
+          if ( circle.color_.empty() )
+          {
+              M_os << " \"" << circle.color_ << '"';
+          }
+          M_os << ')';
       }
 };
 
 }
 
 /*-------------------------------------------------------------------*/
+
+struct CoachDebugClient::Impl {
+
+    std::map< const CoachPlayerObject *, std::string > M_comment_map;
+
+    std::vector< LineT > M_lines; //!< draw info: lines
+    std::vector< TriangleT > M_triangles; //!< draw info: triangles
+    std::vector< RectangleT > M_rectangles; //!< draw info: rectangles
+    std::vector< CircleT > M_circles; //!< circles
+
+};
+
+/*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 CoachDebugClient::CoachDebugClient()
-    : M_on( false ),
+    : M_impl( new Impl() ),
+      M_on( false ),
       M_connected( false ),
       M_write_mode( false ),
       M_main_buffer( "" ),
@@ -157,30 +353,34 @@ CoachDebugClient::CoachDebugClient()
     M_main_buffer.reserve( 8192 );
     M_message.reserve( 8192 );
 
-    M_lines.reserve( MAX_LINE );
-    M_triangles.reserve( MAX_TRIANGLE );
-    M_rectangles.reserve( MAX_RECT );
-    M_circles.reserve( MAX_CIRCLE );
+
+    M_impl->M_lines.reserve( MAX_LINE );
+    M_impl->M_triangles.reserve( MAX_TRIANGLE );
+    M_impl->M_rectangles.reserve( MAX_RECT );
+    M_impl->M_circles.reserve( MAX_CIRCLE );
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 CoachDebugClient::~CoachDebugClient()
 {
     this->close();
+
+    delete M_impl;
+    M_impl = nullptr;
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 bool
 CoachDebugClient::connect( const std::string & hostname,
                            const int port )
 {
-    M_socket = boost::shared_ptr< UDPSocket >( new UDPSocket( hostname.c_str(), port ) );
+    M_socket = std::shared_ptr< UDPSocket >( new UDPSocket( hostname.c_str(), port ) );
 
     if ( ! M_socket
          || M_socket->fd() == -1 )
@@ -206,7 +406,7 @@ CoachDebugClient::connect( const std::string & hostname,
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 bool
 CoachDebugClient::open( const std::string & log_dir,
                         const std::string & teamname )
@@ -242,13 +442,13 @@ CoachDebugClient::open( const std::string & log_dir,
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
-CoachDebugClient::writeAll( const GlobalWorldModel & world )
+CoachDebugClient::writeAll( const CoachWorldModel & world )
 {
     if ( M_on )
     {
-        this->toStr( world );
+        this->buildString( world );
 
         if ( M_connected )
         {
@@ -256,7 +456,8 @@ CoachDebugClient::writeAll( const GlobalWorldModel & world )
         }
 
         if ( M_write_mode
-             && world.time().stopped() == 0 )
+             && world.gameMode().type() != GameMode::BeforeKickOff
+             && world.gameMode().type() != GameMode::TimeOver )
         {
             this->write( world.time().cycle() );
         }
@@ -268,7 +469,7 @@ CoachDebugClient::writeAll( const GlobalWorldModel & world )
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
 CoachDebugClient::close()
 {
@@ -292,14 +493,22 @@ CoachDebugClient::close()
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
-CoachDebugClient::toStr( const GlobalWorldModel & world )
+CoachDebugClient::buildString( const CoachWorldModel & world )
 {
     std::ostringstream ostr;
 
-    ostr << "((debug (format-version 3)) (time "
-         << world.time().cycle() << ")";
+    ostr << "((debug (format-version 5)) (time "
+         << world.time().cycle() << ',';
+    if ( world.gameMode().type() == GameMode::BeforeKickOff )
+    {
+        ostr << "0)";
+    }
+    else
+    {
+        ostr << world.time().stopped() << ')';
+    }
 
 
     // coach identifier
@@ -311,6 +520,26 @@ CoachDebugClient::toStr( const GlobalWorldModel & world )
     {
         ostr << " (s r c)";
     }
+
+    // ball
+    /*
+      BALL_INFO ::=  (b POS_X POS_Y [VEL_X VEL_Y] [(c "COMMENT")])
+    */
+    const CoachBallObject & ball = world.ball();
+    ostr << " (b "
+         << ROUND( ball.pos().x, 0.01 ) << ' '
+         << ROUND( ball.pos().y, 0.01 ) << ' '
+         << ' ' << ROUND( ball.vel().x, 0.01 )
+         << ' ' << ROUND( ball.vel().y, 0.01 )
+         << ')';
+
+    std::for_each( world.teammates().begin(),
+                   world.teammates().end(),
+                   PlayerPrinter( ostr, 't', M_impl->M_comment_map ) );
+
+    std::for_each( world.opponents().begin(),
+                   world.opponents().end(),
+                   PlayerPrinter( ostr, 'o', M_impl->M_comment_map ) );
 
     // say message
     // if ( ! effector.getSayMessage().empty() )
@@ -354,16 +583,16 @@ CoachDebugClient::toStr( const GlobalWorldModel & world )
     }
 
     // lines
-    std::for_each( M_lines.begin(), M_lines.end(),
+    std::for_each( M_impl->M_lines.begin(), M_impl->M_lines.end(),
                    LinePrinter( ostr ) );
     // triangles
-    std::for_each( M_triangles.begin(), M_triangles.end(),
+    std::for_each( M_impl->M_triangles.begin(), M_impl->M_triangles.end(),
                    TrianglePrinter( ostr ) );
     // rectangles
-    std::for_each( M_rectangles.begin(), M_rectangles.end(),
+    std::for_each( M_impl->M_rectangles.begin(), M_impl->M_rectangles.end(),
                    RectPrinter( ostr ) );
     // circles
-    std::for_each( M_circles.begin(), M_circles.end(),
+    std::for_each( M_impl->M_circles.begin(), M_impl->M_circles.end(),
                    CirclePrinter( ostr ) );
 
     ostr << ")";
@@ -374,15 +603,15 @@ CoachDebugClient::toStr( const GlobalWorldModel & world )
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
 CoachDebugClient::send()
 {
     if ( M_connected
          && M_socket )
     {
-        if ( M_socket->send( M_main_buffer.c_str(),
-                             M_main_buffer.length() + 1 ) == -1 )
+        if ( M_socket->writeDatagram( M_main_buffer.c_str(),
+                                      M_main_buffer.length() + 1 ) == -1 )
         {
             std::cerr << "debug server send error" << std::endl;
         }
@@ -392,19 +621,19 @@ CoachDebugClient::send()
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
 CoachDebugClient::write( const long & cycle )
 {
 #if 0
     if ( dlog.isOpen() )
     {
-//         char buf[32];
-//         snprintf( buf, 32, "%%%% step %ld\n", cycle );
-//         dlog.print( buf );
-//         dlog.print( "%% debug [" );
-//         dlog.print( M_main_buffer.c_str() );
-//         dlog.print( "]\n" );
+        //         char buf[32];
+        //         snprintf( buf, 32, "%%%% step %ld\n", cycle );
+        //         dlog.print( buf );
+        //         dlog.print( "%% debug [" );
+        //         dlog.print( M_main_buffer.c_str() );
+        //         dlog.print( "]\n" );
         dlog.printDebugClientMessage( cycle, M_main_buffer );
     }
 #endif
@@ -422,7 +651,7 @@ CoachDebugClient::write( const long & cycle )
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
 CoachDebugClient::clear()
 {
@@ -432,16 +661,18 @@ CoachDebugClient::clear()
     M_target_point.invalidate();
     M_message.erase();
 
-    M_lines.clear();
-    M_triangles.clear();
-    M_rectangles.clear();
-    M_circles.clear();
+    M_impl->M_comment_map.clear();
+
+    M_impl->M_lines.clear();
+    M_impl->M_triangles.clear();
+    M_impl->M_rectangles.clear();
+    M_impl->M_circles.clear();
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
 CoachDebugClient::addMessage( const char * msg,
                               ... )
@@ -454,23 +685,58 @@ CoachDebugClient::addMessage( const char * msg,
         va_end( argp );
 
         M_message += g_buffer;
-        M_message += "/";
+        M_message += '|';
     }
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
+void
+CoachDebugClient::addMessage( const std::string & msg )
+{
+    if ( M_on )
+    {
+        M_message += msg;
+        M_message += '|';
+    }
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+void
+CoachDebugClient::addComment( const CoachPlayerObject * player,
+                              const char * msg,
+                              ... )
+{
+    if ( M_on )
+    {
+        va_list argp;
+        va_start( argp, msg );
+        vsnprintf( g_buffer, G_BUFFER_SIZE, msg, argp );
+        va_end( argp );
+
+        M_impl->M_comment_map[player] += g_buffer;
+    }
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
 void
 CoachDebugClient::addLine( const Vector2D & from,
-                           const Vector2D & to )
+                           const Vector2D & to,
+                           const char * color )
 {
     if ( M_on )
     {
-        if ( M_lines.size() < MAX_LINE )
+        if ( M_impl->M_lines.size() < MAX_LINE )
         {
-            M_lines.push_back( Segment2D( from, to ) );
+            M_impl->M_lines.emplace_back( Segment2D( from, to ), color );
         }
     }
 }
@@ -478,15 +744,16 @@ CoachDebugClient::addLine( const Vector2D & from,
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
-CoachDebugClient::addTriangle( const Triangle2D & tri )
+CoachDebugClient::addTriangle( const Triangle2D & tri,
+                               const char * color )
 {
     if ( M_on )
     {
-        if ( M_triangles.size() < MAX_TRIANGLE )
+        if ( M_impl->M_triangles.size() < MAX_TRIANGLE )
         {
-            M_triangles.push_back( tri );
+            M_impl->M_triangles.emplace_back( tri, color );
         }
     }
 }
@@ -494,15 +761,16 @@ CoachDebugClient::addTriangle( const Triangle2D & tri )
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
-CoachDebugClient::addRectangle( const Rect2D & rect )
+CoachDebugClient::addRectangle( const Rect2D & rect,
+                                const char * color )
 {
     if ( M_on )
     {
-        if ( M_rectangles.size() < MAX_RECT )
+        if ( M_impl->M_rectangles.size() < MAX_RECT )
         {
-            M_rectangles.push_back( rect );
+            M_impl->M_rectangles.emplace_back( rect, color );
         }
     }
 }
@@ -510,15 +778,16 @@ CoachDebugClient::addRectangle( const Rect2D & rect )
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
-CoachDebugClient::addCircle( const Circle2D & circle )
+CoachDebugClient::addCircle( const Circle2D & circle,
+                             const char * color )
 {
     if ( M_on )
     {
-        if ( M_circles.size() < MAX_CIRCLE )
+        if ( M_impl->M_circles.size() < MAX_CIRCLE )
         {
-            M_circles.push_back( circle );
+            M_impl->M_circles.emplace_back( circle, color );
         }
     }
 }

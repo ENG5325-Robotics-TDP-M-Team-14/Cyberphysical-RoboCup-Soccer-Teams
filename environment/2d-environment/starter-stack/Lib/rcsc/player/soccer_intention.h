@@ -32,8 +32,7 @@
 #ifndef RCSC_PLAYER_SOCCER_INTENTION_H
 #define RCSC_PLAYER_SOCCER_INTENTION_H
 
-#include <boost/shared_ptr.hpp>
-
+#include <memory>
 #include <string>
 #include <queue>
 
@@ -46,26 +45,29 @@ class PlayerAgent;
   \brief abstrace player agent's intention class
 */
 class SoccerIntention {
+public:
+
+    //! smart pointer type.
+    typedef std::shared_ptr< SoccerIntention > Ptr;
+
 private:
     //! not used
-    SoccerIntention( const SoccerIntention & );
+    SoccerIntention( const SoccerIntention & ) = delete;
     //! not used
-    SoccerIntention & operator=( const SoccerIntention & );
+    SoccerIntention & operator=( const SoccerIntention & ) = delete;
 
 protected:
     /*!
       \brief constructor is used only from derived class.
      */
-    SoccerIntention()
-      { }
+    SoccerIntention() = default;
 
 public:
     /*!
       \brief virtual destructor
      */
     virtual
-    ~SoccerIntention()
-      { }
+    ~SoccerIntention() = default;
 
     ///////////////////////////////////////////////
 
@@ -96,11 +98,8 @@ class SoccerIntentionQueue
     : public SoccerIntention {
 private:
 
-    typedef boost::shared_ptr< SoccerIntention > IntentionPtr;
-
-
     //! intention queue
-    std::queue< IntentionPtr >  M_internal_q;
+    std::queue< Ptr >  M_internal_q;
 
 public:
 
@@ -136,7 +135,7 @@ public:
       \brief push new intention
       \param intention dynamic allocated intention pointer
      */
-    void push( IntentionPtr intention )
+    void push( Ptr intention )
       {
           M_internal_q.push( intention );
       }

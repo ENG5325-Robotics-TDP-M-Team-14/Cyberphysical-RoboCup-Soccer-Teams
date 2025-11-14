@@ -37,6 +37,8 @@
 
 #include <rcsc/game_mode.h>
 
+#include <set>
+
 namespace rcsc {
 
 /*-------------------------------------------------------------------*/
@@ -50,10 +52,28 @@ PenaltyKickState::PenaltyKickState()
       M_their_taker_counter( 0 ),
       M_our_score( 0 ),
       M_their_score( 0 ),
-      M_kick_taker_side( NEUTRAL ),
-      M_kick_taker_unum( Unum_Unknown )
+      M_kick_taker_side( NEUTRAL )
 {
 
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+PenaltyKickState::isKickTaker( const SideID side,
+                               const int unum ) const
+{
+    if ( M_kick_taker_side != side )
+    {
+        return false;
+    }
+
+    const int idx = ( ourTakerCounter() - 1 ) % 11;
+    const int kick_taker_unum = M_kick_taker_order[idx];
+
+    return kick_taker_unum == unum;
 }
 
 /*-------------------------------------------------------------------*/
@@ -121,12 +141,52 @@ PenaltyKickState::update( const GameMode & game_mode,
          )
     {
         M_kick_taker_side = game_mode.side();
-        M_kick_taker_unum = 11 - ( ( ourTakerCounter() - 1 ) % 11 );
     }
     else
     {
         M_kick_taker_side = NEUTRAL;
-        M_kick_taker_unum = Unum_Unknown;
+    }
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+PenaltyKickState::setKickTakerOrder( const std::vector< int > & unum_set )
+{
+    if ( unum_set.size() != 11 )
+    {
+        std::cerr << __FILE__ << ' ' << __LINE__
+                  << ": (setKickTakerOrder) illegal unum set size = "
+                  << unum_set.size() << std::endl;
+        return;
+    }
+
+    std::set< int > s;
+    for ( int i = 0; i < 11; ++i )
+    {
+        if ( unum_set[i] < 1 || 11 < unum_set[i] )
+        {
+            std::cerr << __FILE__ << ' ' << __LINE__
+                      << ": (setKickTakerOrder) illegal uniform number "
+                      << unum_set[i] << std::endl;
+            return;
+        }
+        s.insert( unum_set[i] );
+    }
+
+    if ( s.size() != 11 )
+    {
+        std::cerr << __FILE__ << ' ' << __LINE__
+                  << ": (setKickTakerOrder) exist duplicated uniform number"
+                  << std::endl;
+        return;
+    }
+
+    for ( int i = 0; i < 11; ++i )
+    {
+        M_kick_taker_order[i] = unum_set[i];
     }
 }
 

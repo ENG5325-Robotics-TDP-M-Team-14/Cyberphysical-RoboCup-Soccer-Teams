@@ -37,14 +37,16 @@
 #include <rcsc/player/player_object.h>
 #include <rcsc/player/view_area.h>
 #include <rcsc/player/view_grid_map.h>
+#include <rcsc/player/intercept_table.h>
+#include <rcsc/player/penalty_kick_state.h>
 
+#include <rcsc/time/timer.h>
 #include <rcsc/geom/vector_2d.h>
 #include <rcsc/game_mode.h>
 #include <rcsc/game_time.h>
 #include <rcsc/types.h>
 
-#include <boost/shared_ptr.hpp>
-
+#include <memory>
 #include <string>
 
 namespace rcsc {
@@ -53,11 +55,10 @@ class AudioMemory;
 class ActionEffector;
 class BodySensor;
 class FullstateSensor;
-class InterceptTable;
+class InterceptSimualtorSelf;
 class Localization;
 class PlayerPredicate;
 class PlayerType;
-class PenaltyKickState;
 class VisualSensor;
 
 /*!
@@ -71,21 +72,25 @@ public:
         DIR_CONF_DIVS = 72
     };
 
+    static const double DIST_TOO_FAR; //!< long distance
+
     static const std::size_t MAX_RECORD; //!< max record size
     static const double DIR_STEP; //!< the angle steps for dir confidence
 
 private:
 
-    Localization * M_localize; //!< localization module
-    InterceptTable * M_intercept_table; //!< interception info table
-    boost::shared_ptr< AudioMemory > M_audio_memory; //!< heard deqinfo memory
-    PenaltyKickState * M_penalty_kick_state; //!< penalty kick mode status
+    double M_client_version;
+
+    std::shared_ptr< Localization > M_localize; //!< localization module
+    InterceptTable M_intercept_table; //!< interception info table
+    std::shared_ptr< AudioMemory > M_audio_memory; //!< heard message holder
+    PenaltyKickState M_penalty_kick_state; //!< penalty kick mode status
 
     //////////////////////////////////////////////////
-    std::string M_teamname; //!< our teamname
+    std::string M_our_team_name; //!< our teamname
     SideID M_our_side; //!< our side ID
 
-    std::string M_opponent_teamname; //!< opponent teamname
+    std::string M_their_team_name; //!< opponent teamname
 
     //////////////////////////////////////////////////
     // timer & mode
@@ -94,9 +99,13 @@ private:
     GameTime M_sense_body_time; //!< sense_body updated time
     GameTime M_see_time; //!< see updated time
     GameTime M_fullstate_time; //!< fullstate update time
+    GameTime M_decision_time; //!< action performed time
+
+    TimeStamp M_see_time_stamp; //! time stamp when see received
+    TimeStamp M_decision_time_stamp; //! time stamp when action performed
 
     GameTime M_last_set_play_start_time; //!< SetPlay started time
-    long M_setplay_count; //!< setplay counter
+    int M_setplay_count; //!< setplay counter
 
     GameMode M_game_mode; //!< playmode and scores
 
@@ -107,33 +116,38 @@ private:
     //////////////////////////////////////////////////
     // field object instance
     SelfObject M_self; //!< self object
-    BallObject M_ball; //!< ball object
-    PlayerCont M_teammates; //!< side known teammmates
-    PlayerCont M_opponents; //!< side known opponents
-    PlayerCont M_unknown_players; //!< unknown players
+    BallObject M_ball; //!< current ball object
+    BallObject M_prev_ball; //!< ball object in the previous cycle
+    PlayerObject::List M_teammates; //!< teammmates instance. at least, the side information is observed
+    PlayerObject::List M_opponents; //!< opponents instance. at least, the side information is observed
+    PlayerObject::List M_unknown_players; //!< unknown players instance
 
     //////////////////////////////////////////////////
     // object reference (pointers to each object)
     // these containers are updated just before decision making
-    PlayerPtrCont M_teammates_from_self; //!< teammates sorted by distance from self
-    PlayerPtrCont M_opponents_from_self; //!< opponents sorted by distance from ball, include unknown players
-    PlayerPtrCont M_teammates_from_ball; //!< teammates sorted by distance from self
-    PlayerPtrCont M_opponents_from_ball; //!< opponents sorted by distance from ball, include unknown players
+    PlayerObject::Cont M_teammates_from_self; //!< teammates sorted by distance from self
+    PlayerObject::Cont M_opponents_from_self; //!< opponents sorted by distance from ball, include unknown players
+    PlayerObject::Cont M_teammates_from_ball; //!< teammates sorted by distance from self
+    PlayerObject::Cont M_opponents_from_ball; //!< opponents sorted by distance from ball, include unknown players
 
     int M_our_goalie_unum; //!< uniform number of teammate goalie
     int M_their_goalie_unum; //!< uniform number of opponent goalie
 
-    AbstractPlayerCont M_all_players; //!< all players pointers includes self
-    AbstractPlayerCont M_our_players; //!< all teammates pointers includes self
-    AbstractPlayerCont M_their_players; //!< all opponents pointers includes unknown
+    AbstractPlayerObject::Cont M_all_players; //!< all players pointers includes self
+    AbstractPlayerObject::Cont M_our_players; //!< all teammates pointers includes self
+    AbstractPlayerObject::Cont M_their_players; //!< all opponents pointers includes unknown
 
-    AbstractPlayerObject * M_known_teammates[12]; //!< unum known teammates (include self)
-    AbstractPlayerObject * M_known_opponents[12]; //!< unum known opponents (exclude unknown player)
+    AbstractPlayerObject * M_our_player_array[12]; //!< unum known teammates (include self)
+    AbstractPlayerObject * M_their_player_array[12]; //!< unum known opponents (exclude unknown player)
+
+    double M_our_recovery[11]; //!< recovery value for each player
+    double M_our_stamina_capacity[11]; //!< stamina capacity for each player
 
     //////////////////////////////////////////////////
     // analyzed result
 
     double M_offside_line_x; //!< offside line x value
+    double M_prev_offside_line_x; //!< offside line x value
     int M_offside_line_count; //!< accuracy count of the offside line
 
     double M_our_offense_line_x; //!< our offense line x value(consider ball x)
@@ -147,22 +161,30 @@ private:
     double M_their_offense_player_line_x; //!< their offense player line x value (not consider ball)
     double M_their_defense_player_line_x; //!< their defense player line x value (not consider ball)
 
-    bool M_exist_kickable_teammate; //!< true if exist kickable teammate
-    bool M_exist_kickable_opponent; //!< true if exist kickable opponent
+    const PlayerObject * M_kickable_teammate; //!< kickable teammate
+    const PlayerObject * M_kickable_opponent; //!< kickable opponent
+    const PlayerObject * M_maybe_kickable_teammate; //!< kickable teammate
+    const PlayerObject * M_maybe_kickable_opponent; //!< kickable opponent
 
-    SideID M_last_kicker_side; //!< last ball kicked player's side
+    bool M_previous_kickable_teammate; //! flag for kickable teammate in previous cycle
+    int M_previous_kickable_teammate_unum; //! uniform number kickable teammate in previous cycle
+    bool M_previous_kickable_opponent; //! flag for kickable opponents in previous cycle
+    int M_previous_kickable_opponent_unum; //! uniform number kickable opponent in previous cycle
+
+    SideID M_last_kicker_side; //!< estimated last ball kicker player's side
+    int M_last_kicker_unum; //!< estimated last ball kicker player's uniform number
 
     //////////////////////////////////////////////////
     // player type management
 
-    int M_teammate_types[11]; //!< teammate type reference
-    int M_opponent_types[11]; //!< opponent type flag
+    int M_our_player_type[11]; //!< teammate type reference
+    int M_their_player_type[11]; //!< opponent type flag
 
     //////////////////////////////////////////////////
     // card information
 
-    Card M_teammate_card[11]; //!< teammates' yellow/red card status
-    Card M_opponent_card[11]; //!< teammates' yellow/red card status
+    Card M_our_card[11]; //!< our yellow/red card status
+    Card M_their_card[11]; //!< their yellow/red card status
 
     //////////////////////////////////////////////////
     // visual info
@@ -179,9 +201,9 @@ private:
     //////////////////////////////////////////////////
 
     //! not used
-    WorldModel( const WorldModel & );
+    WorldModel( const WorldModel & ) = delete;
     //! not used
-    WorldModel & operator=( const WorldModel & );
+    WorldModel & operator=( const WorldModel & ) = delete;
 
 public:
     /*!
@@ -193,6 +215,23 @@ public:
       \brief delete dynamically allocated memory
     */
     ~WorldModel();
+
+    /*!
+      \brief initialize by team information
+      \param team_name our team name string
+      \param our_side our side ID
+      \param unum my uniform number
+      \param goalie true if I am goalie
+      \param client_version the client protocol version
+      \return true if successfully initialized, false otherwise
+
+      This method is called just after receive init reply
+    */
+    bool init( const std::string & team_name,
+               const SideID our_side,
+               const int unum,
+               const bool goalie,
+               const double client_version );
 
     /*!
       \brief get this world mode is valid or not
@@ -207,50 +246,76 @@ public:
     void setValid( bool is_valid );
 
     /*!
+      \brief get the client version.
+      \return the version numver
+     */
+    double clientVersion() const
+      {
+          return M_client_version;
+      }
+
+    /*!
       \brief get intercept table
       \return const pointer to the intercept table instance
     */
-    const
-    InterceptTable * interceptTable() const;
+    const InterceptTable & interceptTable() const
+    {
+        return M_intercept_table;
+    }
 
     /*!
       \brief get penalty kick state
       \return const pointer to the penalty kick state instance
     */
-    const
-    PenaltyKickState * penaltyKickState() const;
+    const PenaltyKickState & penaltyKickState() const
+      {
+          return M_penalty_kick_state;
+      }
 
     /*!
       \brief get audio memory
       \return const reference to the audio memory instance
      */
-    const
-    AudioMemory & audioMemory() const
+    const AudioMemory & audioMemory() const
       {
           return *M_audio_memory;
       }
-
-    /*!
-      \brief init team info
-      \param teamname our team name string
-      \param ourside our side ID
-      \param my_unum my uniform number
-      \param my_goalie true if I am goalie
-      \return true if successfully initialized, false otherwise
-
-      This method is called just after receive init reply
-    */
-    bool initTeamInfo( const std::string & teamname,
-                       const SideID ourside,
-                       const int my_unum,
-                       const bool my_goalie );
 
     /*!
       \brief set new audio memory
       \param memory pointer to the memory instance. This must be
       a dynamically allocated object.
      */
-    void setAudioMemory( boost::shared_ptr< AudioMemory > memory );
+    void setAudioMemory( std::shared_ptr< AudioMemory > memory );
+
+    /*!
+      \brief set new localization method
+      \param localization pointer to the localization instance.
+    */
+    void setLocalization( std::shared_ptr< Localization > localization );
+
+    /*!
+      \brief set intercept simuator.
+      \param self pointer to the self intercept simulator
+     */
+    void setInterceptSimulator( std::shared_ptr< InterceptSimulatorSelf > self );
+
+    /*!
+      \brief set server param. this method have to be called only once just after server_param message received.
+     */
+    void setServerParam();
+
+    /*!
+      \brief set our goalie's uniform number using strategic information or coach message.
+      \param unum uniform number
+     */
+    void setOurGoalieUnum( const int unum );
+
+    /*!
+      \brief set their goalie's uniform number using coach message.
+      \param unum uniform number
+     */
+    void setTheirGoalieUnum( const int unum );
 
     /*!
       \brief set teammate player type & reset card status
@@ -280,11 +345,10 @@ public:
 
     /*!
       \brief set current penalty kick taker.
-      \param side kick taker's side id
+      \param order order number [0,10]
       \param unum kick taker's uniform number
      */
-    void setPenaltyKickTaker( const SideID side,
-                              const int unum );
+    void setPenaltyKickTakerOrder( const std::vector< int > & unum_set );
 
     // update stuff
 private:
@@ -378,12 +442,21 @@ public:
                                    const GameTime & current );
 
     /*!
-      \brief internal update using internal info and stored command info.
-      \param act ActionEffector object
-
-      called just before command send
+      \brief update using internal by command effects. This method is called just before command sending.
+      \param act ActionEffector object.
     */
-    void setCommandEffect( const ActionEffector & act );
+    void updateJustAfterDecision( const ActionEffector & act );
+
+    /*!
+      \brief set player's side/unum/goalie information
+      \param player player object pointer
+      \param unum new uniform number
+      \param goalie goalie flag
+     */
+    void updatePlayer( const PlayerObject * player,
+                       const SideID side,
+                       const int unum,
+                       const bool goalie );
 
 private:
     /*!
@@ -395,6 +468,7 @@ private:
     */
     bool localizeSelf( const VisualSensor & see,
                        const BodySensor & sense_body,
+                       const ActionEffector & act,
                        const GameTime & current );
 
     /*!
@@ -436,22 +510,19 @@ private:
       \brief check player that has team info
       \param side seen side info
       \param player localized info
-      \param seen_dist see info data
       \param old_known_players old team known players
       \param old_unknown_players previous unknown players
       \param new_known_players new team known players
     */
     void checkTeamPlayer( const SideID side,
                           const Localization::PlayerT & player,
-                          const double & seen_dist,
-                          PlayerCont & old_known_players,
-                          PlayerCont & old_unknown_players,
-                          PlayerCont & new_known_players );
+                          PlayerObject::List & old_known_players,
+                          PlayerObject::List & old_unknown_players,
+                          PlayerObject::List & new_known_players );
 
     /*!
       \brief check player that has no identifier. matching to unknown players
       \param player localized info
-      \param seen_dist see info data
       \param old_teammates previous seen teammates
       \param old_opponents previous seen opponents
       \param old_unknown_players previous seen unknown player
@@ -460,18 +531,22 @@ private:
       \param new_unknown_players current seen unknown players
     */
     void checkUnknownPlayer( const Localization::PlayerT & player,
-                             const double & seen_dist,
-                             PlayerCont & old_teammates,
-                             PlayerCont & old_opponent,
-                             PlayerCont & old_unknown_players,
-                             PlayerCont & new_teammates,
-                             PlayerCont & new_opponents,
-                             PlayerCont & new_unknown_players );
+                             PlayerObject::List & old_teammates,
+                             PlayerObject::List & old_opponent,
+                             PlayerObject::List & old_unknown_players,
+                             PlayerObject::List & new_teammates,
+                             PlayerObject::List & new_opponents,
+                             PlayerObject::List & new_unknown_players );
 
     /*!
-      \brief check collision.
+      \brief set collision effect with ball
     */
-    void updateCollision();
+    void updateBallCollision();
+
+    /*!
+      \brief set collision effect with players
+    */
+    void updatePlayersCollision();
 
     /*!
       \brief check ghost object
@@ -496,9 +571,14 @@ private:
     void updateGoalieByHear();
 
     /*!
-      \brief update opponent goalie by heard info
+      \brief update players by heard info
     */
     void updatePlayerByHear();
+
+    /*!
+      \brief update other players' stamina by heard info
+    */
+    void updatePlayerStaminaByHear();
 
     /*!
       \brief update player type id of the recognized players
@@ -519,6 +599,33 @@ private:
       \brief update player info. relation with ball and self.
      */
     void updatePlayerStateCache();
+
+    /*!
+      \brief update our/their goalie
+     */
+    void estimateGoalie();
+
+    /*!
+      \brief update our goalie
+     */
+    void estimateOurGoalie();
+
+    /*!
+      \brief update their goalie
+     */
+    void estimateTheirGoalie();
+
+    /*!
+      \brief update maybe kickable teammate
+      this methos has to be called after WorldModel::updateInterceptTable()
+     */
+    void estimateMaybeKickableTeammate();
+
+    /*!
+      \brief update kickable players.
+      this method has to be called after calling PlayerObject::updateSelfBallRelated().
+     */
+    void updateKickablePlayers();
 
     /*!
       \brief update offside line
@@ -565,7 +672,8 @@ public:
       \brief get our teamname
       \return const reference to the team name string
     */
-    const std::string & teamName() const { return M_teamname; }
+    const std::string & teamName() const { return M_our_team_name; }
+    const std::string & ourTeamName() const { return M_our_team_name; }
 
     /*!
       \brief get our team side Id
@@ -574,10 +682,10 @@ public:
     SideID ourSide() const { return M_our_side; }
 
     /*!
-      \brief get opponent teamname
+      \brief get their teamname
       \return const reference to the team name string
     */
-    const std::string & opponentTeamName() const { return M_opponent_teamname; }
+    const std::string & theirTeamName() const { return M_their_team_name; }
 
     /*!
       \brief get opponent team side Id
@@ -613,8 +721,19 @@ public:
     const GameTime & fullstateTime() const { return M_fullstate_time; }
 
     /*!
-      \brief get last time updated by fullstate
+      \brief get the time value when the last action performed
      */
+    const GameTime & decisionTime() const { return M_decision_time; }
+
+    /*!
+      \brief get the time stamp when see received
+    */
+    const TimeStamp & seeTimeStamp() const { return M_see_time_stamp; }
+
+    /*!
+      \brief get the time stamp when action performed
+    */
+    const TimeStamp & decisionTimeStamp() const { return M_decision_time_stamp; }
 
     /*!
       \brief get last setplay type playmode start time
@@ -626,7 +745,7 @@ public:
       \brief get cycle count that setplay type playmode is keeped
       \return counted long integer
     */
-    const long & setplayCount() const { return M_setplay_count; }
+    int getSetPlayCount() const { return M_setplay_count; }
 
     /*!
       \brief get current playmode info
@@ -647,28 +766,28 @@ public:
     const SelfObject & self() const { return M_self; }
 
     /*!
-      \brief get ball info
+      \brief get the current ball info
       \return const reference to the BallObject
     */
     const BallObject & ball() const { return M_ball; }
 
     /*!
-      \brief get teammate info
-      \return const reference to the PlayerObject container
+      \brief get the previous ball info
+      \return const reference to the BallObject
     */
-    const PlayerCont & teammates() const { return M_teammates; }
+    const BallObject & prevBall() const { return M_prev_ball; }
 
     /*!
-      \brief get opponent info (except unknown players)
-      \return const reference to the PlayerObject container
+      \brief get teammates. the order is undefined.
+      \return const reference to the PlayerObject pointer container
     */
-    const PlayerCont & opponents() const { return M_opponents; }
+    const PlayerObject::Cont & teammates() const { return M_teammates_from_self; }
 
     /*!
-      \brief get unknown player info
+      \brief get opponents(include unknown players). the order is undefined
       \return const reference to the PlayerObject container
     */
-    const PlayerCont & unknownPlayers() const { return M_unknown_players; }
+    const PlayerObject::Cont & opponents() const { return M_opponents_from_self; }
 
     // reference to the sorted players
 
@@ -676,25 +795,25 @@ public:
       \brief get teammates sorted by distance from self
       \return const reference to the PlayerObject pointer container
     */
-    const PlayerPtrCont & teammatesFromSelf() const { return M_teammates_from_self; }
+    const PlayerObject::Cont & teammatesFromSelf() const { return M_teammates_from_self; }
 
     /*!
       \brief get opponents sorted by distance from self (includes unknown players)
       \return const reference to the PlayerObject pointer container
     */
-    const PlayerPtrCont & opponentsFromSelf() const { return M_opponents_from_self; }
+    const PlayerObject::Cont & opponentsFromSelf() const { return M_opponents_from_self; }
 
     /*!
       \brief get teammates sorted by distance from ball
       \return const reference to the PlayerObject pointer container
     */
-    const PlayerPtrCont & teammatesFromBall() const { return M_teammates_from_ball; }
+    const PlayerObject::Cont & teammatesFromBall() const { return M_teammates_from_ball; }
 
     /*!
       \brief get opponents sorted by distance from ball (includes unknown players)
       \return const reference to the PlayerObject pointer container
     */
-    const PlayerPtrCont & opponentsFromBall() const { return M_opponents_from_ball; }
+    const PlayerObject::Cont & opponentsFromBall() const { return M_opponents_from_ball; }
 
     /*!
       \brief get the uniform number of teammate goalie
@@ -712,19 +831,19 @@ public:
       \brief get all players includes self.
       \return const rerefence to the AbstractPlayerObject pointer container.
      */
-    const AbstractPlayerCont & allPlayers() const { return M_all_players; }
+    const AbstractPlayerObject::Cont & allPlayers() const { return M_all_players; }
 
     /*!
       \brief get all teammate players includes self.
       \return const rerefence to the AbstractPlayerObject pointer container.
      */
-    const AbstractPlayerCont & ourPlayers() const { return M_our_players; }
+    const AbstractPlayerObject::Cont & ourPlayers() const { return M_our_players; }
 
     /*!
       \brief get all opponent players (includes unknown players)
       \return const rerefence to the AbstractPlayerObject pointer container.
      */
-    const AbstractPlayerCont & theirPlayers() const { return M_their_players; }
+    const AbstractPlayerObject::Cont & theirPlayers() const { return M_their_players; }
 
     //////////////////////////////////////////////////////////
 
@@ -735,8 +854,8 @@ public:
     */
     const AbstractPlayerObject * ourPlayer( const int unum ) const
       {
-          if ( unum <= 0 || 11 < unum ) return M_known_teammates[0];
-          return M_known_teammates[unum];
+          if ( unum <= 0 || 11 < unum ) return M_our_player_array[0];
+          return M_our_player_array[unum];
       }
 
     /*!
@@ -746,8 +865,28 @@ public:
     */
     const AbstractPlayerObject * theirPlayer( const int unum ) const
       {
-          if ( unum <= 0 || 11 < unum ) return M_known_opponents[0];
-          return M_known_opponents[unum];
+          if ( unum <= 0 || 11 < unum ) return M_their_player_array[0];
+          return M_their_player_array[unum];
+      }
+
+    /*!
+      \brief get (heard) recovery value of the specified player
+      \return recovery value
+     */
+    double ourRecovery( const int unum ) const
+      {
+          if ( unum <= 0 || 11 < unum ) return 0.0;
+          return M_our_recovery[ unum - 1 ];
+      }
+
+    /*!
+      \brief get (heard) stamina capacity value of the specified player
+      \return recovery value
+     */
+    double ourStaminaCapacity( const int unum ) const
+      {
+          if ( unum <= 0 || 11 < unum ) return 0.0;
+          return M_our_stamina_capacity[ unum - 1 ];
       }
 
 private:
@@ -761,28 +900,25 @@ private:
       \param with_goalie if this value is false, goalie is ignored.
       \return if found, const pointer to the PlayerOjbect. else NULL
     */
-    const PlayerObject * getFirstPlayer( const PlayerPtrCont & players,
+    const PlayerObject * getFirstPlayer( const PlayerObject::Cont & players,
                                          const int count_thr,
                                          const bool with_goalie ) const
       {
-          const PlayerPtrCont::const_iterator end = players.end();
-          for ( PlayerPtrCont::const_iterator p = players.begin();
-                p != end;
-                ++p )
+          for ( PlayerObject::Cont::const_reference p : players )
           {
               if ( ! with_goalie
-                   && (*p)->goalie() )
+                   && p->goalie() )
               {
                   continue;
               }
 
-              if ( ! (*p)->isGhost()
-                   && (*p)->posCount() <= count_thr )
+              if ( ! p->isGhost()
+                   && p->posCount() <= count_thr )
               {
-                  return *p;
+                  return p;
               }
           }
-          return static_cast< PlayerObject * >( 0 );
+          return nullptr;
       }
 
 public:
@@ -825,7 +961,7 @@ public:
                                          const bool with_goalie = true ) const
       {
           const PlayerObject * p = getTeammateNearestToSelf( count_thr, with_goalie );
-          return ( p ? p->distFromSelf() : 65535.0 );
+          return ( p ? p->distFromSelf() : DIST_TOO_FAR );
       }
 
     /*!
@@ -838,7 +974,7 @@ public:
                                          const bool with_goalie = true) const
       {
           const PlayerObject * p = getOpponentNearestToSelf( count_thr, with_goalie );
-          return ( p ? p->distFromSelf() : 65535.0 );
+          return ( p ? p->distFromSelf() : DIST_TOO_FAR );
       }
 
     /*!
@@ -879,7 +1015,7 @@ public:
                                          const bool with_goalie ) const
       {
           const PlayerObject * p = getTeammateNearestToSelf( count_thr, with_goalie );
-          return ( p ? p->distFromBall() : 65535.0 );
+          return ( p ? p->distFromBall() : DIST_TOO_FAR );
       }
 
     /*!
@@ -892,14 +1028,20 @@ public:
                                          const bool with_goalie = true ) const
       {
           const PlayerObject * p = getOpponentNearestToBall( count_thr, with_goalie );
-          return ( p ? p->distFromBall() : 65535.0 );
+          return ( p ? p->distFromBall() : DIST_TOO_FAR );
       }
 
     /*!
       \brief get estimated offside line x coordinate
       \return offside line
     */
-    const double & offsideLineX() const { return M_offside_line_x; }
+    double offsideLineX() const { return M_offside_line_x; }
+
+    /*!
+      \brief get estimated offside line x coordinate
+      \return offside line
+    */
+    double prevOffsideLineX() const { return M_offside_line_x; }
 
     /*!
       \brief get the accuracy count for the offside line
@@ -911,62 +1053,74 @@ public:
       \brief our offense line (consider ball pos)
       \return our offense line x
     */
-    const double & ourOffenseLineX() const { return M_our_offense_line_x; }
+    double ourOffenseLineX() const { return M_our_offense_line_x; }
 
     /*!
       \brief get our defense line (consider ball pos)(offside line for opponent)
       \return our defense line x
     */
-    const double & ourDefenseLineX() const { return M_our_defense_line_x; }
+    double ourDefenseLineX() const { return M_our_defense_line_x; }
 
     /*!
       \brief get their offense line (consider ball pos)
       \return their offense line x
     */
-    const double & theirOffenseLineX() const { return M_their_offense_line_x; }
+    double theirOffenseLineX() const { return M_their_offense_line_x; }
 
     /*!
       \brief get their defense line x value (consider ball pos)
       \return their offense line x
     */
-    const double & theirDefenseLineX() const { return M_their_defense_line_x; }
+    double theirDefenseLineX() const { return M_their_defense_line_x; }
 
     /*!
       \brief get our offense player line (not consder ball pos)
       \return our offense player line x
     */
-    const double & ourOffensePlayerLineX() const { return M_our_offense_player_line_x; }
+    double ourOffensePlayerLineX() const { return M_our_offense_player_line_x; }
 
     /*!
       \brief get our defense player line (not consder ball pos)
       \return our defense player line x
     */
-    const double & ourDefensePlayerLineX() const { return M_our_defense_player_line_x; }
+    double ourDefensePlayerLineX() const { return M_our_defense_player_line_x; }
 
     /*!
       \brief get their offense player line (not consder ball pos)
       \return our defense player line x
     */
-    const double & theirOffensePlayerLineX() const { return M_their_offense_player_line_x; }
+    double theirOffensePlayerLineX() const { return M_their_offense_player_line_x; }
 
     /*!
       \brief get estimated their offense line x value
       \return their offense line x
     */
-    const double & theirDefensePlayerLineX() const { return M_their_defense_player_line_x; }
-
-
-    /*!
-      \brief check if exist kickable teammate
-      \return true if agent estimated that kickable teammate exists
-    */
-    bool existKickableTeammate() const { return M_exist_kickable_teammate; }
+    double theirDefensePlayerLineX() const { return M_their_defense_player_line_x; }
 
     /*!
-      \brief check if exist kickable opponent
-      \return true if agent estimated that kickable opponent exists
-    */
-    bool existKickableOpponent() const { return M_exist_kickable_opponent; }
+      \brief get the estimated kickable teammate if exist.
+      \return player object pointer
+     */
+    const PlayerObject * kickableTeammate() const { return M_kickable_teammate; }
+
+    /*!
+      \brief get the estimated kickable opponent if exist.
+      \return player object pointer
+     */
+    const PlayerObject * kickableOpponent() const { return M_kickable_opponent; }
+
+    /*!
+      \brief get the estimated kickable teammate (maybe kickable).
+      \return player object pointer
+     */
+    const PlayerObject * maybeKickableTeammate() const { return M_maybe_kickable_teammate; }
+
+    /*!
+      \brief get the estimated kickable opponent (maybe kickable).
+      \return player object pointer
+     */
+    const PlayerObject * maybeKickableOpponent() const { return M_maybe_kickable_opponent; }
+
 
     /*!
       \brief get the estimated last kicker's side
@@ -974,6 +1128,11 @@ public:
      */
     SideID lastKickerSide() const { return M_last_kicker_side; }
 
+    /*!
+      \brief get the estimated last kicker's uniform number
+      \return uniform number
+     */
+    int lastKickerUnum() const { return M_last_kicker_unum; }
 
     /*!
       \brief get player type Id of teammate
@@ -988,7 +1147,7 @@ public:
                         << unum << std::endl;
               return Hetero_Default;
           }
-          return M_teammate_types[ unum - 1 ];
+          return M_our_player_type[ unum - 1 ];
       }
 
     /*!
@@ -1011,7 +1170,7 @@ public:
                         << unum << std::endl;
               return Hetero_Unknown;
           }
-          return M_opponent_types[ unum - 1 ];
+          return M_their_player_type[ unum - 1 ];
       }
 
     /*!
@@ -1038,7 +1197,7 @@ public:
                         << unum << std::endl;
               return NO_CARD;
           }
-          return M_teammate_card[ unum - 1 ];
+          return M_our_card[ unum - 1 ];
       }
 
     /*!
@@ -1054,7 +1213,7 @@ public:
                         << unum << std::endl;
               return NO_CARD;
           }
-          return M_opponent_card[ unum - 1 ];
+          return M_their_card[ unum - 1 ];
       }
 
     //
@@ -1127,30 +1286,30 @@ public:
       \param predicate predicate object for the player condition matching. This have to be a dynamically allocated object.
       \return container of AbstractPlayer pointer.
      */
-    AbstractPlayerCont getPlayerCont( const PlayerPredicate * predicate ) const;
+    AbstractPlayerObject::Cont getPlayers( const PlayerPredicate * predicate ) const;
 
     /*!
       \brief get the new container of AbstractPlayer matched with the predicate.
       \param predicate predicate object for the player condition matching.
       \return container of AbstractPlayer pointer.
      */
-    AbstractPlayerCont getPlayerCont( boost::shared_ptr< const PlayerPredicate > predicate ) const;
+    AbstractPlayerObject::Cont getPlayers( std::shared_ptr< const PlayerPredicate > predicate ) const;
 
     /*!
       \brief get the new container of AbstractPlayer matched with the predicate.
-      \param cont reference to the result variable
+      \param result reference to the result variable
       \param predicate predicate object for the player condition matching. This have to be a dynamically allocated object.
      */
-    void getPlayerCont( AbstractPlayerCont & cont,
-                        const PlayerPredicate * predicate ) const;
+    void getPlayers( AbstractPlayerObject::Cont & result,
+                     const PlayerPredicate * predicate ) const;
 
     /*!
       \brief get the new container of AbstractPlayer matched with the predicate.
       \param cont reference to the result variable
       \param predicate predicate object for the player condition matching.
      */
-    void getPlayerCont( AbstractPlayerCont & cont,
-                        boost::shared_ptr< const PlayerPredicate > predicate ) const;
+    void getPlayers( AbstractPlayerObject::Cont & result,
+                     std::shared_ptr< const PlayerPredicate > predicate ) const;
 
     /*!
       \brief get the number of players that satisfy an input predicate.
@@ -1164,7 +1323,7 @@ public:
       \param predicate predicate predicate object for the player condition matching.
       \return number of players.
      */
-    size_t countPlayer( boost::shared_ptr< const PlayerPredicate > predicate ) const;
+    size_t countPlayer( std::shared_ptr< const PlayerPredicate > predicate ) const;
 
     /*!
       \brief get a goalie teammate (include self)
@@ -1173,10 +1332,10 @@ public:
     const AbstractPlayerObject * getOurGoalie() const;
 
     /*!
-      \brief get opponent goalie pointer
+      \get opponent goalie pointer
       \return if found pointer to goalie object, otherwise NULL
-    */
-    const PlayerObject * getOpponentGoalie() const;
+     */
+    const AbstractPlayerObject * getTheirGoalie() const;
 
 private:
 
@@ -1190,7 +1349,7 @@ private:
       \return if found, pointer to player object, othewise NULL
      */
     const PlayerObject * getPlayerNearestTo( const Vector2D & point,
-                                             const PlayerPtrCont & players,
+                                             const PlayerObject::Cont & players,
                                              const int count_thr,
                                              double * dist_to_point ) const;
 
@@ -1202,12 +1361,12 @@ private:
       \return distance to the matched opponent. if not found, a big value is returned.
      */
     double getDistPlayerNearestTo( const Vector2D & point,
-                                   const PlayerPtrCont & players,
+                                   const PlayerObject::Cont & players,
                                    const int count_thr ) const
       {
-          double d = 65535.0;
+          double d = DIST_TOO_FAR;
           const PlayerObject * p = getPlayerNearestTo( point, players, count_thr, &d );
-          return ( p ? d : 65535.0 );
+          return ( p ? d : DIST_TOO_FAR );
       }
 
 public:
@@ -1221,9 +1380,9 @@ public:
     double getDistTeammateNearestTo( const Vector2D & point,
                                      const int count_thr ) const
       {
-          double d = 65535.0;
+          double d = DIST_TOO_FAR;
           const PlayerObject * p = getPlayerNearestTo( point, teammatesFromSelf(), count_thr, &d );
-          return ( p ? d : 65535.0 );
+          return ( p ? d : DIST_TOO_FAR );
       }
 
     /*!
@@ -1235,9 +1394,9 @@ public:
     double getDistOpponentNearestTo( const Vector2D & point,
                                      const int count_thr ) const
       {
-          double d = 65535.0;
+          double d = DIST_TOO_FAR;
           const PlayerObject * p = getPlayerNearestTo( point, opponentsFromSelf(), count_thr, &d );
-          return ( p ? d : 65535.0 );
+          return ( p ? d : DIST_TOO_FAR );
       }
 
     /*!
@@ -1267,7 +1426,7 @@ public:
                                                const int count_thr,
                                                double * dist_to_point ) const
       {
-          if ( ! p ) return static_cast< const PlayerObject * >( 0 );
+          if ( ! p ) return nullptr;
           return getTeammateNearestTo( p->pos(), count_thr, dist_to_point );
       }
 
@@ -1298,7 +1457,7 @@ public:
                                          const int count_thr,
                                          double * dist_to_point ) const
       {
-          if ( ! p ) return static_cast< const PlayerObject * >( 0 );
+          if ( ! p ) return nullptr;
           return getOpponentNearestTo( p->pos(), count_thr, dist_to_point );
       }
 
@@ -1313,25 +1472,22 @@ private:
      */
     template < typename REGION >
     bool existPlayerIn( const REGION & region,
-                        const PlayerPtrCont & players,
+                        const PlayerObject::Cont & players,
                         const int count_thr,
                         const bool with_goalie ) const
       {
-          const PlayerPtrCont::const_iterator end = players.end();
-          for ( PlayerPtrCont::const_iterator it = players.begin();
-                it != end;
-                ++it )
+          for ( PlayerObject::Cont::const_reference p : players )
           {
-              if ( (*it)->posCount() > count_thr
-                   || (*it)->isGhost() )
+              if ( p->posCount() > count_thr
+                   || p->isGhost() )
               {
                   continue;
               }
-              if ( (*it)->goalie() && ! with_goalie )
+              if ( p->goalie() && ! with_goalie )
               {
                   continue;
               }
-              if ( region.contains( (*it)->pos() ) )
+              if ( region.contains( p->pos() ) )
               {
                   return true;
               }
@@ -1382,24 +1538,21 @@ private:
      */
     template < typename REGION >
     size_t countPlayersIn( const REGION & region,
-                           const PlayerPtrCont & players,
+                           const PlayerObject::Cont & players,
                            const int count_thr,
                            const bool with_goalie ) const
       {
           size_t count = 0;
-          const PlayerPtrCont::const_iterator end = players.end();
-          for ( PlayerPtrCont::const_iterator it = players.begin();
-                it != end;
-                ++it )
+          for ( PlayerObject::Cont::const_reference p : players )
           {
-              if ( (*it)->posCount() > count_thr
-                   || (*it)->isGhost()
-                   || ( (*it)->goalie() && ! with_goalie )
+              if ( p->posCount() > count_thr
+                   || p->isGhost()
+                   || ( p->goalie() && ! with_goalie )
                    )
               {
                   continue;
               }
-              if ( region.contains( (*it)->pos() ) )
+              if ( region.contains( p->pos() ) )
               {
                   ++count;
               }

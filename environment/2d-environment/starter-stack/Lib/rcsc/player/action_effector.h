@@ -34,6 +34,7 @@
 
 #include <rcsc/player/view_mode.h>
 #include <rcsc/player/player_command.h>
+#include <rcsc/player/say_message_builder.h>
 
 #include <rcsc/geom/vector_2d.h>
 #include <rcsc/game_time.h>
@@ -47,8 +48,6 @@ namespace rcsc {
 
 class BodySensor;
 class PlayerAgent;
-class SayMessage;
-class ServerParam;
 
 /*!
   \class ActionEffector
@@ -62,10 +61,17 @@ private:
     //! pointer of body action for dynamic allocation
     PlayerBodyCommand * M_command_body;
 
+    //! left leg command
+    // PlayerLegCommand * M_command_left_leg;
+    //! right leg command
+    // PlayerLegCommand * M_command_right_leg;
+
     //! pointer of turn_neck for dynamic allocation
     PlayerTurnNeckCommand * M_command_turn_neck;
     //! pointer of change_view for dynamic allocation
     PlayerChangeViewCommand * M_command_change_view;
+    //! pointer of change_focus for dynamic allocation
+    PlayerChangeFocusCommand * M_command_change_focus;
     //! pointer of say for dynamic allocation
     PlayerSayCommand * M_command_say;
     //! pointer of pointto for dynamic allocation
@@ -81,7 +87,10 @@ private:
     GameTime M_last_action_time;
 
     //! last body command type
-    PlayerCommand::Type M_last_body_command_type;
+    PlayerCommand::Type M_last_body_command_type[2];
+    // PlayerCommand::Type M_last_left_leg_command_type[2];
+    // PlayerCommand::Type M_last_right_leg_command_type[2];
+
     //! checker of turn_neck. true if turn_neck was done at last
     bool M_done_turn_neck;
 
@@ -96,10 +105,11 @@ private:
     double M_turn_error;  //!< estimated turn moment error
 
     // dash effect
+    double M_dash_power; //!< command power: need to estimate the consumed stamina
+    double M_left_dash_power; //!< command power: need to estimate the consumed stamina
+    double M_right_dash_power; //!< command power: need to estimate the consumed stamina
     Vector2D M_dash_accel; //!< estimated last dash accel
-    //Vector2D M_dash_accel_error;
-    double M_dash_power; //!< last dash power to update stamina
-    double M_dash_dir; //!< last dash direction relative to body (or reverse body)
+    double M_dash_rotation; //!< rotation degree by differntial drive
 
     // move effect
     Vector2D M_move_pos; //!< last move coordinates
@@ -117,17 +127,17 @@ private:
 
     // say effect
     std::string M_say_message; //!< last said message string
-    std::vector< const SayMessage * > M_say_messages;
+    std::vector< SayMessage::Ptr > M_say_message_cont;
 
     // pointto effect
     Vector2D M_pointto_pos;  //!< last pointto coordinates
 
 
     // not used
-    ActionEffector();
+    ActionEffector() = delete;
     // nocopyable
-    ActionEffector( const ActionEffector & );
-    ActionEffector operator=( const ActionEffector & );
+    ActionEffector( const ActionEffector & ) = delete;
+    ActionEffector operator=( const ActionEffector & ) = delete;
 public:
     /*!
       \brief init member variables
@@ -180,8 +190,7 @@ public:
       \brief get const pointer to the player's body command object
       \return const pointer to the body command object
     */
-    const
-    PlayerBodyCommand * bodyCommand() const
+    const PlayerBodyCommand * bodyCommand() const
       {
           return M_command_body;
       }
@@ -190,8 +199,7 @@ public:
       \brief get const pointer to the player's turn_neck command object
       \return const pointer to the turn_neck command object
     */
-    const
-    PlayerTurnNeckCommand * turnNeckCommand() const
+    const PlayerTurnNeckCommand * turnNeckCommand() const
       {
           return M_command_turn_neck;
       }
@@ -200,8 +208,7 @@ public:
       \brief get const pointer to the player's change_view command object
       \return const pointer to the change_view command object
     */
-    const
-    PlayerChangeViewCommand * changeViewCommand() const
+    const PlayerChangeViewCommand * changeViewCommand() const
       {
           return M_command_change_view;
       }
@@ -210,8 +217,7 @@ public:
       \brief get const pointer to the player's say command object
       \return const pointer to the say command object
     */
-    const
-    PlayerSayCommand * sayCommand() const
+    const PlayerSayCommand * sayCommand() const
       {
           return M_command_say;
       }
@@ -220,8 +226,7 @@ public:
       \brief get const pointer to the player's pointto command object
       \return const pointer to the pointto command object
     */
-    const
-    PlayerPointtoCommand * pointtoCommand() const
+    const PlayerPointtoCommand * pointtoCommand() const
       {
           return M_command_pointto;
       }
@@ -230,8 +235,7 @@ public:
       \brief get const pointer to the player's attentionto command object
       \return const pointer to the attentionto command object
     */
-    const
-    PlayerAttentiontoCommand * attentiontoCommand() const
+    const PlayerAttentiontoCommand * attentiontoCommand() const
       {
           return M_command_attentionto;
       }
@@ -268,6 +272,21 @@ public:
     */
     void setDash( const double & power,
                   const AngleDeg & rel_dir );
+
+    /*!
+      \brief register dash command for each leg.
+      \param left_power dash power for left leg
+      \param left_dir dash direction for left leg
+      \param right_power dash power for right leg
+      \param right_dir dash direction for right leg
+
+      power is normalized by server parameter
+      useless dash power is reduceed automatically.
+    */
+    void setDash( const double left_power,
+                  const AngleDeg left_dir,
+                  const double right_power,
+                  const AngleDeg right_dir );
 
     /*!
       \brief create turn command and its effect with turn parameter
@@ -324,19 +343,19 @@ public:
     */
     void setChangeView( const ViewWidth & width );
 
-    /*
-      brief create say command
-      param msg say message string
-      param version client version
+    /*!
+      \brief create change_focus command
+      \param moment_dist distance added to the current focus point
+      \param moment_dir direction added to the current focus point
     */
-    //void setSay( const std::string & msg,
-    //const double & version );
+    void setChangeFocus( const double moment_dist,
+                         const AngleDeg & moment_dir );
 
     /*!
       \brief add new say message
-      \param message say message object. this must be a dynamically allocated object.
+      \param message pointer to the dynamically allocated say message object.
      */
-    void addSayMessage( const SayMessage * message );
+    void addSayMessage( SayMessage * message );
 
     /*!
       \brief remove the registered say message if exist
@@ -344,6 +363,11 @@ public:
       \return true if removed
      */
     bool removeSayMessage( const char header );
+
+    /*!
+      \brief remove all registered say messages
+    */
+    void clearSayMessage();
 
     /*!
       \brief create pointto command and its effect with pointto parameter
@@ -380,8 +404,7 @@ public:
       \brief get last command composition time
       \return const reference to the game time
     */
-    const
-    GameTime & lastActionTime() const
+    const GameTime & lastActionTime() const
       {
           return M_last_action_time;
       }
@@ -392,7 +415,18 @@ public:
     */
     PlayerCommand::Type lastBodyCommandType() const
       {
-          return M_last_body_command_type;
+          return M_last_body_command_type[0];
+      }
+
+    /*!
+      \brief get last perfomed command type to update SelfObject
+      \return command type Id
+    */
+    PlayerCommand::Type lastBodyCommandType( int i ) const
+      {
+          return ( 0 <= i && i < 2
+                   ? M_last_body_command_type[i]
+                   : M_last_body_command_type[0] );
       }
 
     /*!
@@ -437,16 +471,23 @@ public:
     //////////////////////////////////////////
     /*!
       \brief get estimated dash action effect
-      \param accel variable pointer to store the estimated dash accel
-      \param power variable pointer to store the used dash power
     */
     void getDashInfo( Vector2D * accel,
-                      /*Vector2D * acc_err,*/
                       double * power ) const
       {
           if ( accel ) *accel = M_dash_accel;
-          //if ( acc_err ) *acc_err = M_dash_accel_error;
           if ( power ) *power = M_dash_power;
+      }
+
+    void getDashInfo( Vector2D * accel,
+                      double * rotation,
+                      double * left_power,
+                      double * right_power ) const
+      {
+          if ( accel ) *accel = M_dash_accel;
+          if ( rotation ) *rotation = M_dash_rotation;
+          if ( left_power ) *left_power = M_left_dash_power;
+          if ( right_power ) *right_power = M_right_dash_power;
       }
 
     //////////////////////////////////////////
@@ -455,8 +496,7 @@ public:
       \brief get move action effect
       \return moved position
     */
-    const
-    Vector2D & getMovePos() const
+    const Vector2D & getMovePos() const
       {
           return M_move_pos;
       }
@@ -467,8 +507,7 @@ public:
       \brief get last time catch action is performed
       \return game time object
     */
-    const
-    GameTime & getCatchTime() const
+    const GameTime & getCatchTime() const
       {
           return M_catch_time;
       }
@@ -502,8 +541,7 @@ public:
       \brief get turn_neck action effect
       \return performed turn_neck moment
     */
-    const
-    double & getTurnNeckMoment() const
+    double getTurnNeckMoment() const
       {
           return M_turn_neck_moment;
       }
@@ -513,8 +551,7 @@ public:
       \brief get say action effect
       \return say message string
     */
-    const
-    std::string & getSayMessage() const
+    const std::string & getSayMessage() const
       {
           return M_say_message;
       }
@@ -529,10 +566,9 @@ public:
       \brief get the reserved say messages
       \return const reference to the say message builder container
      */
-    const
-    std::vector< const SayMessage * > & sayMessageCont() const
+    const std::vector< SayMessage::Ptr > & sayMessageCont() const
       {
-          return M_say_messages;
+          return M_say_message_cont;
       }
 
     //////////////////////////////////////////
@@ -540,8 +576,7 @@ public:
       \brief get pointto action effect
       \return estimated pointed position
     */
-    const
-    Vector2D & getPointtoPos() const
+    const Vector2D & getPointtoPos() const
       {
           return M_pointto_pos;
       }
@@ -611,6 +646,18 @@ public:
     ViewWidth queuedNextViewWidth() const;
 
     /*!
+      \brief get the next focus distance estimated by the queued acction effect
+      \return queued focus distance
+     */
+    //double queuedNextFocusDist() const;
+
+    /*!
+      \brief get the next focus direction estimated by the queued acction effect
+      \return queued focus direction
+     */
+    //AngleDeg queuedNextFocusDir() const;
+
+    /*!
       \brief check if the target point can see only by turn_neck with the buffer
       \param point target point
       \param angle_buf angle buffer for the half view width
@@ -631,11 +678,6 @@ private:
       \brief create say command object using the registered say message objects
      */
     void makeSayCommand();
-
-    /*!
-      \brief erase all say message objects
-     */
-    void clearSayMessages();
 
 };
 

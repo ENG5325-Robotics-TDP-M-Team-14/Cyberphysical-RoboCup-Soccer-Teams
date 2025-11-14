@@ -39,7 +39,7 @@ namespace rcg {
 
 /*-------------------------------------------------------------------*/
 /*!
-  \brief convert network short value -> integer
+  \brief convert network byte order Int15 value to integer
   \param val network byte order variable
   \return local byte order integer
 */
@@ -48,7 +48,7 @@ nstohi( const Int16 val );
 
 /*-------------------------------------------------------------------*/
 /*!
-  \brief convert local integer value -> network byte order short value
+  \brief convert local integer value to network byte order Int16 value
   \param val local integer value
   \return network byte order short value.
 */
@@ -57,7 +57,7 @@ hitons( const int val );
 
 /*-------------------------------------------------------------------*/
 /*!
-  \brief convert network byte order short value to bool
+  \brief convert network byte order Int16 value to bool
   \param val network byte order variable
   \return boolean value
 */
@@ -121,7 +121,7 @@ nltohd( const Int32 & val );
 
 /*-------------------------------------------------------------------*/
 /*!
-  \brief convert network byte order long value to floating point number
+  \brief convert network byte order Int32 value to floating point number
   for rcsmonitor v2 protocol
   \param val network byte order variable
   \return floating point number filtered by SHOWINFO_SCALE2.
@@ -131,7 +131,7 @@ nltohf( const Int32 & val );
 
 /*-------------------------------------------------------------------*/
 /*!
-  \brief convert a floating point number to the network byte order long value
+  \brief convert a floating point number to the network byte order Int32 value
   for rcsmonitor v2 protocol
   \param val local floating point number value
   \return network byte order value.
@@ -141,7 +141,7 @@ hdtonl( const double & val );
 
 /*-------------------------------------------------------------------*/
 /*!
-  \brief convert a floating point number to the network byte order long value
+  \brief convert a floating point number to the network byte order Int32 value
   for rcsmonitor v2 protocol
   \param val local floating point number value
   \return network byte order value.
@@ -168,6 +168,298 @@ nstonl( const Int16 val );
 */
 Int16
 nltons( const Int32 & val );
+
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert pos_t to BallT
+  \param from source variable
+  \param to destination variable
+*/
+void
+convert( const pos_t & from,
+         BallT & to );
+
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert BallT to pos_t
+  \param from source variable
+  \param to destination variable
+*/
+void
+convert( const BallT & from,
+         pos_t & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert ball_t to BallT
+  \param from source variable
+  \param to destination variable
+*/
+void
+convert( const ball_t & from,
+         BallT & to );
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert BallT to ball_t
+  \param from source variable
+  \param to destination variable
+*/
+void
+convert( const BallT & from,
+         ball_t & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert pos_t to player_t
+  \param from source variable
+  \param to destination variable
+*/
+void
+convert( const pos_t & from,
+         player_t & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert player_t to pos_t
+  \param side player's side id
+  \param unum uniform number
+  \param from source variable
+  \param to destination variable
+*/
+void
+convert( const SideID side,
+         const int unum,
+         const player_t & from,
+         pos_t & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert pos_t to PlayerT
+  \param from source variable
+  \param to destination variable
+*/
+void
+convert( const pos_t & from,
+         PlayerT & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert player info to player_t
+  \param from source player info
+  \param to destination player_t variable
+*/
+void
+convert( const PlayerT & from,
+         player_t & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert player_t to PlayerT
+  \param from source variable
+  \param to destination variable
+*/
+void
+convert( const SideID side,
+         const int unum,
+         const player_t & from,
+         PlayerT & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert team info to team_t
+  \param name source team name string
+  \param score source team score
+  \param to destination team_t variable
+*/
+void
+convert( const std::string & name,
+         const int score,
+         team_t & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert team_t to TeamT
+  \param from source data
+  \param to destination team_t variable
+*/
+void
+convert( const TeamT & from,
+         team_t & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert TeamT to team_t
+  \param from source data
+  \param to destination TeamT variable
+*/
+void
+convert( const team_t & from,
+         TeamT & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert showinfo_t to showinfo_t2
+  \param from source showinfo_t variable
+  \param to destination showinfo_t2 variable
+*/
+void
+convert( const showinfo_t & from,
+         showinfo_t2 & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert showinfo_t to short_showinfo_t2
+  \param from source showinfo_t variable
+  \param to destination short_showinfo_t2 variable
+*/
+void
+convert( const showinfo_t & from,
+         short_showinfo_t2 & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert showinfo_t2 to showinfo_t
+  \param from source showinfo_t2 variable
+  \param to destination showinfo_t variable
+*/
+void
+convert( const showinfo_t2 & from,
+         showinfo_t & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert short_showinfo_t2 to showinfo_t
+  \param playmode playmode variable
+  \param team_l left team variable
+  \param team_r right team variable
+  \param from source short_showinfo_t2 variable
+  \param to destination showinfo_t variable
+*/
+void
+convert( const char playmode,
+         const TeamT & team_l,
+         const TeamT & team_r,
+         const short_showinfo_t2 & from,
+         showinfo_t & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert ShowInfoT to showinfo_t
+  \param playmode playmode variable
+  \param team_l left team variable
+  \param team_r right team variable
+  \param from source ShowInfoT variable
+  \param to destination showinfo_t variable
+*/
+void
+convert( const char playmode,
+         const TeamT & team_l,
+         const TeamT & team_r,
+         const ShowInfoT & from,
+         showinfo_t & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert showinfot_t to ShowInfoT
+  \param from source variable
+  \param to destination variable
+*/
+void
+convert( const showinfo_t & from,
+         ShowInfoT & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert ShowInfoT to showinfo_t2
+  \param playmode playmode variable
+  \param team_l left team variable
+  \param team_r right team variable
+  \param from source ShowInfoT variable
+  \param to destination showinfo_t2 variable
+*/
+void
+convert( const char playmode,
+         const TeamT & team_l,
+         const TeamT & team_r,
+         const ShowInfoT & from,
+         showinfo_t2 & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert showinfot_t2 to ShowInfoT
+  \param from source variable
+  \param to destination variable
+*/
+void
+convert( const showinfo_t2 & from,
+         ShowInfoT & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert ShowInfoT to short_showinfo_t2
+  \param from source ShowInfoT variable
+  \param to destination short_showinfo_t2 variable
+*/
+void
+convert( const ShowInfoT & from,
+         short_showinfo_t2 & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert short_showinfot_t2 to ShowInfoT
+  \param from source variable
+  \param to destination variable
+*/
+void
+convert( const short_showinfo_t2 & from,
+         ShowInfoT & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief make msginfo_t from string
+  \param from source message string
+  \param to destination msginfo_t variable
+*/
+void convert( const std::string & from,
+              msginfo_t & to );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief convert from a playmode string to the playmode enum type value .
+  \param playmode playmode string
+  \return playmode id
+*/
+PlayMode
+to_playmode_enum( const std::string & playmode );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief build server message from old format data
+  \param from source data
+  \return result string
+*/
+std::string
+to_string( const player_type_t & from );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief build server message from old format data
+  \param from source data
+  \return result string
+*/
+std::string
+to_string( const server_params_t & from );
+
+/*-------------------------------------------------------------------*/
+/*!
+  \brief build server message from old format data
+  \param from source data
+  \return result string
+*/
+std::string
+to_string( const player_params_t & from );
 
 } // end namespace
 } // end namespace

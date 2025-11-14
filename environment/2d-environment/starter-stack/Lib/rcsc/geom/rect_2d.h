@@ -80,10 +80,10 @@ private:
       \param length length (x-range)
       \param width width (y-range)
      */
-    Rect2D( const double & left_x,
-            const double & top_y,
-            const double & length,
-            const double & width )
+    Rect2D( const double left_x,
+            const double top_y,
+            const double length,
+            const double width )
         : M_top_left( left_x, top_y )
         , M_size( length, width )
       { }
@@ -95,8 +95,8 @@ private:
       \param width Y range
      */
     Rect2D( const Vector2D & top_left,
-            const double & length,
-            const double & width )
+            const double length,
+            const double width )
         : M_top_left( top_left )
         , M_size( length, width )
       { }
@@ -145,8 +145,8 @@ public:
      */
     static
     Rect2D from_center( const Vector2D & center,
-                        const double & length,
-                        const double & width )
+                        const double length,
+                        const double width )
       {
           return Rect2D( center.x - length*0.5,
                          center.y - width*0.5,
@@ -162,10 +162,10 @@ public:
       \param width width(y-range) of new rectangle.
      */
     static
-    Rect2D from_center( const double & center_x,
-                        const double & center_y,
-                        const double & length,
-                        const double & width )
+    Rect2D from_center( const double center_x,
+                        const double center_y,
+                        const double length,
+                        const double width )
       {
           return Rect2D( center_x - length*0.5,
                          center_y - width*0.5,
@@ -193,10 +193,10 @@ public:
       \param b bottom y
     */
     static
-    Rect2D from_corners( const double & l,
-                         const double & t,
-                         const double & r,
-                         const double & b )
+    Rect2D from_corners( const double l,
+                         const double t,
+                         const double r,
+                         const double b )
       {
           return Rect2D( Vector2D( l, t ), Vector2D( r, b ) );
       }
@@ -210,10 +210,10 @@ private:
       \param width Y range
      */
     const
-    Rect2D & assign( const double & left_x,
-                     const double & top_y,
-                     const double & length,
-                     const double & width )
+    Rect2D & assign( const double left_x,
+                     const double top_y,
+                     const double length,
+                     const double width )
       {
           M_top_left.assign( left_x, top_y );
           M_size.assign( length, width );
@@ -229,8 +229,8 @@ private:
      */
     const
     Rect2D & assign( const Vector2D & top_left,
-                     const double & length,
-                     const double & width )
+                     const double length,
+                     const double width )
       {
           M_top_left = top_left;
           M_size.assign( length, width );
@@ -244,9 +244,8 @@ public:
       \param size XY range
       \return const referenct to itself
      */
-    const
-    Rect2D & assign( const Vector2D & top_left,
-                     const Size2D & size )
+    const Rect2D & assign( const Vector2D & top_left,
+                           const Size2D & size )
       {
           M_top_left = top_left;
           M_size = size;
@@ -260,8 +259,7 @@ public:
       \param point new center coordinates
       \return const referenct to itself
      */
-    const
-    Rect2D & moveCenter( const Vector2D & point )
+    const Rect2D & moveCenter( const Vector2D & point )
       {
           M_top_left.assign( point.x - M_size.length() * 0.5,
                              point.y - M_size.width() * 0.5 );
@@ -275,8 +273,7 @@ public:
       \param point new top-left corner
       \return const referenct to itself
      */
-    const
-    Rect2D & moveTopLeft( const Vector2D & point )
+    const Rect2D & moveTopLeft( const Vector2D & point )
       {
           M_top_left = point;
           return *this;
@@ -289,8 +286,7 @@ public:
       \param point new bottom-right conrer
       \return const referenct to itself
      */
-    const
-    Rect2D & moveBottomRight( const Vector2D & point )
+    const Rect2D & moveBottomRight( const Vector2D & point )
       {
           M_top_left.assign( point.x - M_size.length(),
                              point.y - M_size.width() );
@@ -304,8 +300,7 @@ public:
       \param x new left value
       \return const referenct to itself
      */
-    const
-    Rect2D & moveLeft( const double & x )
+    const Rect2D & moveLeft( const double x )
       {
           M_top_left.x = x;
           return *this;
@@ -316,8 +311,7 @@ public:
       \param x new left value
       \return const referenct to itself
      */
-    const
-    Rect2D & moveMinX( const double & x )
+    const Rect2D & moveMinX( const double x )
       {
           return moveLeft( x );
       }
@@ -329,8 +323,7 @@ public:
       \param x new right value
       \return const referenct to itself
      */
-    const
-    Rect2D & moveRight( const double & x )
+    const Rect2D & moveRight( const double x )
       {
           M_top_left.x = x - M_size.length();
           return *this;
@@ -341,8 +334,7 @@ public:
       \param x new right value
       \return const referenct to itself
      */
-    const
-    Rect2D & moveMaxX( const double & x )
+    const Rect2D & moveMaxX( const double x )
       {
           return moveRight( x );
       }
@@ -354,8 +346,7 @@ public:
       \param y new top value
       \return const referenct to itself
      */
-    const
-    Rect2D & moveTop( const double & y )
+    const Rect2D & moveTop( const double y )
       {
           M_top_left.y = y;
           return *this;
@@ -366,8 +357,7 @@ public:
       \param y new top value
       \return const referenct to itself
      */
-    const
-    Rect2D & moveMinY( const double & y )
+    const Rect2D & moveMinY( const double y )
       {
           return moveTop( y );
       }
@@ -379,8 +369,7 @@ public:
       \param y new top value
       \return const referenct to itself
      */
-    const
-    Rect2D & moveBottom( const double & y )
+    const Rect2D & moveBottom( const double y )
       {
           M_top_left.y = y - M_size.width();
           return *this;
@@ -391,8 +380,7 @@ public:
       \param y new top value
       \return const referenct to itself
      */
-    const
-    Rect2D & moveMaxY( const double & y )
+    const Rect2D & moveMaxY( const double y )
       {
           return moveBottom( y );
       }
@@ -405,9 +393,8 @@ public:
       \param y new y coordinate
       \return const referenct to itself
      */
-    const
-    Rect2D & setTopLeft( const double & x,
-                         const double & y );
+    const Rect2D & setTopLeft( const double x,
+                               const double y );
 
     /*!
       \brief set the top-left corner of the rectangle.
@@ -415,8 +402,7 @@ public:
       \param point new coordinate
       \return const referenct to itself
      */
-    const
-    Rect2D & setTopLeft( const Vector2D & point )
+    const Rect2D & setTopLeft( const Vector2D & point )
       {
           return setTopLeft( point.x, point.y );
       }
@@ -428,9 +414,8 @@ public:
       \param y new y coordinate
       \return const referenct to itself
      */
-    const
-    Rect2D & setBottomRight( const double & x,
-                             const double & y );
+    const Rect2D & setBottomRight( const double x,
+                                   const double y );
 
     /*!
       \brief set the bottom-right corner of the rectangle.
@@ -438,8 +423,7 @@ public:
       \param point new coordinate
       \return const referenct to itself
      */
-    const
-    Rect2D & setBottomRight( const Vector2D & point )
+    const Rect2D & setBottomRight( const Vector2D & point )
       {
           return setBottomRight( point.x, point.y );
       }
@@ -450,16 +434,14 @@ public:
       \param x new left value
       \return const referenct to itself
      */
-    const
-    Rect2D & setLeft( const double & x );
+    const Rect2D & setLeft( const double x );
 
     /*!
       \brief alias of setLeft.
       \param x new left value
       \return const referenct to itself
      */
-    const
-    Rect2D & setMinX( const double & x )
+    const Rect2D & setMinX( const double x )
       {
           return setLeft( x );
       }
@@ -470,16 +452,14 @@ public:
       \param x new right value
       \return const referenct to itself
      */
-    const
-    Rect2D & setRight( const double & x );
+    const Rect2D & setRight( const double x );
 
     /*!
       \brief alias of setRight.
       \param x new right value
       \return const referenct to itself
      */
-    const
-    Rect2D & setMaxX( const double & x )
+    const Rect2D & setMaxX( const double x )
       {
           return setRight( x );
       }
@@ -490,16 +470,14 @@ public:
       \param y new top value
       \return const referenct to itself
      */
-    const
-    Rect2D & setTop( const double & y );
+    const Rect2D & setTop( const double y );
 
     /*!
       \brief alias of setTop.
       \param y new top value
       \return const referenct to itself
      */
-    const
-    Rect2D & setMinY( const double & y )
+    const Rect2D & setMinY( const double y )
       {
           return setTop( y );
       }
@@ -510,16 +488,14 @@ public:
       \param y new bottom value
       \return const referenct to itself
      */
-    const
-    Rect2D & setBottom( const double & y );
+    const Rect2D & setBottom( const double y );
 
     /*!
       \brief alias of setBottom.
       \param y new top value
       \return const referenct to itself
      */
-    const
-    Rect2D & setMaxY( const double & y )
+    const Rect2D & setMaxY( const double y )
       {
           return setBottom( y );
       }
@@ -529,8 +505,7 @@ public:
       \param length new range
       \return const referenct to itself
      */
-    const
-    Rect2D & setLength( const double & length )
+    const Rect2D & setLength( const double length )
       {
           M_size.setLength( length );
           return *this;
@@ -541,8 +516,7 @@ public:
       \param width new range
       \return const referenct to itself
      */
-    const
-    Rect2D & setWidth( const double & width )
+    const Rect2D & setWidth( const double width )
       {
           M_size.setWidth( width );
           return *this;
@@ -554,9 +528,8 @@ public:
       \param width new range
       \return const referenct to itself
      */
-    const
-    Rect2D & setSize( const double & length,
-                      const double & width )
+    const Rect2D & setSize( const double length,
+                            const double width )
       {
           M_size.assign( length, width );
           return *this;
@@ -567,8 +540,7 @@ public:
       \param size new range
       \return const referenct to itself
      */
-    const
-    Rect2D & setSize( const Size2D & size )
+    const Rect2D & setSize( const Size2D & size )
       {
           M_size = size;
           return *this;
@@ -615,7 +587,7 @@ public:
       \return true or false
      */
     bool contains( const Vector2D & point,
-                   const double & error_thr ) const
+                   const double error_thr ) const
       {
           return ( left() - error_thr <= point.x
                    && point.x <= right() + error_thr
@@ -627,8 +599,7 @@ public:
       \brief get the left x coordinate of this rectangle.
       \return x coordinate value
     */
-    const
-    double & left() const
+    double left() const
       {
           return M_top_left.x;
       }
@@ -646,8 +617,7 @@ public:
       \brief get the top y coordinate of this rectangle.
       \return y coordinate value
     */
-    const
-    double & top() const
+    double top() const
       {
           return M_top_left.y;
       }
@@ -701,8 +671,7 @@ public:
       \brief get the XY range of this rectangle
       \return size object
     */
-    const
-    Size2D & size() const
+    const Size2D & size() const
       {
           return M_size;
       }
@@ -721,8 +690,7 @@ public:
       \brief get the top-left corner point
       \return coordiante value by vector object
     */
-    const
-    Vector2D & topLeft() const
+    const Vector2D & topLeft() const
       {
           return M_top_left;
       }
@@ -829,8 +797,7 @@ public:
       \param other other rectangle.
       \return const reference to this.
      */
-    const
-    Rect2D & operator&=( const Rect2D & other );
+    const Rect2D & operator&=( const Rect2D & other );
 
     /*!
       \brief get the intersected rectangle of this rectangle and the other rectangle.
@@ -849,8 +816,7 @@ public:
       \param other other rectangle.
       \return const reference to this.
      */
-    const
-    Rect2D & operator|=( const Rect2D & other );
+    const Rect2D & operator|=( const Rect2D & other );
 
     /*!
       \brief get the united rectangle of this rectangle and the other rectangle.

@@ -55,8 +55,8 @@ struct HearMessage {
       \brief set default values and reserve string buffer
      */
     HearMessage()
-        : unum_( Unum_Unknown )
-        , dir_( 0.0 )
+        : unum_( Unum_Unknown ),
+          dir_( 0.0 )
       {
           str_.reserve( 10 );
       }

@@ -104,20 +104,37 @@ Neck_ScanField::execute( PlayerAgent * agent )
     //
     // try to maximize player accuracy
     //
-    angle = Neck_ScanPlayers::get_best_angle( agent );
-
-    if ( angle != INVALID_ANGLE )
+    bool exist_ghost = false;
+    for ( const AbstractPlayerObject * p : wm.allPlayers() )
     {
-        s_cached_target_angle = angle;
+        if ( p->isGhost()
+             && p->distFromSelf() < 30.0 )
+        {
+            dlog.addText( Logger::ACTION,
+                          __FILE__": (execute) detect ghost player %c %d",
+                          side_char( p->side() ), p->unum() );
+            exist_ghost = true;
+            break;
+        }
+    }
 
-        dlog.addText( Logger::ACTION,
-                      __FILE__": (execute) scan players" );
-        agent->debugClient().addMessage( "NeckScan:Pl" );
+    if ( ! exist_ghost )
+    {
+        angle = Neck_ScanPlayers::get_best_angle( agent );
 
-        agent->doTurnNeck( s_cached_target_angle
-                           - agent->effector().queuedNextSelfBody()
-                           - agent->world().self().neck() );
-        return true;
+        if ( angle != INVALID_ANGLE )
+        {
+            s_cached_target_angle = angle;
+
+            dlog.addText( Logger::ACTION,
+                          __FILE__": (execute) scan players. target_angle=%.1f", angle );
+            agent->debugClient().addMessage( "NeckScan:Pl" );
+
+            agent->doTurnNeck( s_cached_target_angle
+                               - agent->effector().queuedNextSelfBody()
+                               - agent->world().self().neck() );
+            return true;
+        }
     }
 
     //
@@ -232,8 +249,7 @@ Neck_ScanField::calcAngleDefault( const PlayerAgent * agent,
     // generate first visible cone score list
     {
 
-        const std::deque< int >::iterator end = dir_counts.end();
-        for ( std::deque< int >::iterator it = dir_counts.begin();
+        for ( std::deque< int >::iterator it = dir_counts.begin(), end = dir_counts.end();
               it != end;
               ++it )
         {

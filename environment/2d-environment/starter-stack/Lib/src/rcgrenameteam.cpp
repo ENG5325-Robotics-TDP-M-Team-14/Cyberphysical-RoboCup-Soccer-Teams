@@ -33,18 +33,17 @@
 #include <config.h>
 #endif
 
-#ifdef HAVE_NETINET_IN_H
-#include <netinet/in.h>
-#endif
-
 #include <rcsc/gz.h>
 #include <rcsc/rcg.h>
 
+#include <memory>
 #include <cmath>
 #include <cstring>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <string>
+#include <iomanip>
 
 class TeamNameRenamer
     : public rcsc::rcg::Handler {
@@ -58,44 +57,37 @@ private:
     std::string M_right_team_name;
 
     // not used
-    TeamNameRenamer();
+    TeamNameRenamer() = delete;
 public:
 
     TeamNameRenamer( std::ostream & os,
                      const std::string & left_team_name,
                      const std::string & right_team_name );
 
-    bool handleLogVersion( const int ver );
+    bool handleLogVersion( const int ver ) override;
 
-    // v3 or older
-    bool handleDispInfo( const rcsc::rcg::dispinfo_t & disp );
-    bool handleShowInfo( const rcsc::rcg::showinfo_t & show );
-    bool handleShortShowInfo2( const rcsc::rcg::short_showinfo_t2 & show );
-    bool handleMsgInfo( rcsc::rcg::Int16 board,
-                        const std::string & msg );
-    bool handlePlayMode( char playmode );
-    bool handleTeamInfo( const rcsc::rcg::team_t & team_left,
-                         const rcsc::rcg::team_t & team_right );
-    bool handleServerParam( const rcsc::rcg::server_params_t & param );
-    bool handlePlayerParam( const rcsc::rcg::player_params_t & param );
-    bool handlePlayerType( const rcsc::rcg::player_type_t & param );
+    bool handleEOF() override;
 
-    bool handleEOF();
-
-    // v4 or later
-    bool handleShow( const int time,
-                     const rcsc::rcg::ShowInfoT & show );
+    bool handleShow( const rcsc::rcg::ShowInfoT & show ) override;
     bool handleMsg( const int time,
                     const int board,
-                    const std::string & msg );
+                    const std::string & msg ) override;
+    bool handleDraw( const int time,
+                     const rcsc::rcg::drawinfo_t & draw ) override;
     bool handlePlayMode( const int time,
-                         const rcsc::PlayMode pm );
+                         const rcsc::PlayMode pm ) override;
     bool handleTeam( const int time,
                      const rcsc::rcg::TeamT & team_l,
-                     const rcsc::rcg::TeamT & team_r );
-    bool handleServerParam( const std::string & msg );
-    bool handlePlayerParam( const std::string & msg );
-    bool handlePlayerType( const std::string & msg );
+                     const rcsc::rcg::TeamT & team_r ) override;
+
+    bool handleServerParam( const rcsc::rcg::ServerParamT & param ) override;
+    bool handlePlayerParam( const rcsc::rcg::PlayerParamT & param ) override;
+    bool handlePlayerType( const rcsc::rcg::PlayerTypeT & param ) override;
+
+    bool handleTeamGraphic( const char,
+                            const int x,
+                            const int y,
+                            const std::vector< std::string > & xpm ) override;
 };
 
 
@@ -106,9 +98,9 @@ public:
 TeamNameRenamer::TeamNameRenamer( std::ostream & os,
                                   const std::string & left_team_name,
                                   const std::string & right_team_name )
-    : M_os( os )
-    , M_left_team_name( left_team_name )
-    , M_right_team_name( right_team_name )
+    : M_os( os ),
+      M_left_team_name( left_team_name ),
+      M_right_team_name( right_team_name )
 {
     M_serializer = rcsc::rcg::Serializer::create( 1 );
 }
@@ -129,222 +121,7 @@ TeamNameRenamer::handleLogVersion( const int ver )
         return false;
     }
 
-    M_serializer->serializeHeader( M_os );
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-TeamNameRenamer::handleDispInfo( const rcsc::rcg::dispinfo_t & disp )
-{
-    if ( ! M_serializer )
-    {
-        return false;
-    }
-
-    switch ( ntohs( disp.mode ) ) {
-    case rcsc::rcg::SHOW_MODE:
-        {
-            rcsc::rcg::dispinfo_t new_disp = disp;
-
-            if ( ! M_left_team_name.empty()
-                 && M_left_team_name.length() < 16 )
-            {
-                std::strncpy( new_disp.body.show.team[0].name,
-                              M_left_team_name.c_str(),
-                              M_left_team_name.length() );
-            }
-
-            if ( ! M_right_team_name.empty()
-                 && M_right_team_name.length() < 16 )
-            {
-                std::strncpy( new_disp.body.show.team[1].name,
-                              M_right_team_name.c_str(),
-                              M_right_team_name.length() );
-            }
-
-            M_serializer->serialize( M_os, new_disp );
-        }
-        break;
-    default:
-        M_serializer->serialize( M_os, disp );
-        break;
-    }
-
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-TeamNameRenamer::handleShowInfo( const rcsc::rcg::showinfo_t & show )
-{
-    if ( ! M_serializer )
-    {
-        return false;
-    }
-
-    const std::size_t max_len = 15;
-    rcsc::rcg::showinfo_t new_show = show;
-
-    if ( ! M_left_team_name.empty() )
-    {
-        std::memset( new_show.team[0].name, 0, 16 );
-        std::strncpy( new_show.team[0].name,
-                      M_left_team_name.c_str(),
-                      std::min( max_len, M_left_team_name.length() ) );
-    }
-
-    if ( ! M_right_team_name.empty() )
-    {
-        std::memset( new_show.team[1].name, 0, 16 );
-        std::strncpy( new_show.team[1].name,
-                      M_right_team_name.c_str(),
-                      std::min( max_len, M_right_team_name.length() ) );
-    }
-
-    M_serializer->serialize( M_os, new_show );
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-TeamNameRenamer::handleShortShowInfo2( const rcsc::rcg::short_showinfo_t2 & show )
-{
-    if ( ! M_serializer )
-    {
-        return false;
-    }
-
-    M_serializer->serialize( M_os, show );
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-TeamNameRenamer::handlePlayMode( char playmode )
-{
-    if ( ! M_serializer )
-    {
-        return false;
-    }
-
-    M_serializer->serialize( M_os, playmode );
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-TeamNameRenamer::handleTeamInfo( const rcsc::rcg::team_t & team_left,
-                                 const rcsc::rcg::team_t & team_right )
-{
-    if ( ! M_serializer )
-    {
-        return false;
-    }
-
-    const std::size_t max_len = 15;
-
-    rcsc::rcg::team_t teams[2];
-    teams[0] = team_left;
-    teams[1] = team_right;
-
-    if ( ! M_left_team_name.empty() )
-    {
-        std::memset( teams[0].name, 0, 16 );
-        std::strncpy( teams[0].name,
-                      M_left_team_name.c_str(),
-                      std::min( max_len, M_left_team_name.length() ) );
-    }
-
-    if ( ! M_right_team_name.empty() )
-    {
-        std::memset( teams[1].name, 0, 16 );
-        std::strncpy( teams[1].name,
-                      M_right_team_name.c_str(),
-                      std::min( max_len, M_right_team_name.length() ) );
-    }
-
-    M_serializer->serialize( M_os, teams[0], teams[1] );
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-TeamNameRenamer::handleServerParam( const rcsc::rcg::server_params_t & param )
-{
-    if ( ! M_serializer )
-    {
-        return false;
-    }
-
-    M_serializer->serialize( M_os, param );
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-TeamNameRenamer::handlePlayerParam( const rcsc::rcg::player_params_t & param )
-{
-    if ( ! M_serializer )
-    {
-        return false;
-    }
-
-    M_serializer->serialize( M_os, param );
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-TeamNameRenamer::handleMsgInfo( rcsc::rcg::Int16 board,
-                                const std::string & msg )
-{
-    if ( ! M_serializer )
-    {
-        return false;
-    }
-
-    M_serializer->serialize( M_os, board, msg );
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-TeamNameRenamer::handlePlayerType( const rcsc::rcg::player_type_t & param )
-{
-    if ( ! M_serializer )
-    {
-        return false;
-    }
-
-    M_serializer->serialize( M_os, param );
+    M_serializer->serializeBegin( M_os, serverVersion(), timestamp() );
     return true;
 }
 
@@ -355,6 +132,11 @@ TeamNameRenamer::handlePlayerType( const rcsc::rcg::player_type_t & param )
 bool
 TeamNameRenamer::handleEOF()
 {
+    if ( M_serializer )
+    {
+        M_serializer->serializeEnd( M_os );
+    }
+
     M_os.flush();
     return true;
 }
@@ -365,8 +147,7 @@ TeamNameRenamer::handleEOF()
 
  */
 bool
-TeamNameRenamer::handleShow( const int,
-                             const rcsc::rcg::ShowInfoT & show )
+TeamNameRenamer::handleShow( const rcsc::rcg::ShowInfoT & show )
 {
     if ( ! M_serializer )
     {
@@ -374,7 +155,6 @@ TeamNameRenamer::handleShow( const int,
     }
 
     M_serializer->serialize( M_os, show );
-
     return true;
 }
 
@@ -394,6 +174,23 @@ TeamNameRenamer::handleMsg( const int,
 
     M_serializer->serialize( M_os, board, std::string( msg ) );
 
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+bool
+TeamNameRenamer::handleDraw( const int,
+                             const rcsc::rcg::drawinfo_t & draw )
+{
+    if ( ! M_serializer )
+    {
+        return false;
+    }
+
+    M_serializer->serialize( M_os, draw );
     return true;
 }
 
@@ -448,53 +245,59 @@ TeamNameRenamer::handleTeam( const int,
 }
 
 /*-------------------------------------------------------------------*/
-/*!
-
- */
 bool
-TeamNameRenamer::handleServerParam( const std::string & msg )
+TeamNameRenamer::handleServerParam( const rcsc::rcg::ServerParamT & param )
 {
     if ( ! M_serializer )
     {
         return false;
     }
 
-    M_serializer->serializeParam( M_os, msg );
+    M_serializer->serialize( M_os, param );
     return true;
 }
 
 /*-------------------------------------------------------------------*/
-/*!
-
- */
 bool
-TeamNameRenamer::handlePlayerParam( const std::string & msg )
+TeamNameRenamer::handlePlayerParam( const rcsc::rcg::PlayerParamT & param )
 {
-   if ( ! M_serializer )
+    if ( ! M_serializer )
     {
         return false;
     }
 
-    M_serializer->serializeParam( M_os, msg );
+    M_serializer->serialize( M_os, param );
     return true;
 }
 
 /*-------------------------------------------------------------------*/
-/*!
-
- */
 bool
-TeamNameRenamer::handlePlayerType( const std::string & msg )
+TeamNameRenamer::handlePlayerType( const rcsc::rcg::PlayerTypeT & param )
 {
-   if ( ! M_serializer )
+    if ( ! M_serializer )
     {
         return false;
     }
 
-    M_serializer->serializeParam( M_os, msg );
+    M_serializer->serialize( M_os, param );
     return true;
 }
 
+/*-------------------------------------------------------------------*/
+bool
+TeamNameRenamer::handleTeamGraphic( const char side,
+                                    const int x,
+                                    const int y,
+                                    const std::vector< std::string > & xpm )
+{
+    if ( ! M_serializer )
+    {
+        return false;
+    }
+
+    M_serializer->serialize( M_os, side, x, y, xpm );
+    return true;
+}
 
 ///////////////////////////////////////////////////////////
 
@@ -618,18 +421,16 @@ main( int argc, char** argv )
         return 1;
     }
 
-    boost::shared_ptr< std::ostream > fout;
+    std::shared_ptr< std::ostream > fout;
 
     if ( output_file.compare( output_file.length() - 3, 3, ".gz" ) == 0 )
     {
-        fout = boost::shared_ptr< std::ostream >
-            ( new rcsc::gzofstream( output_file.c_str() ) );
+        fout = std::shared_ptr< std::ostream >( new rcsc::gzofstream( output_file.c_str() ) );
     }
     else
     {
-        fout = boost::shared_ptr< std::ostream >
-            ( new std::ofstream( output_file.c_str(),
-                                 std::ios_base::out | std::ios_base::binary ) );
+        fout = std::shared_ptr< std::ostream >( new std::ofstream( output_file.c_str(),
+                                                                   std::ios_base::out | std::ios_base::binary ) );
     }
 
     if ( ! fout

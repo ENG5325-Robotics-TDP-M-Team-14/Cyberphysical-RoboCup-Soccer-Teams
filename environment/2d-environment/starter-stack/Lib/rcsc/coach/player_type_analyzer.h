@@ -32,16 +32,17 @@
 #ifndef RCSC_COACH_PLAYER_TYPE_ANALYZER_H
 #define RCSC_COACH_PLAYER_TYPE_ANALYZER_H
 
-#include <rcsc/coach/global_object.h>
+#include <rcsc/coach/coach_ball_object.h>
 
 #include <rcsc/geom/vector_2d.h>
 #include <rcsc/game_time.h>
 #include <rcsc/types.h>
 
+#include <vector>
+
 namespace rcsc {
 
-class GlobalPlayerObject;
-class GlobalWorldModel;
+class CoachWorldModel;
 
 /*!
   \class PlayerTypeAnalyzer
@@ -52,6 +53,7 @@ private:
 
     struct Data {
         bool turned_; //!< player performed turn
+        double rotation_; //!< rotated degree
         bool kicked_; //!< player perfomed kick
         bool tackling_; //!< player perfoming tackle
         bool maybe_referee_; //!< player may be moved by referee
@@ -71,37 +73,36 @@ private:
         void setUnknownType();
     };
 
-    const GlobalWorldModel & M_world;
+    const CoachWorldModel & M_world;
 
     GameTime M_updated_time; //!< last update time
     PlayMode M_playmode; //!< current game mode
 
-    GlobalBallObject M_prev_ball; //!< last ball data
+    CoachBallObject M_prev_ball; //!< last ball data
     Data M_teammate_data[11]; //!< data for analysis
     Data M_opponent_data[11]; //!< data for analysis
 
     std::vector< int > M_opponent_type_used_count;
 
     //! not used
-    PlayerTypeAnalyzer();
+    PlayerTypeAnalyzer() = delete;
     //! not used
-    PlayerTypeAnalyzer( const PlayerTypeAnalyzer & );
+    PlayerTypeAnalyzer( const PlayerTypeAnalyzer & ) = delete;
     //! not used
-    PlayerTypeAnalyzer & operator=( const PlayerTypeAnalyzer & );
+    PlayerTypeAnalyzer & operator=( const PlayerTypeAnalyzer & ) = delete;
 public:
     /*!
       \brief default constructor
       \param world const reference to the world model instance
      */
     explicit
-    PlayerTypeAnalyzer( const GlobalWorldModel & world );
+    PlayerTypeAnalyzer( const CoachWorldModel & world );
 
     /*!
       \brief get the last updated time
       \return const reference to the variable
      */
-    const
-    GameTime & updatedTime() const
+    const GameTime & updatedTime() const
       {
           return M_updated_time;
       }
@@ -187,6 +188,9 @@ private:
       \brief check turn moment range
      */
     void checkTurnMoment();
+
+    //
+    void debugPrintIllegalMatrix();
 };
 
 }

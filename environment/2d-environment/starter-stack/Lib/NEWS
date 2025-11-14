@@ -1,5 +1,5 @@
 [4.1.0]
-  * ボロノイ図の計算でtriangleライブラリ暴走する問題に対応した．
+  * ボロノイ図の計算でtriangleライブラリが暴走する問題に対応した．
 
   * WorldModelのメソッド名を一部変更した．AbstractPlayerObjectを返す
     関数にはteammate,opponentではなく，our,theirを用いるようにした．

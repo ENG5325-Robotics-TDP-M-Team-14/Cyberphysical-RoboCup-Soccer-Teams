@@ -2,7 +2,8 @@
 
 SUBDIRS = triangle .
 
-lib_LTLIBRARIES = librcsc_geom.la
+noinst_LTLIBRARIES = librcsc_geom.la
+#lib_LTLIBRARIES = librcsc_geom.la
 
 librcsc_geom_la_SOURCES = \
 	angle_deg.cpp \
@@ -20,7 +21,7 @@ librcsc_geom_la_SOURCES = \
 	triangle_2d.cpp \
 	triangulation.cpp \
 	vector_2d.cpp \
-	voronoi_diagram_original.cpp \
+	voronoi_diagram.cpp \
 	voronoi_diagram_triangle.cpp
 
 #	segment_intersection.cpp
@@ -48,7 +49,6 @@ librcsc_geominclude_HEADERS = \
 	triangulation.h \
 	vector_2d.h \
 	voronoi_diagram.h \
-	voronoi_diagram_original.h \
 	voronoi_diagram_triangle.h
 
 #	segment_intersection.h
@@ -61,7 +61,7 @@ librcsc_geom_la_LIBADD = \
 #	tetgen/librcsc_geom_tetgen.la
 
 
-librcsc_geom_la_LDFLAGS = -version-info 7:0:0
+librcsc_geom_la_LDFLAGS = -version-info 8:0:1
 #libXXXX_la_LDFLAGS = -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
 #    1. Start with version information of `0:0:0' for each libtool library.
 #

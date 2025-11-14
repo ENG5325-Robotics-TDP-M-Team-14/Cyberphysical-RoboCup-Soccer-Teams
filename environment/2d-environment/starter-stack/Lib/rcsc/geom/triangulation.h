@@ -61,9 +61,9 @@ public:
         Triangle( const size_t v0,
                   const size_t v1,
                   const size_t v2 )
-            : v0_( v0 )
-            , v1_( v1 )
-            , v2_( v2 )
+            : v0_( v0 ),
+              v1_( v1 ),
+              v2_( v2 )
           { }
     };
 

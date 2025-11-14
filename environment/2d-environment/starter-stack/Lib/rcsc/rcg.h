@@ -34,9 +34,7 @@
 
 #include <rcsc/rcg/types.h>
 #include <rcsc/rcg/util.h>
-#include <rcsc/rcg/holder.h>
 #include <rcsc/rcg/handler.h>
-#include <rcsc/rcg/reader.h>
 #include <rcsc/rcg/parser.h>
 #include <rcsc/rcg/serializer.h>
 

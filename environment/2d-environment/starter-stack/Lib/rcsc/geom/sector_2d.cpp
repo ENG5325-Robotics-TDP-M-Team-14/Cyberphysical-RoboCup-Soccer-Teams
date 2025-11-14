@@ -42,13 +42,15 @@ namespace rcsc {
 
 */
 Sector2D::Sector2D( const Vector2D & c,
-                    const double & min_r,
-                    const double & max_r,
+                    const double min_r,
+                    const double max_r,
                     const AngleDeg & start,
                     const AngleDeg & end )
-    : M_center( c )
-    , M_min_radius( min_r ), M_max_radius( max_r )
-    , M_angle_left_start( start ), M_angle_right_end( end )
+    : M_center( c ),
+      M_min_radius( min_r ),
+      M_max_radius( max_r ),
+      M_angle_left_start( start ),
+      M_angle_right_end( end )
 {
     if ( min_r < 0.0 )
     {
@@ -68,11 +70,10 @@ Sector2D::Sector2D( const Vector2D & c,
 /*!
 
 */
-const
-Sector2D &
+const Sector2D &
 Sector2D::assign( const Vector2D & c,
-                  const double & min_r,
-                  const double & max_r,
+                  const double min_r,
+                  const double max_r,
                   const AngleDeg & start,
                   const AngleDeg & end )
 {

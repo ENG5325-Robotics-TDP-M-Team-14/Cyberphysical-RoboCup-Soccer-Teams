@@ -33,20 +33,17 @@
 #define RCSC_COACH_COACH_AUDIO_SENSOR_H
 
 #include <rcsc/common/audio_message.h>
+#include <rcsc/common/say_message_parser.h>
 
 #include <rcsc/game_time.h>
 #include <rcsc/types.h>
 #include <rcsc/geom/vector_2d.h>
 
-#include <boost/shared_ptr.hpp>
-
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <list>
 
 namespace rcsc {
-
-class SayMessageParser;
 
 /*-------------------------------------------------------------------*/
 /*!
@@ -57,7 +54,7 @@ class CoachAudioSensor {
 private:
 
     //! typedef of the say message parser container
-    typedef std::map< char, boost::shared_ptr< SayMessageParser > > ParserMap;
+    typedef std::unordered_map< char, SayMessageParser::Ptr > ParserMap;
 
     //! my team name
     std::string M_team_name;
@@ -99,7 +96,7 @@ public:
       \brief add new player message parer.
       \param parser shared_ptr of player message parser instance
      */
-    void addParser( boost::shared_ptr< SayMessageParser > parser );
+    void addParser( SayMessageParser::Ptr parser );
 
     /*!
       \brief remove registered parser object
@@ -127,8 +124,7 @@ public:
       \brief get time when teammate message is received
       \return const referncd to the game time
     */
-    const
-    GameTime & teammateMessageTime() const
+    const GameTime & teammateMessageTime() const
       {
           return M_teammate_message_time;
       }
@@ -137,8 +133,7 @@ public:
       \brief get the last received teammate messages
       \return const reference to the message object container
      */
-    const
-    std::list< HearMessage > & teammateMessages() const
+    const std::list< HearMessage > & teammateMessages() const
       {
           return M_teammate_messages;
       }
@@ -147,8 +142,7 @@ public:
       \brief get the time when last freeform message is received
       \return game time variable
      */
-    const
-    GameTime & trainerMessageTime() const
+    const GameTime & trainerMessageTime() const
       {
           return M_trainer_message_time;
       }
@@ -157,8 +151,7 @@ public:
       \brief get the last received trainer message info
       \return const reference to the message object instance
      */
-    const
-    std::string & trainerMessage() const
+    const std::string & trainerMessage() const
       {
           return M_trainer_message;
       }

@@ -2,7 +2,7 @@
 
 /*!
   \file player_type_analyzer.cpp
-  \brief player type analyzer class Header File
+  \brief player type analyzer class Source File
 */
 
 /*
@@ -35,8 +35,8 @@
 
 #include "player_type_analyzer.h"
 
-#include "global_world_model.h"
-#include "global_object.h"
+#include "coach_world_model.h"
+#include "coach_player_object.h"
 
 #include <rcsc/common/player_param.h>
 #include <rcsc/common/server_param.h>
@@ -44,7 +44,13 @@
 #include <rcsc/common/logger.h>
 #include <rcsc/game_mode.h>
 
-//#define DEBUG_PRINT
+#include <sstream>
+#include <iomanip>
+
+// #define DEBUG_PRINT
+// #define DEBUG_PRINT_RESULT
+// #define DEBUG_PRINT_DETECT_INVALID
+// #define DEBUG_PRINT_MATRIX
 
 namespace rcsc {
 
@@ -53,17 +59,18 @@ namespace rcsc {
 
 */
 PlayerTypeAnalyzer::Data::Data()
-    : turned_( false )
-    , kicked_( false )
-    , tackling_( false )
-    , maybe_referee_( false )
-    , maybe_collide_( false )
-    , maybe_kick_( false )
-    , pos_( Vector2D::INVALIDATED )
-    , vel_( 0.0, 0.0 )
-    , body_( -360 )
-    , invalid_flags_( PlayerParam::i().playerTypes(), 0 )
-    , type_( Hetero_Default )
+    : turned_( false ),
+      rotation_( 0.0 ),
+      kicked_( false ),
+      tackling_( false ),
+      maybe_referee_( false ),
+      maybe_collide_( false ),
+      maybe_kick_( false ),
+      pos_( Vector2D::INVALIDATED ),
+      vel_( 0.0, 0.0 ),
+      body_( -360 ),
+      invalid_flags_( PlayerParam::i().playerTypes(), 0 ),
+      type_( Hetero_Default )
 {
 
 }
@@ -96,10 +103,10 @@ PlayerTypeAnalyzer::Data::setUnknownType()
 /*!
 
 */
-PlayerTypeAnalyzer::PlayerTypeAnalyzer( const GlobalWorldModel & world )
-    : M_world( world )
-    , M_updated_time( -1, 0 )
-    , M_playmode( PM_BeforeKickOff )
+PlayerTypeAnalyzer::PlayerTypeAnalyzer( const CoachWorldModel & world )
+    : M_world( world ),
+      M_updated_time( -1, 0 ),
+      M_playmode( PM_BeforeKickOff )
 {
 
 }
@@ -220,9 +227,8 @@ PlayerTypeAnalyzer::reset( const int unum )
 
     //if ( M_opponent_data[unum - 1].type_ != Hetero_Unknown )
     //{
-    //    std::cout << M_world.time()
-    //              << ' ' << M_world.ourTeamName()
-    //              << " Coach: opponent " << unum << " changed."
+    //    std::cout << M_world.ourTeamName() << " coach: " << M_world.time()
+    //              << " opponent " << unum << " changed."
     //              << std::endl;
     //}
 
@@ -238,33 +244,26 @@ PlayerTypeAnalyzer::updateLastData()
 {
     M_prev_ball = M_world.ball();
 
-    const std::vector< const GlobalPlayerObject * >::const_iterator t_end = M_world.teammates().end();
-    for ( std::vector< const GlobalPlayerObject * >::const_iterator p = M_world.teammates().begin();
-          p != t_end;
-          ++p )
+    for ( const CoachPlayerObject * p : M_world.teammates() )
     {
-        if ( (*p)->unum() < 1 || 11 < (*p)->unum() ) continue;
+        if ( p->unum() < 1 || 11 < p->unum() ) continue;
 
-        Data & data = M_teammate_data[(*p)->unum() - 1];
+        Data & data = M_teammate_data[p->unum() - 1];
 
-        data.pos_ = (*p)->pos();
-        data.vel_ = (*p)->vel();
-        data.body_ = (*p)->body().degree();
+        data.pos_ = p->pos();
+        data.vel_ = p->vel();
+        data.body_ = p->body().degree();
     }
 
-
-    const std::vector< const GlobalPlayerObject * >::const_iterator o_end = M_world.opponents().end();
-    for ( std::vector< const GlobalPlayerObject * >::const_iterator p = M_world.opponents().begin();
-          p != o_end;
-          ++p )
+    for ( const CoachPlayerObject * p : M_world.opponents() )
     {
-        if ( (*p)->unum() < 1 || 11 < (*p)->unum() ) continue;
+        if ( p->unum() < 1 || 11 < p->unum() ) continue;
 
-        Data & data = M_opponent_data[(*p)->unum() - 1];
+        Data & data = M_opponent_data[p->unum() - 1];
 
-        data.pos_ = (*p)->pos();
-        data.vel_ = (*p)->vel();
-        data.body_ = (*p)->body().degree();
+        data.pos_ = p->pos();
+        data.vel_ = p->vel();
+        data.body_ = p->body().degree();
     }
 
 }
@@ -285,29 +284,28 @@ PlayerTypeAnalyzer::analyze()
     checkPlayerSpeedMax();
     checkTurnMoment();
 
+#ifdef DEBUG_PRINT_MATRIX
+    debugPrintIllegalMatrix();
+#endif
+
     const int max_types = PlayerParam::i().playerTypes();
 
-    const std::vector< const GlobalPlayerObject * > & players = M_world.opponents();
-
-    const std::vector< const GlobalPlayerObject * >::const_iterator end = players.end();
-    for ( std::vector< const GlobalPlayerObject * >::const_iterator p = players.begin();
-          p != end;
-          ++p )
+    for ( const CoachPlayerObject * p : M_world.opponents() )
     {
-        if ( (*p)->unum() < 1 || 11 < (*p)->unum() )
+        if ( p->unum() < 1 || 11 < p->unum() )
         {
             std::cerr << __FILE__ << ' ' << __LINE__
-                      << " Illegal uniform number " << (*p)->unum()
+                      << " Illegal uniform number " << p->unum()
                       << std::endl;
             continue;
         }
 
-        Data & data = M_opponent_data[(*p)->unum() - 1];
+        Data & data = M_opponent_data[p->unum() - 1];
 
 #if 0
         // heterogeneous goalie is available in v14 or later
         // goalie is always the default type in v13 or previous.
-        if ( (*p)->goalie() )
+        if ( p->goalie() )
         {
             data.type_ = Hetero_Default;
             continue;
@@ -330,24 +328,23 @@ PlayerTypeAnalyzer::analyze()
             }
         }
 
-#ifdef DEBUG_PRINT
+#ifdef DEBUG_PRINT_RESULT
         dlog.addText( Logger::ANALYZER,
                       __FILE__" (analyze) opponent %d. invalid count=%d",
-                      (*p)->unum(), invalid_count );
+                      p->unum(), invalid_count );
 #endif
 
         if ( invalid_count == max_types )
         {
             // no candidate
-            std::cout <<  M_world.time()
-                      << ' ' << M_world.ourTeamName()
-                      << " Coach: no player type for opponent " << (*p)->unum()
+            std::cout << M_world.ourTeamName() << " coach: " << M_world.time()
+                      << " no player type for opponent " << p->unum()
                       << ". restart analysis."
                       << std::endl;
-#ifdef DEBUG_PRINT
+#ifdef DEBUG_PRINT_RESULT
             dlog.addText( Logger::ANALYZER,
                           __FILE__" (analyze) opponent %d. no player type candidate. restart analysis.",
-                          (*p)->unum() );
+                          p->unum() );
 #endif
             data.setUnknownType();
         }
@@ -358,15 +355,13 @@ PlayerTypeAnalyzer::analyze()
             {
                 if ( data.invalid_flags_[t] == 0 )
                 {
-                    std::cout << M_world.time()
-                              << ' ' << M_world.ourTeamName()
-                              << " Coach: determined opponent " << (*p)->unum()
-                              << " type = " << t
-                              << std::endl;
-#ifdef DEBUG_PRINT
+                    std::cout << M_world.ourTeamName() << " coach: " << M_world.time()
+                              << " determined opponent "
+                              << p->unum() << " type = " << t << std::endl;
+#ifdef DEBUG_PRINT_RESULT
                     dlog.addText( Logger::ANALYZER,
                                   __FILE__" (analyze) determined opponent %d. type=%d",
-                                  (*p)->unum(), t );
+                                  p->unum(), t );
 #endif
                     data.type_ = t;
 
@@ -388,10 +383,10 @@ PlayerTypeAnalyzer::analyze()
         else
         {
             // several candidates
-#ifdef DEBUG_PRINT
+#ifdef DEBUG_PRINT_RESULT
             dlog.addText( Logger::ANALYZER,
                           __FILE__" (analyze) opponent %d. several player type candidates = %d.",
-                          (*p)->unum(),
+                          p->unum(),
                           max_types - invalid_count );
 #endif
         }
@@ -408,27 +403,27 @@ PlayerTypeAnalyzer::checkTurn()
     for ( int i = 0; i < 11 ; ++i )
     {
         M_teammate_data[i].turned_ = false;
+        M_teammate_data[i].rotation_ = 0.0;
         M_opponent_data[i].turned_ = false;
+        M_opponent_data[i].rotation_ = 0.0;
     }
 
-    const std::vector< const GlobalPlayerObject * >::const_iterator t_end = M_world.teammates().end();
-    for ( std::vector< const GlobalPlayerObject * >::const_iterator p = M_world.teammates().begin();
-          p != t_end;
-          ++p )
+    for ( const CoachPlayerObject * t : M_world.teammates() )
     {
-        if ( (*p)->unum() < 1 || 11 < (*p)->unum() ) continue;
+        if ( t->unum() < 1 || 11 < t->unum() ) continue;
 
-        Data & data = M_teammate_data[(*p)->unum() - 1];
+        Data & data = M_teammate_data[t->unum() - 1];
 
         if ( data.body_ != -360.0 )
         {
-            if ( std::fabs( data.body_ - (*p)->body().degree() ) > 0.5 )
+            data.rotation_ = AngleDeg::normalize_angle( data.body_ - t->body().degree() );
+            if ( std::fabs( data.rotation_ ) > 0.5 )
             {
                 data.turned_ = true;
 #ifdef DEBUG_PRINT
                 dlog.addText( Logger::ANALYZER,
                               __FILE__" (checkTurn) teammate %d turned 1",
-                              (*p)->unum() );
+                              t->unum() );
 #endif
             }
 #ifdef DEBUG_PRINT
@@ -436,30 +431,28 @@ PlayerTypeAnalyzer::checkTurn()
             {
                 dlog.addText( Logger::ANALYZER,
                               __FILE__" (checkTurn) teammate %d turned 0",
-                              (*p)->unum() );
+                              t->unum() );
             }
 #endif
         }
     }
 
-    const std::vector< const GlobalPlayerObject * >::const_iterator o_end = M_world.opponents().end();
-    for ( std::vector< const GlobalPlayerObject * >::const_iterator p = M_world.opponents().begin();
-          p != o_end;
-          ++p )
+    for ( const CoachPlayerObject *o : M_world.opponents() )
     {
-        if ( (*p)->unum() < 1 || 11 < (*p)->unum() ) continue;
+        if ( o->unum() < 1 || 11 < o->unum() ) continue;
 
-        Data & data = M_opponent_data[(*p)->unum() - 1];
+        Data & data = M_opponent_data[ o->unum() - 1];
 
         if ( data.body_ != -360.0 )
         {
-            if ( std::fabs( data.body_ - (*p)->body().degree() ) > 0.5 )
+            data.rotation_ = AngleDeg::normalize_angle( data.body_ - o->body().degree() );
+            if ( std::fabs( data.rotation_ ) > 0.5 )
             {
                 data.turned_ = true;
 #ifdef DEBUG_PRINT
                 dlog.addText( Logger::ANALYZER,
                               __FILE__" (checkTurn) opponent %d turned 1",
-                              (*p)->unum() );
+                              o->unum() );
 #endif
             }
 #ifdef DEBUG_PRINT
@@ -467,7 +460,7 @@ PlayerTypeAnalyzer::checkTurn()
             {
                 dlog.addText( Logger::ANALYZER,
                               __FILE__" (checkTurn) opponent %d turned 0",
-                              (*p)->unum() );
+                              o->unum() );
             }
 #endif
         }
@@ -488,33 +481,27 @@ PlayerTypeAnalyzer::checkTackle()
         M_opponent_data[i].tackling_ = false;
     }
 
-    const std::vector< const GlobalPlayerObject * >::const_iterator t_end = M_world.teammates().end();
-    for ( std::vector< const GlobalPlayerObject * >::const_iterator p = M_world.teammates().begin();
-          p != t_end;
-          ++p )
+    for ( const CoachPlayerObject * p : M_world.teammates() )
     {
-        if ( (*p)->unum() < 1 || 11 < (*p)->unum() ) continue;
+        if ( p->unum() < 1 || 11 < p->unum() ) continue;
 
-        M_teammate_data[(*p)->unum() - 1].tackling_ = (*p)->isTackling();
+        M_teammate_data[p->unum() - 1].tackling_ = p->isTackling();
 #ifdef DEBUG_PRINT
         dlog.addText( Logger::ANALYZER,
-                      __FILE__" (checkTackle) teammate %d tackling %d",
-                      (*p)->unum(), (int)(*p)->isTackling() );
+                      __FILE__" (checkTackle) teammate %d tackling [%s]",
+                      p->unum(), ( p->isTackling() ? "true" : "false" ) );
 #endif
     }
 
-    const std::vector< const GlobalPlayerObject * >::const_iterator o_end = M_world.opponents().end();
-    for ( std::vector< const GlobalPlayerObject * >::const_iterator p = M_world.opponents().begin();
-          p != o_end;
-          ++p )
+    for ( const CoachPlayerObject * p : M_world.opponents() )
     {
-        if ( (*p)->unum() < 1 || 11 < (*p)->unum() ) continue;
+        if ( p->unum() < 1 || 11 < p->unum() ) continue;
 
-        M_opponent_data[(*p)->unum() - 1].tackling_ = (*p)->isTackling();
+        M_opponent_data[p->unum() - 1].tackling_ = p->isTackling();
 #ifdef DEBUG_PRINT
         dlog.addText( Logger::ANALYZER,
-                      __FILE__" (checkTackle) opponent %d tackling %d",
-                      (*p)->unum(), (int)(*p)->isTackling() );
+                      __FILE__" (checkTackle) opponent %d tackling [%s]",
+                      p->unum(), ( p->isTackling() ? "true" : "false" ) );
 #endif
     }
 
@@ -542,44 +529,39 @@ PlayerTypeAnalyzer::checkReferee()
 
     const bool our_set_play = M_world.gameMode().isOurSetPlay( M_world.ourSide() );
 
-    const std::vector< const GlobalPlayerObject * > & players = M_world.opponents();
-
-    const std::vector< const GlobalPlayerObject * >::const_iterator end = players.end();
-    for ( std::vector< const GlobalPlayerObject * >::const_iterator p = players.begin();
-          p != end;
-          ++p )
+    for ( const CoachPlayerObject * p : M_world.opponents() )
     {
-        if ( (*p)->unum() < 1 || 11 < (*p)->unum() ) continue;
+        if ( p->unum() < 1 || 11 < p->unum() ) continue;
 
-        Data & data = M_opponent_data[(*p)->unum() - 1];
+        Data & data = M_opponent_data[p->unum() - 1];
 
         // player may be moved by referee
         if ( our_set_play )
         {
-            if ( (*p)->pos().dist2( M_world.ball().pos() ) < 12.0 * 12.0
+            if ( p->pos().dist2( M_world.ball().pos() ) < 12.0 * 12.0
                  || ( M_world.gameMode().type() == GameMode::GoalKick_
-                      && (*p)->pos().absX() > penalty_x
-                      && (*p)->pos().absY() < penalty_y )
+                      && p->pos().absX() > penalty_x
+                      && p->pos().absY() < penalty_y )
                  )
             {
                 data.maybe_referee_ = true;
 #ifdef DEBUG_PRINT
                 dlog.addText( Logger::ANALYZER,
                               __FILE__" (checkReferee) opponent %d. maybe moved by referee.",
-                              (*p)->unum() );
+                              p->unum() );
 #endif
             }
         }
 
         // player may be moved by simulator
-        if ( (*p)->pos().absX() > ServerParam::i().pitchHalfLength() + 3.0
-             || (*p)->pos().absY() > ServerParam::i().pitchHalfWidth() + 3.0 )
+        if ( p->pos().absX() > ServerParam::i().pitchHalfLength() + 3.0
+             || p->pos().absY() > ServerParam::i().pitchHalfWidth() + 3.0 )
         {
             data.maybe_referee_ = true;
 #ifdef DEBUG_PRINT
             dlog.addText( Logger::ANALYZER,
                           __FILE__" (checkReferee) opponent %d. out of pitch. maybe moved by referee.",
-                          (*p)->unum() );
+                          p->unum() );
 #endif
         }
     }
@@ -600,10 +582,10 @@ PlayerTypeAnalyzer::checkCollisions()
     const double ball_collide_dist2
         = std::pow( ServerParam::i().defaultPlayerSize()
                     + ServerParam::i().ballSize()
-                    + 0.02,
+                    + 0.001,
                     2 );
     const double player_collide_dist2
-        = std::pow( ServerParam::i().defaultPlayerSize() * 2.0 + 0.02, 2 );
+        = std::pow( ServerParam::i().defaultPlayerSize() * 2.0 + 0.001, 2 );
     const Vector2D pole_pos( ServerParam::i().pitchHalfLength()
                              - ServerParam::i().goalPostRadius(),
                              ServerParam::i().goalHalfWidth()
@@ -615,33 +597,28 @@ PlayerTypeAnalyzer::checkCollisions()
                     2 );
 
 
-    const std::list< GlobalPlayerObject >::const_iterator all_end = M_world.players().end();
+    const CoachPlayerObject::Cont & opponents = M_world.opponents();
 
-    const std::vector< const GlobalPlayerObject * > & opponents = M_world.opponents();
-    const std::vector< const GlobalPlayerObject * >::const_iterator o_end = opponents.end();
-
-    for ( std::vector< const GlobalPlayerObject * >::const_iterator p = opponents.begin();
-          p != o_end;
-          ++p )
+    // check ball
+    for ( const CoachPlayerObject * p : opponents )
     {
-        if ( (*p)->unum() < 1 || 11 < (*p)->unum() ) continue;
+        if ( p->unum() < 1 || 11 < p->unum() ) continue;
 
-        Data & data = M_opponent_data[(*p)->unum() - 1];
+        Data & data = M_opponent_data[p->unum() - 1];
 
-        // check ball
-        if ( (*p)->pos().dist2( M_world.ball().pos() ) < ball_collide_dist2 )
+        if ( p->pos().dist2( M_world.ball().pos() ) < ball_collide_dist2 )
         {
             data.maybe_collide_ = true;
 #ifdef DEBUG_PRINT
             dlog.addText( Logger::ANALYZER,
                           __FILE__" (checkCollisions) opponent %d. may be collided with ball",
-                          (*p)->unum() );
+                          p->unum() );
 #endif
         }
     }
 
     // check other opponent players
-    for ( std::vector< const GlobalPlayerObject * >::const_iterator p = opponents.begin();
+    for ( CoachPlayerObject::Cont::const_iterator p = opponents.begin(), o_end = opponents.end();
           p != o_end;
           ++p )
     {
@@ -649,7 +626,7 @@ PlayerTypeAnalyzer::checkCollisions()
 
         Data & data = M_opponent_data[(*p)->unum() - 1];
 
-        for ( std::vector< const GlobalPlayerObject * >::const_iterator pp = p + 1;
+        for ( CoachPlayerObject::Cont::const_iterator pp = p + 1;
               pp != o_end;
               ++pp )
         {
@@ -672,31 +649,26 @@ PlayerTypeAnalyzer::checkCollisions()
         }
     }
 
-    // check teammate players
-    const std::vector< const GlobalPlayerObject * > & teammates = M_world.teammates();
-    const std::vector< const GlobalPlayerObject * >::const_iterator t_end = teammates.end();
+    // check collision with teammate players
+    const CoachPlayerObject::Cont & teammates = M_world.teammates();
 
-    for ( std::vector< const GlobalPlayerObject * >::const_iterator p = opponents.begin();
-          p != o_end;
-          ++p )
+    for ( const CoachPlayerObject * o : opponents )
     {
-        if ( (*p)->unum() < 1 || 11 < (*p)->unum() ) continue;
+        if ( o->unum() < 1 || 11 < o->unum() ) continue;
 
-        Data & data = M_opponent_data[(*p)->unum() - 1];
+        Data & data = M_opponent_data[ o->unum() - 1 ];
 
         if ( data.maybe_collide_ ) continue;
 
-        for ( std::vector< const GlobalPlayerObject * >::const_iterator pp = teammates.begin();
-              pp != t_end;
-              ++pp )
+        for ( const CoachPlayerObject * t : teammates )
         {
-            if ( (*pp)->pos().dist2( (*p)->pos() ) < player_collide_dist2 )
+            if ( t->pos().dist2( o->pos() ) < player_collide_dist2 )
             {
                 data.maybe_collide_ = true;
 #ifdef DEBUG_PRINT
                 dlog.addText( Logger::ANALYZER,
                               __FILE__" (checkCollisions) opponent %d. may be collided with teammate %d",
-                              (*p)->unum(), (*pp)->unum() );
+                              o->unum(), t->unum() );
 #endif
                 break;
             }
@@ -704,24 +676,22 @@ PlayerTypeAnalyzer::checkCollisions()
     }
 
     // check goal post
-    for ( std::vector< const GlobalPlayerObject * >::const_iterator p = opponents.begin();
-          p != o_end;
-          ++p )
+    for ( const CoachPlayerObject * o : opponents )
     {
-        if ( (*p)->unum() < 1 || 11 < (*p)->unum() ) continue;
+        if ( o->unum() < 1 || 11 < o->unum() ) continue;
 
-        Data & data = M_opponent_data[(*p)->unum() - 1];
+        Data & data = M_opponent_data[o->unum() - 1];
 
         if ( data.maybe_collide_ ) continue;
 
-        Vector2D abs_pos( (*p)->pos().absX(), (*p)->pos().absY() );
+        Vector2D abs_pos( o->pos().absX(), o->pos().absY() );
         if ( abs_pos.dist2( pole_pos ) < pole_collide_dist2 )
         {
             data.maybe_collide_ = true;
 #ifdef DEBUG_PRINT
             dlog.addText( Logger::ANALYZER,
                           __FILE__" (checkCollisions) opponent %d. may be collided with goal post",
-                          (*p)->unum() );
+                          o->unum() );
 #endif
         }
     }
@@ -769,7 +739,7 @@ PlayerTypeAnalyzer::checkKick()
     const double rand_max = M_prev_ball.vel().r() * ServerParam::i().ballRand();
 
     if ( std::fabs( M_world.ball().pos().x - new_ball_pos.x ) > rand_max
-         || std::fabs( M_world.ball().pos().x - new_ball_pos.x ) > rand_max )
+         || std::fabs( M_world.ball().pos().y - new_ball_pos.y ) > rand_max )
     {
         ball_kicked = true;
 #ifdef DEBUG_PRINT
@@ -796,46 +766,40 @@ PlayerTypeAnalyzer::checkKick()
 
     if ( M_world.clientVersion() >= 13 )
     {
-        const std::vector< const GlobalPlayerObject * >::const_iterator t_end = M_world.teammates().end();
-        for ( std::vector< const GlobalPlayerObject * >::const_iterator p = M_world.teammates().begin();
-              p != t_end;
-              ++p )
+        for ( const CoachPlayerObject * p : M_world.teammates() )
         {
-            if ( (*p)->unum() < 1 || 11 < (*p)->unum() ) continue;
+            if ( p->unum() < 1 || 11 < p->unum() ) continue;
 
-            Data & data = M_teammate_data[(*p)->unum() - 1];
+            Data & data = M_teammate_data[p->unum() - 1];
 
-            data.kicked_ = data.maybe_kick_ = (*p)->kicked();
-            if ( (*p)->kicked() )
+            data.kicked_ = data.maybe_kick_ = p->isKicking();
+            if ( p->isKicking() )
             {
                 ++count;
             }
 #ifdef DEBUG_PRINT
             dlog.addText( Logger::ANALYZER,
-                          __FILE__" (checkKick) teammate %d. kicking %d",
-                          (*p)->unum(), (int)(*p)->kicked() );
+                          __FILE__" (checkKick) teammate %d. kicking [%s]",
+                          p->unum(), ( p->isKicking() ? "true" : "false" ) );
 #endif
         }
 
-        const std::vector< const GlobalPlayerObject * >::const_iterator o_end = M_world.opponents().end();
-        for ( std::vector< const GlobalPlayerObject * >::const_iterator p = M_world.opponents().begin();
-              p != o_end;
-              ++p )
+        for ( const CoachPlayerObject * p : M_world.opponents() )
         {
-            if ( (*p)->unum() < 1 || 11 < (*p)->unum() ) continue;
+            if ( p->unum() < 1 || 11 < p->unum() ) continue;
 
-            Data & data = M_opponent_data[(*p)->unum() - 1];
+            Data & data = M_opponent_data[ p->unum() - 1];
 
-            data.kicked_ = data.maybe_kick_ = (*p)->kicked();
-            if ( (*p)->kicked() )
+            data.kicked_ = data.maybe_kick_ = p->isKicking();
+            if ( p->isKicking() )
             {
                 ++count;
-                kicker_idx = (*p)->unum() - 1;
+                kicker_idx = p->unum() - 1;
             }
 #ifdef DEBUG_PRINT
             dlog.addText( Logger::ANALYZER,
-                          __FILE__" (checkKick) opponent %d. kicking %d",
-                          (*p)->unum(), (int)(*p)->kicked() );
+                          __FILE__" (checkKick) opponent %d. kicking [%s]",
+                          p->unum(), ( p->isKicking() ? "true" : "false" ) );
 #endif
         }
     }
@@ -918,13 +882,12 @@ PlayerTypeAnalyzer::checkKick()
                 if ( ball_dist > player_type->kickableArea() + 0.001 )
                 {
                     data.invalid_flags_[t] = 1;
-#ifdef DEBUG_PRINT
-                    std::cout << M_world.time()
-                              << ' ' << M_world.ourTeamName()
-                              << " Coach: opponent " << kicker_idx + 1
-                              << "  detect invalid kickable area. type = "
-                              << t
-                              << std::endl;
+#ifdef DEBUG_PRINT_DETECT_INVALID
+                    // std::cout << M_world.ourTeamName() << " coach: " << M_world.time()
+                    //           << " opponent " << kicker_idx + 1
+                    //           << "  detect invalid kickable area. type = "
+                    //           << t
+                    //           << std::endl;
                     dlog.addText( Logger::ANALYZER,
                                   __FILE__" (checkKick) opponent=%d type=%d,"
                                   " out of range kickable area."
@@ -955,19 +918,22 @@ PlayerTypeAnalyzer::checkPlayerDecay()
 {
     const int max_types = PlayerParam::i().playerTypes();
 
-    const std::vector< const GlobalPlayerObject * > & players
-        = ( M_world.ourSide() == LEFT
-            ? M_world.playersRight()
-            : M_world.playersLeft() );
-
-    const std::vector< const GlobalPlayerObject * >::const_iterator end = players.end();
-    for ( std::vector< const GlobalPlayerObject * >::const_iterator p = players.begin();
-          p != end;
-          ++p )
+    for ( const CoachPlayerObject * p : M_world.opponents() )
     {
-        if ( (*p)->unum() < 1 || 11 < (*p)->unum() ) continue;
+        if ( p->unum() < 1 || 11 < p->unum() ) continue;
 
-        Data & data = M_opponent_data[(*p)->unum() - 1];
+        Data & data = M_opponent_data[p->unum() - 1];
+
+        // If the player rotates by the two legs dash model,
+        // turn and acceleration occur simultaneously.
+        // In that case, it is impossible to determine the player type based on the player decay noise
+        // if ( data.turned_ ) continue;
+        if ( 0.5 < std::fabs( data.rotation_ )
+            //&& std::fabs( data.rotation_ ) < 50.0 ) // magic number
+            && std::fabs( data.rotation_ ) < 100.0 ) // magic number
+        {
+            continue;
+        }
 
         if ( data.maybe_collide_ ) continue;
         if ( data.maybe_referee_ ) continue;
@@ -979,7 +945,7 @@ PlayerTypeAnalyzer::checkPlayerDecay()
             continue;
         }
         if ( ! data.pos_.isValid() ) continue;
-        if ( data.pos_.dist2( (*p)->pos() ) < 0.0001 ) continue;
+        if ( data.pos_.dist2( p->pos() ) < 0.0001 ) continue;
 
         double rand_max = data.vel_.r() * ServerParam::i().playerRand();
         if ( rand_max < 0.00001 ) continue;
@@ -994,12 +960,12 @@ PlayerTypeAnalyzer::checkPlayerDecay()
 #if 0
             // old noise model
             double rand_x
-                = std::fabs( ( (*p)->vel().x
+                = std::fabs( ( p->vel().x
                                - data.vel_.x * player_type->playerDecay() )
                              / player_type->playerDecay() );
 
             double rand_y
-                = std::fabs( ( (*p)->vel().y
+                = std::fabs( ( p->vel().y
                                - data.vel_.y * player_type->playerDecay() )
                              / player_type->playerDecay() );
 
@@ -1007,28 +973,27 @@ PlayerTypeAnalyzer::checkPlayerDecay()
                  || rand_y > rand_max + 0.0000001 )
             {
                 data.invalid_flags_[t] = 1;
-                //std::cout << M_world.time()
-                //          << ' ' << M_world.ourTeamName()
-                //          << " Coach: opponent " << (*p)->unum()
+                //std::cout << M_world.ourTeamName() << " coach: " << M_world.time()
+                //          << "opponent " << p->unum()
                 //          << "  detect invalid decay. type = "
                 //          << t
                 //          << std::endl;
             }
 #else
             // rcssserver-13 or lator
-            Vector2D rand_vec
-                = ( (*p)->vel() - data.vel_ * player_type->playerDecay() )
+            const Vector2D noise_vec
+                = ( p->vel() - data.vel_ * player_type->playerDecay() )
                 / player_type->playerDecay();
-            double rand_r = rand_vec.r();
-            if ( rand_r > rand_max + 0.0000001 )
+            const double noise_magnitude = noise_vec.r();
+            if ( noise_magnitude > rand_max + 1.0e-10 )
             {
                 data.invalid_flags_[t] = 1;
-#ifdef DEBUG_PRINT
+#ifdef DEBUG_PRINT_DETECT_INVALID
                 dlog.addText( Logger::ANALYZER,
                               __FILE__" (checkPlayerDecay) opponent=%d type=%d"
-                              " out of range player decay. rand_r=%f rand_max=%f",
-                              (*p)->unum(), t,
-                              rand_r, rand_max );
+                              " out of range player decay. noise=%f rand_max=%f",
+                              p->unum(), t,
+                              noise_magnitude, rand_max );
 #endif
             }
 #endif
@@ -1045,14 +1010,11 @@ PlayerTypeAnalyzer::checkPlayerSpeedMax()
 {
     const int max_types = PlayerParam::i().playerTypes();
 
-    const std::vector< const GlobalPlayerObject * >::const_iterator end = M_world.opponents().end();
-    for ( std::vector< const GlobalPlayerObject * >::const_iterator p = M_world.opponents().begin();
-          p != end;
-          ++p )
+    for ( const CoachPlayerObject * p : M_world.opponents() )
     {
-        if ( (*p)->unum() < 1 || 11 < (*p)->unum() ) continue;
+        if ( p->unum() < 1 || 11 < p->unum() ) continue;
 
-        Data & data = M_opponent_data[(*p)->unum() - 1];
+        Data & data = M_opponent_data[p->unum() - 1];
 
         if ( data.turned_ ) continue;
         if ( data.kicked_ ) continue;
@@ -1061,12 +1023,12 @@ PlayerTypeAnalyzer::checkPlayerSpeedMax()
         if ( data.maybe_collide_ ) continue;
         if ( ! data.pos_.isValid() ) continue;
 
-        const Vector2D last_move( (*p)->pos().x - data.pos_.x,
-                                  (*p)->pos().y - data.pos_.y );
+        const Vector2D last_move( p->pos().x - data.pos_.x,
+                                  p->pos().y - data.pos_.y );
         const double last_move_dist = last_move.r();
         const Vector2D last_accel = last_move - data.vel_;
         const double last_accel_r = last_accel.r();
-        const double current_speed = (*p)->vel().r();
+        const double current_speed = p->vel().r();
 
         for ( int t = 0; t < max_types; ++t )
         {
@@ -1083,13 +1045,12 @@ PlayerTypeAnalyzer::checkPlayerSpeedMax()
                                             * ServerParam::i().playerRand()
                                             / ( 1.0 + ServerParam::i().playerRand() ) );
 
-            if ( last_accel_r > max_accel + last_max_noise + 0.0001 )
+            if ( last_accel_r > max_accel + last_max_noise + 1.0e-10 )
             {
                 data.invalid_flags_[t] = 1;
-#ifdef DEBUG_PRINT
-                std::cout << M_world.time()
-                          << ' ' << M_world.ourTeamName()
-                          << " Coach: opponent " << (*p)->unum()
+#ifdef DEBUG_PRINT_DETECT_INVALID
+                std::cout << M_world.ourTeamName() << " coach: " << M_world.time()
+                          << " opponent " << p->unum()
                           << " type = " << t
                           << "  detect out of range accel. last_accel=" << last_accel_r
                           << " max_accel=" << max_accel
@@ -1098,7 +1059,7 @@ PlayerTypeAnalyzer::checkPlayerSpeedMax()
                 dlog.addText( Logger::ANALYZER,
                               __FILE__" (checkPlayerSpeedMax) opponent=%d type=%d"
                               " out of range accel. last_accel=%f max_accel=%f max_noize=%f",
-                              (*p)->unum(), t,
+                              p->unum(), t,
                               last_accel_r, max_accel, last_max_noise );
 #endif
                 continue;
@@ -1114,7 +1075,7 @@ PlayerTypeAnalyzer::checkPlayerSpeedMax()
             max_move += ServerParam::i().maxDashPower() * ptype->dashRate( ptype->effortMax() );
             max_move *= ( 1.0 + ServerParam::i().playerRand() );
 
-//             if ( (*p)->unum() == 1 )
+//             if ( p->unum() == 1 )
 //             {
 //                 dlog.addText( Logger::ANALYZER,
 //                               __FILE__" (checkPlayerSpeedMax) type=%d real_speed_max=%f max_move=%f",
@@ -1126,10 +1087,9 @@ PlayerTypeAnalyzer::checkPlayerSpeedMax()
             if ( last_move_dist > max_move )
             {
                 data.invalid_flags_[t] = 1;
-#ifdef DEBUG_PRINT
-                std::cout << M_world.time()
-                          << ' ' << M_world.ourTeamName()
-                          << " Coach: opponent " << (*p)->unum()
+#ifdef DEBUG_PRINT_DETECT_INVALID
+                std::cout << M_world.ourTeamName() << " coach: " << M_world.time()
+                          << " opponent " << p->unum()
                           << " type = " << t
                           << " detect out of range speed. last_move_dist=" << last_move_dist
                           << " max_move_dist=" << max_move
@@ -1137,7 +1097,7 @@ PlayerTypeAnalyzer::checkPlayerSpeedMax()
                 dlog.addText( Logger::ANALYZER,
                               __FILE__" (checkPlayerSpeedMax) opponent=%d type=%d"
                               " out of range speed. last_move_dist=%f max_move=%f",
-                              (*p)->unum(), t,
+                              p->unum(), t,
                               last_move_dist, max_move );
 #endif
             }
@@ -1156,19 +1116,16 @@ PlayerTypeAnalyzer::checkTurnMoment()
     const double max_moment = std::max( std::fabs( ServerParam::i().minMoment() ),
                                         std::fabs( ServerParam::i().maxMoment() ) );
 
-    const std::vector< const GlobalPlayerObject * >::const_iterator o_end = M_world.opponents().end();
-    for ( std::vector< const GlobalPlayerObject * >::const_iterator p = M_world.opponents().begin();
-          p != o_end;
-          ++p )
+    for ( const CoachPlayerObject * p : M_world.opponents() )
     {
-        if ( (*p)->unum() < 1 || 11 < (*p)->unum() ) continue;
+        if ( p->unum() < 1 || 11 < p->unum() ) continue;
 
-        Data & data = M_opponent_data[(*p)->unum() - 1];
+        Data & data = M_opponent_data[p->unum() - 1];
 
         if ( ! data.turned_ ) continue;
 
         const double player_speed = data.vel_.r();
-        const double turn_angle = ( (*p)->body() - data.body_ ).abs();
+        const double turn_angle = ( p->body() - data.body_ ).abs();
 
         for ( int t = 0; t < max_types; ++t )
         {
@@ -1182,10 +1139,9 @@ PlayerTypeAnalyzer::checkTurnMoment()
             if ( turn_angle > max_turn * ( 1.0 + ServerParam::i().playerRand() ) + 1.0001 )
             {
                 data.invalid_flags_[t] = 1;
-#ifdef DEBUG_PRINT
-                std::cout << M_world.time()
-                          << ' ' << M_world.ourTeamName()
-                          << " Coach: opponent " << (*p)->unum()
+#ifdef DEBUG_PRINT_DETECT_INVALID
+                std::cout << M_world.ourTeamName() << " coach: " << M_world.time()
+                          << " opponent " << p->unum()
                           << " type = " << t
                           << "  detect out of range turn."
                           << " turn_angle=" << turn_angle
@@ -1195,12 +1151,36 @@ PlayerTypeAnalyzer::checkTurnMoment()
                               __FILE__" (checkTurnMoment) opponent=%d type=%d,"
                               " out of range turn moment."
                               " turn_angle=%f max_turn=%f",
-                              (*p)->unum(), t,
+                              p->unum(), t,
                               turn_angle, max_turn );
 #endif
             }
         }
+    }
+}
 
+/*-------------------------------------------------------------------*/
+void
+PlayerTypeAnalyzer::debugPrintIllegalMatrix()
+{
+    dlog.addText( Logger::ANALYZER,
+                  "(PlayerTypeAnalyzer) === print matrix ===" );
+    for ( int i = 0; i < 11; ++i )
+    {
+        std::ostringstream ostr;
+        int invalid_count = 0;
+        for ( const int flag : M_opponent_data[i].invalid_flags_ )
+        {
+            ostr << " " << std::setw( 2 ) << flag;
+            invalid_count += flag;
+        }
+
+        if ( M_opponent_data[i].type_ == Hetero_Unknown )
+        {
+            dlog.addText( Logger::ANALYZER,
+                          "%02d: %s  ->  invalid=%d",
+                          i + 1, ostr.str().c_str(), invalid_count );
+        }
     }
 }
 

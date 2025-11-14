@@ -35,7 +35,6 @@
 #include <rcsc/param/param_parser.h>
 
 #include <list>
-#include <set>
 #include <vector>
 #include <string>
 #include <ostream>
@@ -59,8 +58,8 @@ private:
     //! container of the parsed option names
     std::vector< std::string > M_parsed_option_names;
 
-    //! not used
-    CmdLineParser();
+    // not used
+    CmdLineParser() = delete;
 public:
 
     /*!
@@ -83,7 +82,7 @@ public:
       \param param_map reference to the parameter container
       \return true if successfully parserd
      */
-    bool parse( ParamMap & param_map );
+    bool parse( ParamMap & param_map ) override;
 
 private:
 
@@ -98,8 +97,7 @@ public:
       \brief get the stored arguments
       \return const reference to the container
      */
-    const
-    std::list< std::string > & args() const
+    const std::list< std::string > & args() const
       {
           return M_args;
       }
@@ -117,8 +115,7 @@ public:
       \brief get the positional arguments
       \return const reference to the container of positional argument string
      */
-    const
-    std::vector< std::string > & positionalOptions() const
+    const std::vector< std::string > & positionalOptions() const
       {
           return M_positional_options;
       }
@@ -127,8 +124,7 @@ public:
       \brief get the parsed option names
       \return const reference to the container of parsed option names
      */
-    const
-    std::vector< std::string > & parsedOptionNames() const
+    const std::vector< std::string > & parsedOptionNames() const
       {
           return M_parsed_option_names;
       }
@@ -146,6 +142,15 @@ public:
       \return reference to the output stream
      */
     std::ostream & print( std::ostream & os ) const;
+
+    /*!
+      \brief put the remained argments stated with '-'.
+      \param os reference to the output stream
+      \param sep separator character
+      \return reference to the output stream
+     */
+    std::ostream & printOptionNameArgs( std::ostream & os,
+                                        const char sep ) const;
 
 };
 

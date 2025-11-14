@@ -34,7 +34,7 @@
 
 #include <rcsc/player/localization.h>
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 namespace rcsc {
 
@@ -49,12 +49,12 @@ private:
     class Impl;
 
     //! implemantion
-    boost::scoped_ptr< Impl > M_impl;
+    std::unique_ptr< Impl > M_impl;
 
 
     // not used
-    LocalizationDefault( const LocalizationDefault & );
-    LocalizationDefault & operator=( const LocalizationDefault & );
+    LocalizationDefault( const LocalizationDefault & ) = delete;
+    LocalizationDefault & operator=( const LocalizationDefault & ) = delete;
 
 public:
     /*!
@@ -76,23 +76,27 @@ public:
       \return result
      */
     virtual
-    bool updateBySenseBody( const BodySensor & body );
+    bool updateBySenseBody( const BodySensor & body ) override;
 
     /*!
       \brief estimate self facing direction.
+      \param wm world model
       \param see analyzed see information
       \param self_face pointer to the result variable
       \param self_face_err pointer to the result variable
       \return result
      */
     virtual
-    bool estimateSelfFace( const VisualSensor & see,
+    bool estimateSelfFace( const WorldModel & wm,
+                           const VisualSensor & see,
                            double * self_face,
-                           double * self_face_err );
+                           double * self_face_err ) override;
 
     /*!
       \brief localize self position.
+      \param wm world model
       \param see analyzed see info
+      \param act the last action info
       \param self_face localized face angle
       \param self_face_err localized face angle error
       \param self_pos pointer to the variable to store the localized self position
@@ -100,14 +104,17 @@ public:
       \return if failed, returns false
     */
     virtual
-    bool localizeSelf( const VisualSensor & see,
-                       const double & self_face,
-                       const double & self_face_err,
+    bool localizeSelf( const WorldModel & wm,
+                       const VisualSensor & see,
+                       const ActionEffector & act,
+                       const double self_face,
+                       const double self_face_err,
                        Vector2D * self_pos,
-                       Vector2D * self_pos_err );
+                       Vector2D * self_pos_err ) override;
 
     /*!
       \brief localze ball relative info
+      \param wm world model
       \param see analyzed see info
       \param self_face localized self face angle
       \param self_face_err localized self face angle error
@@ -118,16 +125,18 @@ public:
       \return if failed, returns false
     */
     virtual
-    bool localizeBallRelative( const VisualSensor & see,
-                               const double & self_face,
-                               const double & self_face_err,
+    bool localizeBallRelative( const WorldModel & wm,
+                               const VisualSensor & see,
+                               const double self_face,
+                               const double self_face_err,
                                Vector2D * rpos,
                                Vector2D * rpos_err,
                                Vector2D * rvel,
-                               Vector2D * rvel_err );
+                               Vector2D * rvel_err ) const override;
 
     /*!
       \brief localze other player
+      \param wm world model
       \param from seen player info
       \param self_face localized self face angle
       \param self_face_err localized self face angle error
@@ -137,12 +146,13 @@ public:
       \return if failed, returns false
     */
     virtual
-    bool localizePlayer( const VisualSensor::PlayerT & from,
-                         const double & self_face,
-                         const double & self_face_err,
+    bool localizePlayer( const WorldModel & wm,
+                         const VisualSensor::PlayerT & from,
+                         const double self_face,
+                         const double self_face_err,
                          const Vector2D & self_pos,
                          const Vector2D & self_vel,
-                         PlayerT * to );
+                         PlayerT * to ) const override;
 };
 
 }

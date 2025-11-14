@@ -6,6 +6,6 @@
      steps:
        - checkout
        - run: ls
-       - run: cd our && ./configure CXXFLAGS='-std=c++03'
+       - run: cd our && ./configure CXXFLAGS='-std=c++17'
        - run: cd our && make clean
        - run: cd our && make

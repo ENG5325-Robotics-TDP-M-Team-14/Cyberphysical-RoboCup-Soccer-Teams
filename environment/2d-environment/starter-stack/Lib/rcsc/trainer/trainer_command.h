@@ -100,7 +100,7 @@ public:
       \return referenct to the output stream
     */
     virtual
-    std::ostream & toStr( std::ostream & to ) const = 0;
+    std::ostream & toCommandString( std::ostream & to ) const = 0;
 
     /*!
       \brief get command name (pure virtual)
@@ -151,7 +151,7 @@ public:
       \param to referent to the output stream
       \return referenct to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -202,7 +202,7 @@ public:
       \param to referent to the output stream
       \return referenct to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -251,7 +251,7 @@ public:
       \param to referent to the output stream
       \return referenct to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -300,7 +300,7 @@ public:
       \param to referent to the output stream
       \return referenct to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -353,7 +353,7 @@ public:
       \param to referent to the output stream
       \return referenct to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -406,7 +406,7 @@ public:
       \param to referent to the output stream
       \return referenct to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -457,7 +457,7 @@ public:
       \param to referent to the output stream
       \return referenct to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -511,7 +511,7 @@ public:
       \param to referent to the output stream
       \return referenct to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -592,7 +592,7 @@ public:
       \param to referent to the output stream
       \return referenct to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -743,7 +743,7 @@ public:
       \param to referent to the output stream
       \return referenct to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -792,7 +792,7 @@ public:
       \param to referent to the output stream
       \return referenct to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -850,7 +850,7 @@ public:
       \param to referent to the output stream
       \return referenct to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -902,7 +902,7 @@ public:
       \param to referent to the output stream
       \return referenct to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -955,7 +955,7 @@ public:
       \param to referent to the output stream
       \return referenct to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -1002,7 +1002,7 @@ public:
       \param to referent to the output stream
       \return referenct to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -1131,319 +1131,3 @@ else
 -> "(ok compression LEVEL)"
 ----------
 */
-
-// void Coach::parse_command(const char *command)
-// //			  unsigned long host, int port)
-// {
-//   // client.host = host;
-//   // client.port = port;
-//   char com[MaxStringSize];
-//   int n;
-//
-//   n = sscanf(command, "(%[-0-9a-zA-Z.+*/?<>_]",com);
-//   if (n < 1)
-//   {
-//     send("(error illegal_command_form)");
-//     return;
-//   }
-//
-//   if (!strcmp(com, "start"))
-//   {
-//     _Start ( *stadium );
-//     send("(ok start)");
-//   }
-//   else if (!strcmp(com,"change_mode"))
-//   {
-//     char new_mode[MaxStringSize];
-//     PlayMode mode_id;
-//     n = sscanf(command,"(change_mode %[-0-9a-zA-Z.+*/?<>_])", new_mode);
-//     if (n < 1)
-//     {
-//       send("(error illegal_command_form)");
-//       return;
-//     }
-//     mode_id = PlayModeID(new_mode);
-//
-//     if (mode_id == PM_Null)
-//     {
-//       send("(error illegal_mode)");
-//       return;
-//     }
-//     stadium->change_play_mode(mode_id);
-//     send("(ok change_mode)");
-//   }
-//   else if (!strcmp(com, "move"))
-//   {
-//     char obj[MaxStringSize];
-//     double x = 0.0, y = 0.0, ang = 0.0, velx = 0.0, vely = 0.0;
-//
-//     command++;
-//     while(*command != '(') {
-//       if (*command == NULLCHAR)
-//       {
-//         send("(error illegal_object_form)");
-//         return;
-//       }
-//       command++;
-//     }
-//     int i = 0;
-//     while (*command != ')') {
-//       if (*command == NULLCHAR)
-//       {
-//         send("(error illegal_object_form)");
-//         return;
-//       }
-//       *(obj+i) = *command;
-//       i++;
-//       command++;
-//     }
-//     *(obj+i) = *command;
-//     i++;
-//     command++;
-//     *(obj+i) = NULLCHAR;
-//
-//     if (!strcmp(obj, BALL_NAME))
-//     {
-//       stadium->M_caught_ball = NULL;
-//     }
-//
-//     n = sscanf(command," %lf %lf %lf %lf %lf)",&x,&y,&ang,&velx,&vely);
-//     if (isnan ( x ) != 0 ||
-//         isnan ( y ) != 0 ||
-//         isnan ( ang ) != 0 ||
-//         isnan ( velx ) != 0 ||
-//         isnan ( vely ) != 0)
-//     {
-//       send("(error illegal_command_form)");
-//       return;
-//     }
-//     if (n == 2)
-//     {
-//       if (!strcmp(obj, BALL_NAME))
-//       {
-//         stadium->set_ball(PVector(x,y), LEFT);
-//       }
-//       else
-//       {
-//         stadium->move_object(obj,PVector(x,y));
-//       }
-//       //stadium->check_collision(obj);
-//       stadium->collisions();
-//     }
-//     else if (n == 3)
-//     {
-//       if (!strcmp(obj, BALL_NAME))
-//       {
-//         stadium->set_ball(PVector(x,y), LEFT, ang);
-//       }
-//       else
-//       {
-//         stadium->move_object(obj,PVector(x,y),
-//                              Deg2Rad(max(min((ang), ServerParam::instance().maxm),
-//                                          ServerParam::instance().minm)));
-//       }
-//       //stadium->check_collision(obj);
-//       stadium->collisions();
-//     }
-//     else if (n == 5)
-//     {
-//       if (!strcmp(obj, BALL_NAME))
-//       {
-//         stadium->set_ball(PVector(x,y), LEFT, ang,
-//                           PVector(velx, vely));
-//       }
-//       else
-//       {
-//         stadium->move_object(obj,PVector(x,y),
-//                              Deg2Rad(max(min((ang),
-//                                              ServerParam::instance().maxm),
-//                                          ServerParam::instance().minm)),
-//                              PVector(velx, vely));
-//       }
-//       //stadium->check_collision(obj);
-//       stadium->collisions();
-//     }
-//     else
-//     {
-//       send("(error illegal_command_form)");
-//       return;
-//     }
-//     send("(ok move)");
-//   }
-//   else if (!strcmp(com,"look"))
-//   {
-//     look(*stadium);
-//   }
-//   else if (!strcmp(com,"team_names"))
-//   {
-//     team_names(*stadium);
-//   }
-//   else if (!strcmp(com,"recover"))
-//   {
-//     recover(*stadium);
-//   }
-//   else if (!strcmp(com,"check_ball"))
-//   {
-//     check_ball (*stadium);
-//   }
-//   else if(!strcmp(com, "say"))
-//   {
-//     static char msg[MaxStringSize];
-//     n = sscanf(command, SAY_MESSAGE_SCAN_FORMAT, com, msg);
-//     if (n < 2)
-//     {
-//       send("(error illegal_command_form)");
-//       return;
-//     }
-//     chop_last_parenthesis(msg, ServerParam::instance().sayMsgSize());
-//     stadium->say(msg, false);
-//     send("(ok say)");
-//   }
-//   else if (!strcmp(com,"ear"))
-//   {
-//     char mode[16];
-//     n = sscanf(command,"(%s %s)", com, mode);
-//     if (n < 2)
-//     {
-//       send("(error illegal_command_form)");
-//       return;
-//     }
-//     if (!strcmp(mode,"on)"))
-//     {
-//       hear = TRUE;
-//       send("(ok ear on)");
-//     }
-//     else if (!strcmp(mode, "off)"))
-//     {
-//       hear = FALSE;
-//       send("(ok ear off)");
-//     }
-//     else
-//     {
-//       send("(error illegal_command_form)");
-//       return;
-//     }
-//   }
-//   else if (!strcmp(com,"eye"))
-//   {
-//     char mode[16];
-//     n = sscanf(command,"(%s %s)", com, mode);
-//     if (n < 2)
-//     {
-//       send("(error illegal_command_form)");
-//       return;
-//     }
-//     if (!strcmp(mode,"on)"))
-//     {
-//       eye = TRUE;
-//       send("(ok eye on)");
-//     }
-//     else if (!strcmp(mode, "off)"))
-//     {
-//       eye = FALSE;
-//       send("(ok eye off)");
-//     }
-//     else
-//     {
-//       send("(error illegal_command_form)");
-//       return;
-//     }
-//   }
-//   else if (!strcmp(com, "change_player_type"))
-//   {
-//     char name[128];
-//     int unum, player_type;
-//     if (sscanf(command, "(%s %s %d %d)",
-//                com, name, &unum, &player_type ) < 4)
-//     {
-//       send("(error illegal_command_form)");
-//       return;
-//     }
-//     Team* team = NULL;
-//     if (stadium->team_l != NULL && stadium->team_l->name != NULL &&
-//         !strcmp(name, stadium->team_l->name))
-//     {
-//       team = stadium->team_l;
-//     }
-//     if (stadium->team_r != NULL && stadium->team_r->name != NULL &&
-//         !strcmp(name, stadium->team_r->name))
-//     {
-//       team = stadium->team_r;
-//     }
-//     if (team == NULL)
-//     {
-//       send("(warning no_team_found)");
-//       return;
-//     }
-//     if (player_type < 0 ||
-//         player_type >= PlayerParam::instance().playerTypes())
-//     {
-//       send("(error out_of_range_player_type)");
-//       return;
-//     }
-//     Player* player = NULL;
-//     for (int i = 0; i < team->n; i++) {
-//       if (team->player[i] != NULL &&
-//           team->player[i]->unum == unum)
-//       {
-//         player = team->player[i];
-//         break;
-//       }
-//     }
-//     if (player == NULL)
-//     {
-//       send("(warning no_such_player)");
-//       return;
-//     }
-//     player->substitute(player_type);
-//     if (team == stadium->team_l)
-//     {
-//       stadium->broadcastSubstitution(LEFT, unum, player_type, true);
-//     }
-//     else
-//     {
-//       stadium->broadcastSubstitution(RIGHT, unum, player_type, true);
-//     }
-//
-//     char buf[64];
-//     sprintf(buf, "(ok change_player_type %s %d %d)", name, unum, player_type);
-//     send(buf);
-//     return;
-//   }
-//   //pfr:SYNCH
-//   else if (!strcmp(com, "done"))
-//   {
-//     //cerr << "Recv trainer done" << endl;
-//     done_received = TRUE;
-//     return;
-//   }
-//   else if (!strcmp(com, "compression"))
-//   {
-//     int level;
-//     if ((n = sscanf(command,"(%s %d)",com,&level)) < 2)
-//     {
-//       send("(error illegal_command_form)");
-//       return;
-//     }
-// #ifdef HAVE_LIBZ
-//     if ( level < 0 || level > 9 )
-//     {
-//       send("(error illegal_command_form)");
-//       return;
-//     }
-//     ostrstream reply;
-//     reply << "(ok compression " << level << ")" << ends;
-//     send(reply.str());
-//     reply.freeze (false);
-//     setCompressionLevel (level);
-// #else
-//     send("(warning compression_unsupported)");
-// #endif
-//     return;
-//   }
-//   else
-//   {
-//     send("(error unknown_command)");
-//     return;
-//   }
-// }

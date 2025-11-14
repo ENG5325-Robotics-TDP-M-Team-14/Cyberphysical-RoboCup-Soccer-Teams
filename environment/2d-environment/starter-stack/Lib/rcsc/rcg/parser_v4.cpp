@@ -69,13 +69,25 @@ ParserV4::parse( std::istream & is,
 
     // skip header line
     if ( ! std::getline( is, line )
-         || line != "ULG4" )
+         || line.length() < 4
+         || line.compare( 0, 3, "ULG" ) != 0 )
     {
+        std::cerr << "Unknown header line: [" << line << "]" << std::endl;
         return false;
     }
 
-    if ( ! handler.handleLogVersion( REC_VERSION_4 ) )
+    const int version = std::stoi( line.substr( 3 ) );
+    if ( version != REC_VERSION_4
+         && version != REC_VERSION_5
+         && version != REC_VERSION_6 )
     {
+        std::cerr << "Unsupported rcg version: [" << line << "]" << std::endl;
+        return false;
+    }
+
+    if ( ! handler.handleLogVersion( version ) )
+    {
+        std::cerr << "Unsupported game log version: [" << line << "]" << std::endl;
         return false;
     }
 
@@ -360,7 +372,7 @@ ParserV4::parseShow( const int n_line,
             buf += n_read;
         }
 
-        handler.handleShow( time, show );
+        handler.handleShow( show );
     }
     else
     {
@@ -368,7 +380,9 @@ ParserV4::parseShow( const int n_line,
 
         char * next;
 
+        //
         // time
+        //
         while ( *buf == ' ' ) ++buf;
         while ( *buf != '\0' && *buf != ' ' ) ++buf;
         long time = std::strtol( buf, &next, 10 ); buf = next;
@@ -510,7 +524,7 @@ ParserV4::parseShow( const int n_line,
             p.neck_ = strtof( buf, &next ); buf = next;
             while ( *buf == ' ' ) ++buf;
 
-            // x y vx vy body neck
+            // arm
             if ( *buf != '\0' && *buf != '(' )
             {
                 p.point_x_ = strtof( buf, &next ); buf = next;
@@ -523,13 +537,30 @@ ParserV4::parseShow( const int n_line,
             while ( *buf == ' ' ) ++buf;
             p.view_quality_ = *buf; ++buf;
             p.view_width_ = strtof( buf, &next ); buf = next;
+            while ( *buf == ' ' || *buf == ')' ) ++buf;
 
-            // (s stamina effort recovery)
+            // (fp dist dir)
+            // focus point is introduced in the monitor protocol v6
+            if ( ! std::strncmp( buf, "(fp ", 4 ) )
+            {
+                buf += 4;
+                p.focus_dist_ = strtof( buf, &next ); buf = next;
+                p.focus_dir_ = strtof( buf, &next ); buf = next;
+                while ( *buf == ' ' || *buf == ')' ) ++buf;
+            }
+
+            // (s stamina effort recovery[ capacity])
+            // capacity is introduced in the monitor protocol v5
             while ( *buf != '\0' && *buf != 's' ) ++buf;
             ++buf; // skip 's' //while ( *buf != '\0' && *buf != ' ' ) ++buf;
             p.stamina_ = strtof( buf, &next ); buf = next;
             p.effort_ = strtof( buf, &next ); buf = next;
             p.recovery_ = strtof( buf, &next ); buf = next;
+            while ( *buf == ' ' ) ++buf;
+            if ( *buf != ')' )
+            {
+                p.stamina_capacity_ = strtof( buf, &next ); buf = next;
+            }
             while ( *buf != '\0' && *buf != ')' ) ++buf;
             while ( *buf == ')' ) ++buf;
 
@@ -561,6 +592,12 @@ ParserV4::parseShow( const int n_line,
             p.tackle_count_ = static_cast< UInt16 >( std::strtol( buf, &next, 10 ) ); buf = next;
             p.pointto_count_ = static_cast< UInt16 >( std::strtol( buf, &next, 10 ) ); buf = next;
             p.attentionto_count_ = static_cast< UInt16 >( std::strtol( buf, &next, 10 ) ); buf = next;
+            while ( *buf == ' ' ) ++buf;
+            if ( *buf != ')' )
+            {
+                p.change_focus_count_ = static_cast< UInt16 >( std::strtol( buf, &next, 10 ) ); buf = next;
+            }
+
             while ( *buf == ')' ) ++buf;
             while ( *buf == ' ' ) ++buf;
 
@@ -575,7 +612,7 @@ ParserV4::parseShow( const int n_line,
             }
         }
 
-        handler.handleShow( time, show );
+        handler.handleShow( show );
     }
 
     return true;
@@ -612,19 +649,63 @@ ParserV4::parseMsg( const int n_line,
         return false;
     }
 
+    // find the last [")]
     std::string::size_type pos = msg.rfind( "\")" );
     if ( pos == std::string::npos )
     {
-        std::cerr << n_line << ": error: "
-                  << "Illegal msg [" << line << "]" << std::endl;;
+        std::cerr << n_line << ": ERROR Illegal msg [" << line << "]" << std::endl;;
         return false;
     }
 
-    msg.erase( pos );
+    msg.erase( pos ); // remove the last 2 characters
 
-    handler.handleMsg( time, board, msg );
+    // team graphic
+    if ( ! msg.compare( 0, std::strlen( "(team_graphic_" ), "(team_graphic_" ) )
+    {
+        return parseTeamGraphic( n_line, msg, handler );
+    }
 
-    return true;
+    // other message
+    return handler.handleMsg( time, board, msg );
+}
+
+/*-------------------------------------------------------------------*/
+bool
+ParserV4::parseTeamGraphic( const int n_line,
+                            const std::string & msg,
+                            Handler & handler ) const
+{
+    char side = 'n';
+    int x, y;
+    int n_read = 0;
+    if ( std::sscanf( msg.c_str(), "(team_graphic_%c ( %d %d %n",
+                      &side, &x, &y, &n_read ) != 3
+         || ( side != 'l' && side != 'r' )
+         || x < 0
+         || y < 0 )
+    {
+        std::cerr << n_line << ": ERROR Illegal team_graphic [" << msg << "]" << std::endl;;
+        return false;
+    }
+
+    std::vector< std::string > xpm_data;
+
+    const char * ptr = msg.c_str() + n_read;
+    while ( *ptr != '\0' )
+    {
+        char buf[16];
+        if ( std::sscanf( ptr, " \"%15[^\"]\" %n ", buf, &n_read ) != 1 )
+        {
+            std::cerr << n_line << ": ERROR Illegal team_graphic [" << ptr << "]" << std::endl;;
+            return false;
+        }
+        ptr += n_read;
+
+        xpm_data.push_back( buf );
+        while ( *ptr != '\0' && *ptr != '"' ) ++ptr;
+    }
+
+    return handler.handleTeamGraphic( side, x, y, xpm_data );
 }
 
 /*-------------------------------------------------------------------*/
@@ -640,8 +721,6 @@ ParserV4::parsePlayMode( const int n_line,
       (playmode <Time> <Playmode>)
     */
 
-    static const char * playmode_strings[] = PLAYMODE_STRINGS;
-
     int time = 0;
     char pm_string[32];
 
@@ -654,19 +733,7 @@ ParserV4::parsePlayMode( const int n_line,
         return false;
     }
 
-    PlayMode pm = PM_Null;
-    for ( int n = 0; n < PM_MAX; ++n )
-    {
-        if ( ! std::strcmp( playmode_strings[n], pm_string ) )
-        {
-            pm = static_cast< PlayMode >( n );
-            break;
-        }
-    }
-
-    handler.handlePlayMode( time, pm );
-
-    return true;
+    return handler.handlePlayMode( time, pm_string );
 }
 
 /*-------------------------------------------------------------------*/
@@ -715,7 +782,7 @@ ParserV4::parsePlayerType( const int n_line,
                            const std::string & line,
                            Handler & handler ) const
 {
-    if ( ! handler.handlePlayerType( line ) )
+    if ( ! handler.handlePlayerType( PlayerTypeT( line ) ) )
     {
         std::cerr << n_line << ": error: "
                   << "Illegal player_type line. \"" << line << "\"" << std::endl;;
@@ -733,7 +800,7 @@ ParserV4::parseServerParam( const int n_line,
                             const std::string & line,
                             Handler & handler ) const
 {
-    if ( ! handler.handleServerParam( line ) )
+    if ( ! handler.handleServerParam( ServerParamT( line ) ) )
     {
         std::cerr << n_line << ": error: "
                   << "Illegal server_param line. \"" << line << "\"" << std::endl;;
@@ -751,7 +818,7 @@ ParserV4::parsePlayerParam( const int n_line,
                             const std::string & line,
                             Handler & handler ) const
 {
-    if ( ! handler.handlePlayerParam( line ) )
+    if ( ! handler.handlePlayerParam( PlayerParamT( line ) ) )
     {
         std::cerr << n_line << ": error: "
                   << "Illegal player_param line. \"" << line << "\"" << std::endl;;
@@ -774,9 +841,12 @@ create_v4()
     return ptr;
 }
 
-const int version = static_cast< int >( '0' ) + REC_VERSION_4;
-rcss::RegHolder v4 = Parser::creators().autoReg( &create_v4, version );
-
+const int version4 = static_cast< int >( '0' ) + REC_VERSION_4;
+const int version5 = static_cast< int >( '0' ) + REC_VERSION_5;
+const int version6 = static_cast< int >( '0' ) + REC_VERSION_6;
+rcss::RegHolder v4 = Parser::creators().autoReg( &create_v4, version4 );
+rcss::RegHolder v5 = Parser::creators().autoReg( &create_v4, version5 );
+rcss::RegHolder v6 = Parser::creators().autoReg( &create_v4, version6 );
 }
 
 } // end of namespace

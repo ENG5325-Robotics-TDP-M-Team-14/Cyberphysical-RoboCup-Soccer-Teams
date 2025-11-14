@@ -38,10 +38,9 @@
 #include <rcsc/geom/sector_2d.h>
 #include <rcsc/geom/triangle_2d.h>
 
-#include <boost/cstdint.hpp>
-
 #include <string>
 #include <cstdio>
+#include <cstdint>
 
 namespace rcsc {
 
@@ -54,40 +53,39 @@ class GameTime;
 class Logger {
 public:
 
-    static const boost::int32_t LEVEL_00 = 0x00000000; //!< log level definition variable
-    static const boost::int32_t LEVEL_01 = 0x00000001; //!< log level definition variable
-    static const boost::int32_t LEVEL_02 = 0x00000002; //!< log level definition variable
-    static const boost::int32_t LEVEL_03 = 0x00000004; //!< log level definition variable
-    static const boost::int32_t LEVEL_04 = 0x00000008; //!< log level definition variable
-    static const boost::int32_t LEVEL_05 = 0x00000010; //!< log level definition variable
-    static const boost::int32_t LEVEL_06 = 0x00000020; //!< log level definition variable
-    static const boost::int32_t LEVEL_07 = 0x00000040; //!< log level definition variable
-    static const boost::int32_t LEVEL_08 = 0x00000080; //!< log level definition variable
-    static const boost::int32_t LEVEL_09 = 0x00000100; //!< log level definition variable
-    static const boost::int32_t LEVEL_10 = 0x00000200; //!< log level definition variable
-    static const boost::int32_t LEVEL_11 = 0x00000400; //!< log level definition variable
-    static const boost::int32_t LEVEL_12 = 0x00000800; //!< log level definition variable
-    static const boost::int32_t LEVEL_13 = 0x00001000; //!< log level definition variable
-    static const boost::int32_t LEVEL_14 = 0x00002000; //!< log level definition variable
-    static const boost::int32_t LEVEL_15 = 0x00004000; //!< log level definition variable
-    static const boost::int32_t LEVEL_16 = 0x00008000; //!< log level definition variable
-    static const boost::int32_t LEVEL_17 = 0x00010000; //!< log level definition variable
-    static const boost::int32_t LEVEL_18 = 0x00020000; //!< log level definition variable
-    static const boost::int32_t LEVEL_19 = 0x00040000; //!< log level definition variable
-    static const boost::int32_t LEVEL_20 = 0x00080000; //!< log level definition variable
-    static const boost::int32_t LEVEL_21 = 0x00100000; //!< log level definition variable
-    static const boost::int32_t LEVEL_22 = 0x00200000; //!< log level definition variable
-    static const boost::int32_t LEVEL_23 = 0x00400000; //!< log level definition variable
-    static const boost::int32_t LEVEL_24 = 0x00800000; //!< log level definition variable
-    static const boost::int32_t LEVEL_25 = 0x01000000; //!< log level definition variable
-    static const boost::int32_t LEVEL_26 = 0x02000000; //!< log level definition variable
-    static const boost::int32_t LEVEL_27 = 0x04000000; //!< log level definition variable
-    static const boost::int32_t LEVEL_28 = 0x08000000; //!< log level definition variable
-    static const boost::int32_t LEVEL_29 = 0x10000000; //!< log level definition variable
-    static const boost::int32_t LEVEL_30 = 0x20000000; //!< log level definition variable
-    static const boost::int32_t LEVEL_31 = 0x40000000; //!< log level definition variable
-    static const boost::int32_t LEVEL_32 = 0x80000000; //!< log level definition variable
-    static const boost::int32_t LEVEL_ANY = 0xffffffff; //!< log level definition variable
+    static const std::int32_t LEVEL_00 = 0x00000000; //!< log level definition variable
+    static const std::int32_t LEVEL_01 = 0x00000001; //!< log level definition variable
+    static const std::int32_t LEVEL_02 = 0x00000002; //!< log level definition variable
+    static const std::int32_t LEVEL_03 = 0x00000004; //!< log level definition variable
+    static const std::int32_t LEVEL_04 = 0x00000008; //!< log level definition variable
+    static const std::int32_t LEVEL_05 = 0x00000010; //!< log level definition variable
+    static const std::int32_t LEVEL_06 = 0x00000020; //!< log level definition variable
+    static const std::int32_t LEVEL_07 = 0x00000040; //!< log level definition variable
+    static const std::int32_t LEVEL_08 = 0x00000080; //!< log level definition variable
+    static const std::int32_t LEVEL_09 = 0x00000100; //!< log level definition variable
+    static const std::int32_t LEVEL_10 = 0x00000200; //!< log level definition variable
+    static const std::int32_t LEVEL_11 = 0x00000400; //!< log level definition variable
+    static const std::int32_t LEVEL_12 = 0x00000800; //!< log level definition variable
+    static const std::int32_t LEVEL_13 = 0x00001000; //!< log level definition variable
+    static const std::int32_t LEVEL_14 = 0x00002000; //!< log level definition variable
+    static const std::int32_t LEVEL_15 = 0x00004000; //!< log level definition variable
+    static const std::int32_t LEVEL_16 = 0x00008000; //!< log level definition variable
+    static const std::int32_t LEVEL_17 = 0x00010000; //!< log level definition variable
+    static const std::int32_t LEVEL_18 = 0x00020000; //!< log level definition variable
+    static const std::int32_t LEVEL_19 = 0x00040000; //!< log level definition variable
+    static const std::int32_t LEVEL_20 = 0x00080000; //!< log level definition variable
+    static const std::int32_t LEVEL_21 = 0x00100000; //!< log level definition variable
+    static const std::int32_t LEVEL_22 = 0x00200000; //!< log level definition variable
+    static const std::int32_t LEVEL_23 = 0x00400000; //!< log level definition variable
+    static const std::int32_t LEVEL_24 = 0x00800000; //!< log level definition variable
+    static const std::int32_t LEVEL_25 = 0x01000000; //!< log level definition variable
+    static const std::int32_t LEVEL_26 = 0x02000000; //!< log level definition variable
+    static const std::int32_t LEVEL_27 = 0x04000000; //!< log level definition variable
+    static const std::int32_t LEVEL_28 = 0x08000000; //!< log level definition variable
+    static const std::int32_t LEVEL_29 = 0x10000000; //!< log level definition variable
+    static const std::int32_t LEVEL_30 = 0x20000000; //!< log level definition variable
+    static const std::int32_t LEVEL_31 = 0x40000000; //!< log level definition variable
+    static const std::int32_t LEVEL_32 = 0x80000000; //!< log level definition variable
 
     /*************************************************
     Log Message Line Format:
@@ -95,7 +93,7 @@ public:
     Time := integer value
     Level := integer value
     Type :=  M | p | l | a | c | C | t | T | r | R | s | m
-        M : log message
+        M : log message for text viewer
         p : point
         l: line
         a: arc
@@ -106,7 +104,8 @@ public:
         r: rectangle
         R: filled rectangle
         s: sector
-        m: message;
+        S: filled sector
+        m: message painted on the field
     Text := <Str>
     Point := <x:Real> <y:Real>[ <Color>]
     Line := <x1:Real> <y1:Real> <x2:Real> <y2:Real>[ <Color>]
@@ -118,27 +117,32 @@ public:
     Message := <x:Real> <y:Real>[ (c <Color>)] <Str>
     **************************************************/
 
-    static const boost::int32_t SYSTEM    = LEVEL_01; //!< log level definition alias
-    static const boost::int32_t SENSOR    = LEVEL_02; //!< log level definition alias
-    static const boost::int32_t WORLD     = LEVEL_03; //!< log level definition alias
-    static const boost::int32_t ACTION    = LEVEL_04; //!< log level definition alias
-    static const boost::int32_t INTERCEPT = LEVEL_05; //!< log level definition alias
-    static const boost::int32_t KICK      = LEVEL_06; //!< log level definition alias
-    static const boost::int32_t HOLD      = LEVEL_07; //!< log level definition alias
-    static const boost::int32_t DRIBBLE   = LEVEL_08; //!< log level definition alias
-    static const boost::int32_t PASS      = LEVEL_09; //!< log level definition alias
-    static const boost::int32_t CROSS     = LEVEL_10; //!< log level definition alias
-    static const boost::int32_t SHOOT     = LEVEL_11; //!< log level definition alias
-    static const boost::int32_t CLEAR     = LEVEL_12; //!< log level definition alias
-    static const boost::int32_t BLOCK     = LEVEL_13; //!< log level definition alias
-    static const boost::int32_t MARK      = LEVEL_14; //!< log level definition alias
-    static const boost::int32_t POSITIONING = LEVEL_15; //!< log level definition alias
-    static const boost::int32_t ROLE      = LEVEL_16; //!< log level definition alias
-    static const boost::int32_t PLAN      = LEVEL_17; //!< log level definition alias
-    static const boost::int32_t TEAM      = LEVEL_18; //!< log level definition alias
-    static const boost::int32_t COMMUNICATION = LEVEL_19; //!< log level definition alias
-    static const boost::int32_t ANALYZER  = LEVEL_20; //!< log level definition alias
-    static const boost::int32_t ACTION_CHAIN = LEVEL_21; //!< log level definition alias
+    static const std::int32_t SYSTEM    = LEVEL_01; //!< log level definition alias
+    static const std::int32_t SENSOR    = LEVEL_02; //!< log level definition alias
+    static const std::int32_t WORLD     = LEVEL_03; //!< log level definition alias
+    static const std::int32_t ACTION    = LEVEL_04; //!< log level definition alias
+    static const std::int32_t INTERCEPT = LEVEL_05; //!< log level definition alias
+    static const std::int32_t KICK      = LEVEL_06; //!< log level definition alias
+    static const std::int32_t HOLD      = LEVEL_07; //!< log level definition alias
+    static const std::int32_t DRIBBLE   = LEVEL_08; //!< log level definition alias
+    static const std::int32_t PASS      = LEVEL_09; //!< log level definition alias
+    static const std::int32_t CROSS     = LEVEL_10; //!< log level definition alias
+    static const std::int32_t SHOOT     = LEVEL_11; //!< log level definition alias
+    static const std::int32_t CLEAR     = LEVEL_12; //!< log level definition alias
+    static const std::int32_t BLOCK     = LEVEL_13; //!< log level definition alias
+    static const std::int32_t MARK      = LEVEL_14; //!< log level definition alias
+    static const std::int32_t POSITIONING = LEVEL_15; //!< log level definition alias
+    static const std::int32_t ROLE      = LEVEL_16; //!< log level definition alias
+    static const std::int32_t TEAM      = LEVEL_17; //!< log level definition alias
+    static const std::int32_t COMMUNICATION = LEVEL_18; //!< log level definition alias
+    static const std::int32_t ANALYZER  = LEVEL_19; //!< log level definition alias
+    static const std::int32_t ACT_SEQ   = LEVEL_20; //!< log level definition alias
+    static const std::int32_t ACTION_CHAIN = ACT_SEQ; //!< log level definition alias
+    static const std::int32_t PLAN      = LEVEL_21; //!< log level definition alias
+
+    static const std::int32_t TRAINING  = LEVEL_32; //!< log level definition alias
+
+    static const std::int32_t LEVEL_ANY = 0xffffffff; //!< log level definition variable
 
 private:
 
@@ -146,10 +150,13 @@ private:
     const GameTime * M_time;
 
     //! output file stream
-    FILE* M_fout;
+    FILE * M_fout;
 
     //! log level flag
-    boost::int32_t M_flags;
+    std::int32_t M_flags;
+
+    int M_start_time;
+    int M_end_time;
 
 public:
     /*!
@@ -169,17 +176,25 @@ public:
       \param on if true, set flag for the level
      */
     void setLogFlag( const GameTime * time,
-                     const boost::int32_t level,
+                     const std::int32_t level,
                      const bool on = true );
+
+    /*!
+      \brief set the range of the recorded game time
+      \param start_time lower value
+      \param end_time higher value
+     */
+    void setTimeRange( const int start_time,
+                       const int end_time );
 
     /*!
       \brief check if the level is enabled
       \param level checked log level
       \return true if the level is enabled or not
      */
-    bool isEnabled( const boost::int32_t level ) const
+    bool isEnabled( const std::int32_t level ) const
       {
-          return ( M_flags & level );
+          return ( level & M_flags );
       }
 
     /*!
@@ -187,6 +202,21 @@ public:
       \param filepath file path string
      */
     void open( const std::string & filepath );
+
+    /*!
+      \brief use standard output to record
+     */
+    void openStandardOutput();
+
+    /*!
+      \brief use standard error to record
+     */
+    void openStandardError();
+
+    /*!
+      \brief close file if opened
+     */
+    void close();
 
     /*!
       \brief check if file is opened
@@ -212,7 +242,7 @@ public:
       \param level debug flag level
       \param msg message
      */
-    void addText( const boost::int32_t level,
+    void addText( const std::int32_t level,
                   const char * msg,
                   ... );
 
@@ -223,9 +253,9 @@ public:
       \param y point coordinate y
       \param color color name string
      */
-    void addPoint( const boost::int32_t level,
-                   const double & x,
-                   const double & y,
+    void addPoint( const std::int32_t level,
+                   const double x,
+                   const double y,
                    const char * color = NULL );
 
     /*!
@@ -234,7 +264,7 @@ public:
       \param pos point coordinate
       \param color color name string
      */
-    void addPoint( const boost::int32_t level,
+    void addPoint( const std::int32_t level,
                    const Vector2D & pos,
                    const char * color = NULL )
       {
@@ -250,9 +280,9 @@ public:
       \param g green value
       \param b blue value
      */
-    void addPoint( const boost::int32_t level,
-                   const double & x,
-                   const double & y,
+    void addPoint( const std::int32_t level,
+                   const double x,
+                   const double y,
                    const int r, const int g, const int b );
 
     /*!
@@ -263,7 +293,7 @@ public:
       \param g green value
       \param b blue value
      */
-    void addPoint( const boost::int32_t level,
+    void addPoint( const std::int32_t level,
                    const Vector2D & pos,
                    const int r, const int g, const int b )
       {
@@ -279,11 +309,11 @@ public:
       \param y2 line end point coordinate y
       \param color color name string
      */
-    void addLine( const boost::int32_t level,
-                  const double & x1,
-                  const double & y1,
-                  const double & x2,
-                  const double & y2,
+    void addLine( const std::int32_t level,
+                  const double x1,
+                  const double y1,
+                  const double x2,
+                  const double y2,
                   const char * color = NULL );
 
     /*!
@@ -293,7 +323,7 @@ public:
       \param end line end point coordinate
       \param color color name string
      */
-    void addLine( const boost::int32_t level,
+    void addLine( const std::int32_t level,
                   const Vector2D & start,
                   const Vector2D & end,
                   const char * color = NULL )
@@ -312,11 +342,11 @@ public:
       \param g green value
       \param b blue value
      */
-    void addLine( const boost::int32_t level,
-                  const double & x1,
-                  const double & y1,
-                  const double & x2,
-                  const double & y2,
+    void addLine( const std::int32_t level,
+                  const double x1,
+                  const double y1,
+                  const double x2,
+                  const double y2,
                   const int r, const int g, const int b );
 
     /*!
@@ -328,7 +358,7 @@ public:
       \param g green value
       \param b blue value
      */
-    void addLine( const boost::int32_t level,
+    void addLine( const std::int32_t level,
                   const Vector2D & start,
                   const Vector2D & end,
                   const int r, const int g, const int b )
@@ -346,12 +376,12 @@ public:
       \param span_angle span of the arc. direction is clockwise from start_angle
       \param color color name string
      */
-    void addArc( const boost::int32_t level,
-                 const double & x,
-                 const double & y,
-                 const double & radius,
+    void addArc( const std::int32_t level,
+                 const double x,
+                 const double y,
+                 const double radius,
                  const AngleDeg & start_angle,
-                 const double & span_angle,
+                 const double span_angle,
                  const char * color = NULL );
 
     /*!
@@ -363,11 +393,11 @@ public:
       \param span_angle span of the arc. direction is clockwise from start_angle
       \param color color name string
      */
-    void addArc( const boost::int32_t level,
+    void addArc( const std::int32_t level,
                  const Vector2D & center,
-                 const double & radius,
+                 const double radius,
                  const AngleDeg & start_angle,
-                 const double & span_angle,
+                 const double span_angle,
                  const char * color = NULL )
       {
           addArc( level, center.x, center.y, radius, start_angle, span_angle, color );
@@ -385,12 +415,12 @@ public:
       \param g green value
       \param b blue value
      */
-    void addArc( const boost::int32_t level,
-                 const double & x,
-                 const double & y,
-                 const double & radius,
+    void addArc( const std::int32_t level,
+                 const double x,
+                 const double y,
+                 const double radius,
                  const AngleDeg & start_angle,
-                 const double & span_angle,
+                 const double span_angle,
                  const int r, const int g, const int b );
 
     /*!
@@ -404,11 +434,11 @@ public:
       \param g green value
       \param b blue value
      */
-    void addArc( const boost::int32_t level,
+    void addArc( const std::int32_t level,
                  const Vector2D & center,
-                 const double & radius,
+                 const double radius,
                  const AngleDeg & start_angle,
-                 const double & span_angle,
+                 const double span_angle,
                  const int r, const int g, const int b )
       {
           addArc( level, center.x, center.y, radius, start_angle, span_angle, r, g, b );
@@ -423,10 +453,10 @@ public:
       \param color color name string
       \param fill switch to select a circle is filled or not.
      */
-    void addCircle( const boost::int32_t level,
-                    const double & x,
-                    const double & y,
-                    const double & radius,
+    void addCircle( const std::int32_t level,
+                    const double x,
+                    const double y,
+                    const double radius,
                     const char * color = NULL,
                     const bool fill = false );
 
@@ -438,9 +468,9 @@ public:
       \param color color name string
       \param fill switch to select a circle is filled or not.
      */
-    void addCircle( const boost::int32_t level,
+    void addCircle( const std::int32_t level,
                     const Vector2D & center,
-                    const double & radius,
+                    const double radius,
                     const char * color = NULL,
                     const bool fill = false )
       {
@@ -454,7 +484,7 @@ public:
       \param color color name string
       \param fill switch to select a circle is filled or not.
      */
-    void addCircle( const boost::int32_t level,
+    void addCircle( const std::int32_t level,
                     const Circle2D & circle,
                     const char * color = NULL,
                     const bool fill = false )
@@ -473,10 +503,10 @@ public:
       \param b blue value
       \param fill switch to select a circle is filled or not.
      */
-    void addCircle( const boost::int32_t level,
-                    const double & x,
-                    const double & y,
-                    const double & radius,
+    void addCircle( const std::int32_t level,
+                    const double x,
+                    const double y,
+                    const double radius,
                     const int r, const int g, const int b,
                     const bool fill = false );
 
@@ -490,9 +520,9 @@ public:
       \param b blue value
       \param fill switch to select a circle is filled or not.
      */
-    void addCircle( const boost::int32_t level,
+    void addCircle( const std::int32_t level,
                     const Vector2D & center,
-                    const double & radius,
+                    const double radius,
                     const int r, const int g, const int b,
                     const bool fill = false )
       {
@@ -508,7 +538,7 @@ public:
       \param b blue value
       \param fill switch to select a circle is filled or not.
      */
-    void addCircle( const boost::int32_t level,
+    void addCircle( const std::int32_t level,
                     const Circle2D & circle,
                     const int r, const int g, const int b,
                     const bool fill = false )
@@ -531,13 +561,13 @@ public:
       \param color color name string
       \param fill switch to select a circle is filled or not.
      */
-    void addTriangle( const boost::int32_t level,
-                      const double & x1,
-                      const double & y1,
-                      const double & x2,
-                      const double & y2,
-                      const double & x3,
-                      const double & y3,
+    void addTriangle( const std::int32_t level,
+                      const double x1,
+                      const double y1,
+                      const double x2,
+                      const double y2,
+                      const double x3,
+                      const double y3,
                       const char * color = NULL,
                       const bool fill = false );
 
@@ -550,7 +580,7 @@ public:
       \param color color name string
       \param fill switch to select a circle is filled or not.
      */
-    void addTriangle( const boost::int32_t level,
+    void addTriangle( const std::int32_t level,
                       const Vector2D & p1,
                       const Vector2D & p2,
                       const Vector2D & p3,
@@ -572,7 +602,7 @@ public:
       \param color color name string
       \param fill switch to select a circle is filled or not.
      */
-    void addTriangle( const boost::int32_t level,
+    void addTriangle( const std::int32_t level,
                       const Triangle2D & tri,
                       const char * color = NULL,
                       const bool fill = false )
@@ -599,13 +629,13 @@ public:
       \param b blue value
       \param fill switch to select a circle is filled or not.
      */
-    void addTriangle( const boost::int32_t level,
-                      const double & x1,
-                      const double & y1,
-                      const double & x2,
-                      const double & y2,
-                      const double & x3,
-                      const double & y3,
+    void addTriangle( const std::int32_t level,
+                      const double x1,
+                      const double y1,
+                      const double x2,
+                      const double y2,
+                      const double x3,
+                      const double y3,
                       const int r, const int g, const int b,
                       const bool fill = false );
 
@@ -620,7 +650,7 @@ public:
       \param b blue value
       \param fill switch to select a circle is filled or not.
      */
-    void addTriangle( const boost::int32_t level,
+    void addTriangle( const std::int32_t level,
                       const Vector2D & p1,
                       const Vector2D & p2,
                       const Vector2D & p3,
@@ -644,7 +674,7 @@ public:
       \param b blue value
       \param fill switch to select a circle is filled or not.
      */
-    void addTriangle( const boost::int32_t level,
+    void addTriangle( const std::int32_t level,
                       const Triangle2D & tri,
                       const int r, const int g, const int b,
                       const bool fill = false )
@@ -667,11 +697,11 @@ public:
       \param color color name string
       \param fill switch to select a circle is filled or not.
      */
-    void addRect( const boost::int32_t level,
-                  const double & left,
-                  const double & top,
-                  const double & length,
-                  const double & width,
+    void addRect( const std::int32_t level,
+                  const double left,
+                  const double top,
+                  const double length,
+                  const double width,
                   const char * color = NULL,
                   const bool fill = false );
 
@@ -682,7 +712,7 @@ public:
       \param color color name string
       \param fill switch to select a circle is filled or not.
      */
-    void addRect( const boost::int32_t level,
+    void addRect( const std::int32_t level,
                   const Rect2D & rect,
                   const char * color = NULL,
                   const bool fill = false )
@@ -706,11 +736,11 @@ public:
       \param b blue value
       \param fill switch to select a circle is filled or not.
      */
-    void addRect( const boost::int32_t level,
-                  const double & left,
-                  const double & top,
-                  const double & length,
-                  const double & width,
+    void addRect( const std::int32_t level,
+                  const double left,
+                  const double top,
+                  const double length,
+                  const double width,
                   const int r, const int g, const int b,
                   const bool fill = false );
 
@@ -723,7 +753,7 @@ public:
       \param b blue value
       \param fill switch to select a circle is filled or not.
      */
-    void addRect( const boost::int32_t level,
+    void addRect( const std::int32_t level,
                   const Rect2D & rect,
                   const int r, const int g, const int b,
                   const bool fill = false )
@@ -747,13 +777,13 @@ public:
       \param color color name string
       \param fill switch to select a sector is filled or not
      */
-    void addSector( const boost::int32_t level,
-                    const double & x,
-                    const double & y,
-                    const double & min_radius,
-                    const double & max_radius,
+    void addSector( const std::int32_t level,
+                    const double x,
+                    const double y,
+                    const double min_radius,
+                    const double max_radius,
                     const AngleDeg & start_angle,
-                    const double & span_angle,
+                    const double span_angle,
                     const char * color = NULL,
                     const bool fill = false );
 
@@ -768,12 +798,12 @@ public:
       \param color color name string
       \param fill switch to select a sector is filled or not
      */
-    void addSector( const boost::int32_t level,
+    void addSector( const std::int32_t level,
                     const Vector2D & center,
-                    const double & min_radius,
-                    const double & max_radius,
+                    const double min_radius,
+                    const double max_radius,
                     const AngleDeg & start_angle,
-                    const double & span_angle,
+                    const double span_angle,
                     const char * color = NULL,
                     const bool fill = false )
       {
@@ -798,13 +828,13 @@ public:
       \param b blue value
       \param fill switch to select a sector is filled or not
      */
-    void addSector( const boost::int32_t level,
-                    const double & x,
-                    const double & y,
-                    const double & min_radius,
-                    const double & max_radius,
+    void addSector( const std::int32_t level,
+                    const double x,
+                    const double y,
+                    const double min_radius,
+                    const double max_radius,
                     const AngleDeg & start_angle,
-                    const double & span_angle,
+                    const double span_angle,
                     const int r, const int g, const int b,
                     const bool fill = false );
 
@@ -821,12 +851,12 @@ public:
       \param b blue value
       \param fill switch to select a sector is filled or not
      */
-    void addSector( const boost::int32_t level,
+    void addSector( const std::int32_t level,
                     const Vector2D & center,
-                    const double & min_radius,
-                    const double & max_radius,
+                    const double min_radius,
+                    const double max_radius,
                     const AngleDeg & start_angle,
-                    const double & span_angle,
+                    const double span_angle,
                     const int r, const int g, const int b,
                     const bool fill = false )
       {
@@ -844,7 +874,7 @@ public:
       \param color color name string
       \param fill switch to select a sector is filled or not
      */
-    void addSector( const boost::int32_t level,
+    void addSector( const std::int32_t level,
                     const Sector2D & sector,
                     const char * color = NULL,
                     const bool fill = false );
@@ -858,7 +888,7 @@ public:
       \param b blue value
       \param fill switch to select a sector is filled or not
      */
-    void addSector( const boost::int32_t level,
+    void addSector( const std::int32_t level,
                     const Sector2D & sector,
                     const int r, const int g, const int b,
                     const bool fill = false );
@@ -871,9 +901,9 @@ public:
       \param msg painted text
       \param color color name string
      */
-    void addMessage( const boost::int32_t level,
-                     const double & x,
-                     const double & y,
+    void addMessage( const std::int32_t level,
+                     const double x,
+                     const double y,
                      const char * msg,
                      const char * color = NULL );
 
@@ -884,7 +914,7 @@ public:
       \param msg drawd text
       \param color color name string
      */
-    void addMessage( const boost::int32_t level,
+    void addMessage( const std::int32_t level,
                      const Vector2D & pos,
                      const char * msg,
                      const char * color = NULL )
@@ -904,9 +934,9 @@ public:
       \param g green value
       \param b blue value
      */
-    void addMessage( const boost::int32_t level,
-                     const double & x,
-                     const double & y,
+    void addMessage( const std::int32_t level,
+                     const double x,
+                     const double y,
                      const char * msg,
                      const int r, const int g, const int b );
 
@@ -919,7 +949,7 @@ public:
       \param g green value
       \param b blue value
      */
-    void addMessage( const boost::int32_t level,
+    void addMessage( const std::int32_t level,
                      const Vector2D & pos,
                      const char * msg,
                      const int r, const int g, const int b )

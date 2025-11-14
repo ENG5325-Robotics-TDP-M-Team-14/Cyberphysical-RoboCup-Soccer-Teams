@@ -88,7 +88,7 @@ public:
       \param to reference to the message string instance
       \return result status of encoding
     */
-    bool toStr( std::string & to ) const
+    bool toString( std::string & to ) const
       {
           if ( static_cast< int >( to.length() + 1 + LEN )
                > ServerParam::i().playerSayMsgSize() )

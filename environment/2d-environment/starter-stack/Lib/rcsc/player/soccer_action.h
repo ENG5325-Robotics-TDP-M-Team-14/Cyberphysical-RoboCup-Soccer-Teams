@@ -32,7 +32,7 @@
 #ifndef RCSC_PLAYER_SOCCER_ACTION_H
 #define RCSC_PLAYER_SOCCER_ACTION_H
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 namespace rcsc {
 
@@ -51,9 +51,9 @@ private:
     long M_action_object_id;
 
     //! not used
-    AbstractAction( const AbstractAction & );
+    AbstractAction( const AbstractAction & ) = delete;
     //! not used
-    AbstractAction & operator=( const AbstractAction & );
+    AbstractAction & operator=( const AbstractAction & ) = delete;
 
 protected:
     /*!
@@ -69,8 +69,7 @@ public:
       \brief nothing to do, but should be virtual.
     */
     virtual
-    ~AbstractAction()
-      { }
+    ~AbstractAction() = default;
 
     /*!
       \brief pure virtual. set command to the action effector
@@ -99,25 +98,23 @@ class BodyAction
 private:
 
     //! not used
-    BodyAction( const BodyAction & );
+    BodyAction( const BodyAction & ) = delete;
     //! not used
-    BodyAction & operator=( const BodyAction & );
+    BodyAction & operator=( const BodyAction & ) = delete;
 
 protected:
     /*!
       \brief nothing to do. but accessible only from derived
       classes.
     */
-    BodyAction()
-      { }
+    BodyAction() = default;
 
 public:
     /*!
       \brief nothing to do, but should be virtual.
     */
     virtual
-    ~BodyAction()
-      { }
+    ~BodyAction() = default;
 
     /*!
       \brief pure virtual. set command to the action effector
@@ -139,30 +136,28 @@ class NeckAction
 public:
 
     //! smart pointer type
-    typedef boost::shared_ptr< NeckAction > Ptr;
+    typedef std::shared_ptr< NeckAction > Ptr;
 
 private:
 
     //! not used
-    NeckAction( const NeckAction & );
+    NeckAction( const NeckAction & ) = delete;
     //! not used
-    NeckAction & operator=( const NeckAction & );
+    NeckAction & operator=( const NeckAction & ) = delete;
 
 protected:
     /*!
       \brief nothing to do. but accessible only from derived
       classes.
     */
-    NeckAction()
-      { }
+    NeckAction() = default;
 
 public:
     /*!
       \brief nothing to do, but should be virtual.
     */
     virtual
-    ~NeckAction()
-      { }
+    ~NeckAction() = default;
 
     /*!
       \brief pure virtual. set command to the action effector
@@ -191,30 +186,28 @@ class ViewAction
 public:
 
     //! smart pointer type
-    typedef boost::shared_ptr< ViewAction > Ptr;
+    typedef std::shared_ptr< ViewAction > Ptr;
 
 private:
 
     //! not used
-    ViewAction( const ViewAction & );
+    ViewAction( const ViewAction & ) = delete;
     //! not used
-    ViewAction & operator=( const ViewAction & );
+    ViewAction & operator=( const ViewAction & ) = delete;
 
 protected:
     /*!
       \brief nothing to do. but accessible only from derived
       classes.
     */
-    ViewAction()
-      { }
+    ViewAction() = default;
 
 public:
     /*!
       \brief nothing to do, but should be virtual.
     */
     virtual
-    ~ViewAction()
-      { }
+    ~ViewAction() = default;
 
     /*!
       \brief pure virtual. set command to the action effector
@@ -235,6 +228,55 @@ public:
 /////////////////////////////////////////////////////////////////////
 
 /*!
+  \class FocusAction
+  \brief abstract change_focus action
+ */
+class FocusAction
+    : public AbstractAction {
+public:
+
+    typedef std::shared_ptr< FocusAction > Ptr;
+private:
+
+    //! not used
+    FocusAction( const FocusAction & ) = delete;
+    //! not used
+    FocusAction & operator=( const FocusAction & ) = delete;
+
+protected:
+
+    /*!
+      \brief nothing to do. but accessible only from derived classes.
+    */
+    FocusAction() = default;
+
+public:
+    /*!
+      \brief nothing to do, but should be a virtual method.
+    */
+    virtual
+    ~FocusAction() = default;
+
+    /*!
+      \brief pure virtual. set command to the action effector
+      \retval true if action is performed
+      \retval false if action is failed or not needed.
+    */
+    virtual
+    bool execute( PlayerAgent * agent ) = 0;
+
+    /*!
+      \brief create cloned action object
+      \return pointer to the cloned object instance.
+    */
+    virtual
+    FocusAction * clone() const = 0;
+
+};
+
+/////////////////////////////////////////////////////////////////////
+
+/*!
   \class ArmAction
   \brief abstract pointto action
 */
@@ -243,30 +285,28 @@ class ArmAction
 public:
 
     //! smart pointer type
-    typedef boost::shared_ptr< ArmAction > Ptr;
+    typedef std::shared_ptr< ArmAction > Ptr;
 
 private:
 
     //! not used
-    ArmAction( const ArmAction & );
+    ArmAction( const ArmAction & ) = delete;
     //! not used
-    ArmAction & operator=( const ArmAction & );
+    ArmAction & operator=( const ArmAction & ) = delete;
 
 protected:
     /*!
       \brief nothing to do. but accessible only from derived
       classes.
     */
-    ArmAction()
-      { }
+    ArmAction() = default;
 
 public:
     /*!
       \brief nothing to do, but should be virtual.
     */
     virtual
-    ~ArmAction()
-      { }
+    ~ArmAction() = default;
 
     /*!
       \brief pure virtual. set command to the action effector
@@ -294,25 +334,24 @@ class SoccerBehavior
     : public AbstractAction {
 private:
     //! not used
-    SoccerBehavior( const SoccerBehavior & );
+    SoccerBehavior( const SoccerBehavior & ) = delete;
     //! not used
-    SoccerBehavior & operator=( const SoccerBehavior & );
+    SoccerBehavior & operator=( const SoccerBehavior & ) = delete;
 
-protected
-/*!
-  \brief nothing to do. but accessible only from derived
-  classes.
-*/:
-    SoccerBehavior()
-      { }
+protected:
+
+    /*!
+      \brief nothing to do. but accessible only from derived
+      classes.
+    */
+    SoccerBehavior() = default;
 
 public:
     /*!
       \brief nothing to do, but should be virtual.
     */
     virtual
-    ~SoccerBehavior()
-      { }
+    ~SoccerBehavior() = default;
 
     /*!
       \brief pure virtual. set command to the action effector

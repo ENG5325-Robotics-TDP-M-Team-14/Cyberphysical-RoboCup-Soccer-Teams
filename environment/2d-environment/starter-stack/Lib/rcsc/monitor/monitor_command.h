@@ -93,7 +93,7 @@ public:
       \return reference to the output stream
      */
     virtual
-    std::ostream & toStr( std::ostream & to ) const = 0;
+    std::ostream & toCommandString( std::ostream & to ) const = 0;
 
     /*!
       \brief pure virtual method. get command name string
@@ -136,7 +136,7 @@ public:
       \param to referenct to the toutput stream
       \return referenct to the toutput stream
      */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name string
@@ -178,7 +178,7 @@ public:
       \param to referenct to the toutput stream
       \return referenct to the toutput stream
      */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name string
@@ -220,7 +220,7 @@ public:
       \param to referenct to the toutput stream
       \return referenct to the toutput stream
      */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name string
@@ -245,7 +245,7 @@ private:
     double M_x; //!< drop point x
     double M_y; //!< drop point y
 
-    MonitorDropBallCommand(); // not used
+    MonitorDropBallCommand() = delete; // not used
 public:
     /*!
       \brief construct with real coordinate
@@ -271,7 +271,7 @@ public:
 
       command argument coordinates are rounded by rcg's SHOWINFO_SCALE
      */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name string
@@ -297,7 +297,7 @@ private:
     double M_y; //!< free kick point y
     SideID M_side; //!< free kick awarded side. NEUTRAL means drop ball.
 
-    MonitorFreeKickCommand(); // not used
+    MonitorFreeKickCommand() = delete; // not used
 public:
     /*!
       \brief construct with real coordinate
@@ -325,7 +325,7 @@ public:
 
       command argument coordinates are rounded by rcg's SHOWINFO_SCALE
      */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name string
@@ -351,7 +351,7 @@ private:
     double M_y; //!< move target point y
     double M_angle; //!< player's body angle after move. *degree*
 
-    MonitorMovePlayerCommand(); // not used
+    MonitorMovePlayerCommand() = delete; // not used
 public:
     /*!
       \brief construct with all needed info
@@ -381,7 +381,7 @@ public:
       \param to referenct to the toutput stream
       \return referenct to the toutput stream
      */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name string
@@ -404,7 +404,7 @@ private:
     SideID M_side; //!< target player's side id
     int M_unum; //!< target player's uniform number
 
-    MonitorDiscardPlayerCommand(); // not used
+    MonitorDiscardPlayerCommand() = delete; // not used
 public:
     /*!
       \brief construct with all info
@@ -428,7 +428,7 @@ public:
       \param to referenct to the toutput stream
       \return referenct to the toutput stream
      */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name string
@@ -452,7 +452,7 @@ private:
     int M_unum; //!< target player's uniform number
     Card M_card; //!< card type
 
-    MonitorCardCommand(); // not used
+    MonitorCardCommand() = delete; // not used
 public:
     /*!
       \brief construct with all info
@@ -477,7 +477,7 @@ public:
       \param to referenct to the toutput stream
       \return referenct to the toutput stream
      */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name string
@@ -500,7 +500,7 @@ private:
     //! gzip compression level
     int M_level;
 
-    MonitorCompressionCommand(); // not used
+    MonitorCompressionCommand() = delete; // not used
 public:
     /*!
       \brief construct with compression level
@@ -523,7 +523,7 @@ public:
       \param to referenct to the toutput stream
       \return referenct to the toutput stream
      */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name string

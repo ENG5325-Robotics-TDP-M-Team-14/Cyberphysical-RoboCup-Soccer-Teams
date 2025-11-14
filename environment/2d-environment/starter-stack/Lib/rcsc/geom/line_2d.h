@@ -66,12 +66,12 @@ public:
       \param b Line formula B, coefficient for y
       \param c constant C
      */
-    Line2D( const double & a,
-            const double & b,
-            const double & c )
-        : M_a( a )
-        , M_b( b )
-        , M_c( c )
+    Line2D( const double a,
+            const double b,
+            const double c )
+        : M_a( a ),
+          M_b( b ),
+          M_c( c )
       { }
 
     /*!
@@ -102,9 +102,8 @@ public:
       \param p2 second point
       \return const reference to itself
     */
-    const
-    Line2D & assign( const Vector2D & p1,
-                     const Vector2D & p2 )
+    const Line2D & assign( const Vector2D & p1,
+                           const Vector2D & p2 )
       {
           M_a = -( p2.y - p1.y );
           M_b = p2.x - p1.x;
@@ -118,9 +117,8 @@ public:
       \param linedir direction from origin point
       \return const reference to itself
     */
-    const
-    Line2D & assign( const Vector2D & origin,
-                     const AngleDeg & linedir )
+    const Line2D & assign( const Vector2D & origin,
+                           const AngleDeg & linedir )
       {
           M_a = - linedir.sin();
           M_b = linedir.cos();
@@ -132,18 +130,7 @@ public:
       \brief accessor
       \return coefficient 'A' of line formula
     */
-    const
-    double & a() const
-      {
-          return M_a;
-      }
-
-    /*!
-      \brief accessor
-      \return coefficient 'A' of line formula
-    */
-    const
-    double & getA() const
+    double a() const
       {
           return M_a;
       }
@@ -152,22 +139,7 @@ public:
       \brief accessor
       \return coefficient 'B'  of line formula
     */
-    const
-    double & b() const
-      {
-          return M_b;
-      }
-
-    /*!
-      \brief accessor
-      \return coefficient 'A' of line formula
-    */
-    /*!
-      \brief accessor
-      \return coefficient 'B'  of line formula
-    */
-    const
-    double & getB() const
+    double b() const
       {
           return M_b;
       }
@@ -176,18 +148,7 @@ public:
       \brief accessor
       \return coefficient 'C'  of line formula
     */
-    const
-    double & c() const
-      {
-          return M_c;
-      }
-
-    /*!
-      \brief accessor
-      \return coefficient 'C'  of line formula
-    */
-    const
-    double & getC() const
+    double c() const
       {
           return M_c;
       }
@@ -197,7 +158,7 @@ public:
       \param y considered Y
       \return X coordinate
     */
-    double getX( const double & y ) const
+    double getX( const double y ) const
       {
           if ( std::fabs( M_a ) < EPSILON )
           {
@@ -211,7 +172,7 @@ public:
       \param x considered X
       \return Y coordinate
     */
-    double getY( const double & x ) const
+    double getY( const double x ) const
       {
           if ( std::fabs( M_b ) < EPSILON )
           {

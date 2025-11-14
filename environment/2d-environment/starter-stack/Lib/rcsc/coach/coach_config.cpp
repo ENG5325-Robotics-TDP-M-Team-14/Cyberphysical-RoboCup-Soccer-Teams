@@ -36,6 +36,7 @@
 #include "coach_config.h"
 
 #include <rcsc/param/param_map.h>
+#include <rcsc/param/param_parser.h>
 
 namespace rcsc {
 
@@ -44,8 +45,10 @@ namespace rcsc {
 
 */
 CoachConfig::CoachConfig()
+    : M_param_map( new ParamMap( "Coach options" ) )
 {
     setDefaultParam();
+    createParamMap();
 }
 
 /*-------------------------------------------------------------------*/
@@ -54,8 +57,8 @@ CoachConfig::CoachConfig()
 */
 CoachConfig::~CoachConfig()
 {
-
-    // std::cerr << "delete CoachConfig" << std::endl;
+    delete M_param_map;
+    M_param_map = nullptr;
 }
 
 /*-------------------------------------------------------------------*/
@@ -67,12 +70,12 @@ CoachConfig::setDefaultParam()
 {
     // basic setting
     M_team_name = "HELIOS_base";
-    M_version = 14;
+    M_version = 15;
 
     M_coach_name = "Coach_base";
     M_use_coach_name = false;
 
-    M_interval_msec = 50;
+    M_interval_msec = 20;
     M_server_wait_seconds = 5;
 
     M_rcssserver_host = "localhost";
@@ -82,6 +85,7 @@ CoachConfig::setDefaultParam()
 
     M_use_eye = true;
     M_hear_say = true;
+    M_audio_shift = 0;
 
     M_analyze_player_type = true;
 
@@ -152,9 +156,9 @@ CoachConfig::setDefaultParam()
 
 */
 void
-CoachConfig::createParamMap( ParamMap & param_map )
+CoachConfig::createParamMap()
 {
-    param_map.add()
+    M_param_map->add()
         ( "team_name", "t", &M_team_name )
         ( "version", "v", &M_version )
 
@@ -171,6 +175,7 @@ CoachConfig::createParamMap( ParamMap & param_map )
 
         ( "use_eye", "", &M_use_eye )
         ( "hear_say", "", &M_hear_say )
+        ( "audio_shift", "", &M_audio_shift )
 
         ( "analyze_player_type", "", &M_analyze_player_type )
 
@@ -219,6 +224,34 @@ CoachConfig::createParamMap( ParamMap & param_map )
         ( "debug_analyzer", "", BoolSwitch( &M_debug_analyzer ) )
         ( "debug_action_chain", "", BoolSwitch( &M_debug_action_chain ) )
         ;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+CoachConfig::parse( ParamParser & parser )
+{
+    if ( M_param_map )
+    {
+        parser.parse( *M_param_map );
+    }
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+std::ostream &
+CoachConfig::printHelp( std::ostream & os ) const
+{
+    if ( M_param_map )
+    {
+        M_param_map->printHelp( os );
+    }
+
+    return os;
 }
 
 }

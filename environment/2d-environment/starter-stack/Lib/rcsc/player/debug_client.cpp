@@ -38,12 +38,15 @@
 #include "action_effector.h"
 #include "world_model.h"
 #include "player_object.h"
+#include "abstract_player_object.h"
 #include "say_message_builder.h"
 
 #include <rcsc/common/audio_memory.h>
 #include <rcsc/net/udp_socket.h>
 
 #include <algorithm>
+#include <vector>
+#include <map>
 #include <sstream>
 #include <iostream>
 #include <cstdarg>
@@ -73,79 +76,220 @@ ROUND( const double & val,
     return rint( val / step ) * step;
 }
 
+/*!
+  \struct LineT
+  \brief draw info
+*/
+struct LineT {
+    Segment2D line_; //!< line segment data
+    std::string color_; //!< color name or #RGB
+
+    /*!
+      \brief construct with values
+      \param l line segment
+      \param color color name or #RGB
+    */
+    LineT( const Segment2D & l,
+           const char * color )
+        : line_( l ),
+          color_( color )
+      { }
+};
+
+/*!
+  \struct TriangleT
+  \brief draw info
+*/
+struct TriangleT {
+    Triangle2D triangle_; //!< triangle data
+    std::string color_; //!< color name or #RGB
+
+    /*!
+      \brief construct with values
+      \param t triangle
+      \param color color name or #RGB
+    */
+    TriangleT( const Triangle2D & t,
+               const char * color )
+        : triangle_( t ),
+          color_( color )
+      { }
+};
+
+/*!
+  \struct RectangleT
+  \brief draw info
+*/
+struct RectangleT {
+    Rect2D rect_; //!< rectangle data
+    std::string color_; //!< color name or #RGB
+
+    /*!
+      \brief construct with values
+      \param r rectangle
+      \param color color name or #RGB
+    */
+    RectangleT( const Rect2D & r,
+                const char * color )
+        : rect_( r ),
+          color_( color )
+      { }
+};
+
+/*!
+  \struct CircleT
+  \brief draw info
+*/
+struct CircleT {
+    Circle2D circle_; //!< circle data
+    std::string color_; //!< color name or #RGB
+
+    /*!
+      \brief construct with values
+      \param c circle
+      \param color color name or #RGB
+    */
+    CircleT( const Circle2D & c,
+             const char * color )
+        : circle_( c ),
+          color_( color )
+      { }
+};
+
 /*-------------------------------------------------------------------*/
 
-class PlayerPrinter {
+class PlayerPtrPrinter {
 private:
     std::ostream & M_os;
-    const char M_tag;
+    const SideID M_our_side;
+    const std::map< const PlayerObject *, std::string > & comment_map_;
 public:
-    PlayerPrinter( std::ostream & os,
-                     const char tag )
-        : M_os( os )
-        , M_tag( tag )
+    PlayerPtrPrinter( std::ostream & os,
+                      const SideID our_side,
+                      const std::map< const PlayerObject *, std::string > & comment_map )
+        : M_os( os ),
+          M_our_side( our_side ),
+          comment_map_( comment_map )
       { }
 
-    void operator()( const PlayerObject & p )
+    void operator()( const PlayerObject * p )
       {
           M_os << " (";
-          if ( p.unum() != Unum_Unknown )
+
+          //
+          // side, unum, player type
+          //
+          if ( p->side() == NEUTRAL )
           {
-              M_os << M_tag << ' ' << p.unum();
+              M_os << 'u';
           }
-          else if ( M_tag == 'u' )
+          else if ( p->side() == M_our_side )
           {
-              M_os << M_tag;
+              if ( p->unum() != Unum_Unknown )
+              {
+                  M_os << "t " << p->unum();
+                  if ( p->playerTypePtr() )
+                  {
+                      M_os << ' ' << p->playerTypePtr()->id();
+                  }
+                  else
+                  {
+                      M_os << " -1";
+                  }
+              }
+              else
+              {
+                  M_os << "ut";
+              }
           }
           else
           {
-              M_os << 'u' << M_tag;
+              if ( p->unum() != Unum_Unknown )
+              {
+                  M_os << "o " << p->unum();
+                  if ( p->playerTypePtr() )
+                  {
+                      M_os << ' ' << p->playerTypePtr()->id();
+                  }
+                  else
+                  {
+                      M_os << " -1";
+                  }
+              }
+              else
+              {
+                  M_os << "uo";
+              }
           }
 
-          M_os << ' ' << ROUND( p.pos().x, 0.01 )
-               << ' ' << ROUND( p.pos().y, 0.01 );
+          //
+          // x, y
+          //
+          M_os << ' ' << ROUND( p->pos().x, 0.01 )
+               << ' ' << ROUND( p->pos().y, 0.01 );
 
-          if ( p.bodyValid() )
+          //
+          // body
+          //
+          if ( p->bodyValid() )
           {
-              M_os << " (bd " << rint( p.body().degree() )
-                   << ')';
+              M_os << " (bd " << rint( p->body().degree() ) << ')';
           }
 
+          //
+          // pointto
+          //
+          if ( p->pointtoCount() < 10 )
+          {
+              M_os << " (pt " << rint( p->pointtoAngle().degree() ) << ')';
+          }
+
+          //
+          // comment (goalie, unumCount, posPount, velCount, [vel], faceCount, [{t|k}], [y], ballReachStep, comment)
+          //
           M_os << " (c \"";
 
-          if  ( p.goalie() )
+          if  ( p->goalie() )
           {
-              M_os << "G:";
+              M_os << 'G';
           }
 
-          if ( p.unum() != Unum_Unknown )
+          if ( p->unum() != Unum_Unknown )
           {
-              M_os << 'u' << p.unumCount();
+              M_os << 'u' << p->unumCount();
           }
 
-          M_os << 'p' << p.posCount()
-               << 'v' << p.velCount();
+          M_os << 'p' << p->posCount()
+               << 'v' << p->velCount();
 
-          if ( p.velCount() <= 100 )
+          if ( p->velCount() <= 100 )
           {
-              M_os << '(' << ROUND( p.vel().x, 0.1 )
-                   << ' ' << ROUND( p.vel().y, 0.1 )
+              M_os << '(' << ROUND( p->vel().x, 0.001 )
+                   << ' ' << ROUND( p->vel().y, 0.001 )
                    << ')';
           }
-          M_os << 'f' << p.faceCount();
+          M_os << 'f' << p->faceCount();
 
-          if ( p.isTackling() )
+          if ( p->isTackling() )
           {
               M_os << "t";
           }
-          else if ( p.kicked() )
+          else if ( p->isKicking() )
           {
               M_os << "k";
           }
 
-          if ( p.card() == YELLOW )
+          if ( p->card() == YELLOW )
           {
               M_os << "y";
+          }
+
+          M_os << ',' << p->ballReachStep();
+
+          std::map< const PlayerObject *, std::string >::const_iterator it = comment_map_.find( p );
+          if ( it != comment_map_.end() )
+          {
+              M_os << '|' << it->second;
           }
 
           M_os << "\"))";
@@ -161,13 +305,18 @@ public:
     LinePrinter( std::ostream & os )
         : M_os( os )
       { }
-    void operator()( const Segment2D & line )
+    void operator()( const LineT & line )
       {
           M_os << " (line "
-               << ROUND( line.origin().x, 0.001 ) << ' '
-               << ROUND( line.origin().y, 0.001 ) << ' '
-               << ROUND( line.terminal().x, 0.001 ) << ' '
-               << ROUND( line.terminal().y, 0.001 ) << ')';
+               << ROUND( line.line_.origin().x, 0.001 ) << ' '
+               << ROUND( line.line_.origin().y, 0.001 ) << ' '
+               << ROUND( line.line_.terminal().x, 0.001 ) << ' '
+               << ROUND( line.line_.terminal().y, 0.001 );
+          if ( ! line.color_.empty() )
+          {
+              M_os << " \"" << line.color_ << '"';
+          }
+          M_os << ')';
       }
 };
 
@@ -179,15 +328,20 @@ public:
     TrianglePrinter( std::ostream & os )
         : M_os( os )
       { }
-    void operator()( const Triangle2D & tri )
+    void operator()( const TriangleT & tri )
       {
           M_os << " (tri "
-               << ROUND( tri.a().x, 0.001 ) << ' '
-               << ROUND( tri.a().y, 0.001 ) << ' '
-               << ROUND( tri.b().x, 0.001 ) << ' '
-               << ROUND( tri.b().y, 0.001 ) << ' '
-               << ROUND( tri.c().x, 0.001 ) << ' '
-               << ROUND( tri.c().y, 0.001 ) << ')';
+               << ROUND( tri.triangle_.a().x, 0.001 ) << ' '
+               << ROUND( tri.triangle_.a().y, 0.001 ) << ' '
+               << ROUND( tri.triangle_.b().x, 0.001 ) << ' '
+               << ROUND( tri.triangle_.b().y, 0.001 ) << ' '
+               << ROUND( tri.triangle_.c().x, 0.001 ) << ' '
+               << ROUND( tri.triangle_.c().y, 0.001 );
+          if ( ! tri.color_.empty() )
+          {
+              M_os << " \"" << tri.color_ << '"';
+          }
+          M_os << ')';
       }
 };
 
@@ -198,13 +352,18 @@ public:
     RectPrinter( std::ostream & os )
         : M_os( os )
       { }
-    void operator()( const Rect2D & rect )
+    void operator()( const RectangleT & rect )
       {
           M_os << " (rect "
-               << ROUND( rect.left(), 0.001 ) << ' '
-               << ROUND( rect.top(), 0.001 ) << ' '
-               << ROUND( rect.right(), 0.001 ) << ' '
-               << ROUND( rect.bottom(), 0.001 ) << ')';
+               << ROUND( rect.rect_.left(), 0.001 ) << ' '
+               << ROUND( rect.rect_.top(), 0.001 ) << ' '
+               << ROUND( rect.rect_.right(), 0.001 ) << ' '
+               << ROUND( rect.rect_.bottom(), 0.001 );
+          if ( ! rect.color_.empty() )
+          {
+              M_os << " \"" << rect.color_ << '"';
+          }
+          M_os << ')';
       }
 };
 
@@ -215,60 +374,80 @@ public:
     CirclePrinter( std::ostream & os )
         : M_os( os )
       { }
-    void operator()( const Circle2D & circle )
+    void operator()( const CircleT & circle )
       {
           M_os << " (circle "
-               << ROUND( circle.center().x, 0.001 ) << ' '
-               << ROUND( circle.center().y, 0.001 ) << ' '
-               << ROUND( circle.radius(), 0.001 ) << ')';
+               << ROUND( circle.circle_.center().x, 0.001 ) << ' '
+               << ROUND( circle.circle_.center().y, 0.001 ) << ' '
+               << ROUND( circle.circle_.radius(), 0.001 );
+          if ( circle.color_.empty() )
+          {
+              M_os << " \"" << circle.color_ << '"';
+          }
+          M_os << ')';
       }
 };
 
-
-
 } // end of noname namespace
 
+/*-------------------------------------------------------------------*/
+
+struct DebugClient::Impl {
+
+    std::string M_self_comment;
+    std::map< const PlayerObject *, std::string > M_comment_map;
+
+    std::vector< LineT > M_lines; //!< draw info: lines
+    std::vector< TriangleT > M_triangles; //!< draw info: triangles
+    std::vector< RectangleT > M_rectangles; //!< draw info: rectangles
+    std::vector< CircleT > M_circles; //!< circles
+
+};
 
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 DebugClient::DebugClient()
-    : M_on( false )
-    , M_connected( false )
-    , M_write_mode( false )
-    , M_main_buffer( "" )
-    , M_target_unum( Unum_Unknown )
-    , M_target_point( Vector2D::INVALIDATED )
-    , M_message( "" )
+    : M_impl( new Impl() ),
+      M_on( false ),
+      M_connected( false ),
+      M_write_mode( false ),
+      M_main_buffer( "" ),
+      M_target_unum( Unum_Unknown ),
+      M_target_point( Vector2D::INVALIDATED ),
+      M_message( "" )
 {
     M_main_buffer.reserve( 8192 );
     M_message.reserve( 8192 );
 
-    M_lines.reserve( MAX_LINE );
-    M_triangles.reserve( MAX_TRIANGLE );
-    M_rectangles.reserve( MAX_RECT );
-    M_circles.reserve( MAX_CIRCLE );
+    M_impl->M_lines.reserve( MAX_LINE );
+    M_impl->M_triangles.reserve( MAX_TRIANGLE );
+    M_impl->M_rectangles.reserve( MAX_RECT );
+    M_impl->M_circles.reserve( MAX_CIRCLE );
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 DebugClient::~DebugClient()
 {
     this->close();
+
+    delete M_impl;
+    M_impl = nullptr;
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
 DebugClient::connect( const std::string & hostname,
                       const int port )
 {
-    M_socket = boost::shared_ptr< UDPSocket >( new UDPSocket( hostname.c_str(), port ) );
+    M_socket = std::shared_ptr< UDPSocket >( new UDPSocket( hostname.c_str(), port ) );
 
     if ( ! M_socket
          || M_socket->fd() == -1 )
@@ -287,7 +466,7 @@ DebugClient::connect( const std::string & hostname,
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 bool
 DebugClient::open( const std::string & log_dir,
                    const std::string & teamname,
@@ -324,21 +503,23 @@ DebugClient::open( const std::string & log_dir,
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
 DebugClient::writeAll( const WorldModel & world,
                        const ActionEffector & effector )
 {
     if ( M_on )
     {
-        this->toStr( world, effector );
+        this->buildString( world, effector );
+
         if ( M_connected )
         {
             this->send();
         }
 
         if ( M_write_mode
-             && world.time().stopped() == 0 )
+             && world.gameMode().type() != GameMode::BeforeKickOff
+             && world.gameMode().type() != GameMode::TimeOver )
         {
             this->write( world.time().cycle() );
         }
@@ -350,7 +531,7 @@ DebugClient::writeAll( const WorldModel & world,
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
 DebugClient::close()
 {
@@ -375,16 +556,23 @@ DebugClient::close()
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
-DebugClient::toStr( const WorldModel & world,
-                    const ActionEffector & effector )
+DebugClient::buildString( const WorldModel & world,
+                          const ActionEffector & effector )
 {
     std::ostringstream ostr;
 
-    ostr << "((debug (format-version 3)) (time "
-         << world.time().cycle() << ")";
-
+    ostr << "((debug (format-version 5)) (time "
+         << world.time().cycle() << ',';
+    if ( world.gameMode().type() == GameMode::BeforeKickOff )
+    {
+        ostr << "0)";
+    }
+    else
+    {
+        ostr << world.time().stopped() << ')';
+    }
 
     // self
     /*
@@ -405,18 +593,29 @@ DebugClient::toStr( const WorldModel & world,
         ostr << " (s "
              << ( world.ourSide() == LEFT ? "l " : "r " )
              << world.self().unum() << ' '
+             << world.self().playerType().id() << ' '
              << ROUND(world.self().pos().x, 0.01) << ' '
              << ROUND(world.self().pos().y, 0.01) << ' '
              << ROUND(world.self().vel().x, 0.01) << ' '
              << ROUND(world.self().vel().y, 0.01) << ' '
              << ROUND(world.self().body().degree(), 0.1) << ' '
-             << ROUND(world.self().neck().degree(), 0.1) << " (c \""
-             << world.self().posCount() << ' '
-            //<< '(' << ROUND(world.self().posError().x, 0.001)
-            //<< ", " << ROUND(world.self().posError().y, 0.001) << ") "
-             << world.self().velCount() << ' '
-             << world.self().faceCount();
-        if ( world.self().card() == YELLOW ) ostr << "y";
+             << ROUND(world.self().neck().degree(), 0.1)
+             << " (c \"p" << world.self().posCount()
+             << 'v' << world.self().velCount();
+        if ( world.self().velValid() )
+        {
+            ostr << '(' << ROUND( world.self().vel().x, 0.001 )
+                 << ' ' << ROUND( world.self().vel().y, 0.001 ) << ')';
+        }
+        ostr << 'f' << world.self().faceCount();
+        if ( world.self().card() == YELLOW )
+        {
+            ostr << "y";
+        }
+        if ( ! M_impl->M_self_comment.empty() )
+        {
+            ostr << '|' << M_impl->M_self_comment;
+        }
         ostr << "\"))";
     }
 
@@ -458,25 +657,18 @@ DebugClient::toStr( const WorldModel & world,
 
     std::for_each( world.teammates().begin(),
                    world.teammates().end(),
-                   PlayerPrinter( ostr, 't' ) );
-
+                   PlayerPtrPrinter( ostr, world.ourSide(), M_impl->M_comment_map ) );
     std::for_each( world.opponents().begin(),
                    world.opponents().end(),
-                   PlayerPrinter( ostr, 'o' ) );
-
-    std::for_each( world.unknownPlayers().begin(),
-                   world.unknownPlayers().end(),
-                   PlayerPrinter( ostr, 'u' ) );
+                   PlayerPtrPrinter( ostr, world.ourSide(), M_impl->M_comment_map ) );
 
     // say message
     if ( ! effector.getSayMessage().empty() )
     {
         ostr << " (say \"";
-        for ( std::vector< const SayMessage * >::const_iterator it = effector.sayMessageCont().begin();
-              it != effector.sayMessageCont().end();
-              ++it )
+        for ( const SayMessage::Ptr & i : effector.sayMessageCont() )
         {
-            (*it)->printDebug( ostr );
+            i->printDebug( ostr );
         }
         ostr << " {" << effector.getSayMessage() << "}\")";
     }
@@ -510,16 +702,16 @@ DebugClient::toStr( const WorldModel & world,
     }
 
     // lines
-    std::for_each( M_lines.begin(), M_lines.end(),
+    std::for_each( M_impl->M_lines.begin(), M_impl->M_lines.end(),
                    LinePrinter( ostr ) );
     // triangles
-    std::for_each( M_triangles.begin(), M_triangles.end(),
+    std::for_each( M_impl->M_triangles.begin(), M_impl->M_triangles.end(),
                    TrianglePrinter( ostr ) );
     // rectangles
-    std::for_each( M_rectangles.begin(), M_rectangles.end(),
+    std::for_each( M_impl->M_rectangles.begin(), M_impl->M_rectangles.end(),
                    RectPrinter( ostr ) );
     // circles
-    std::for_each( M_circles.begin(), M_circles.end(),
+    std::for_each( M_impl->M_circles.begin(), M_impl->M_circles.end(),
                    CirclePrinter( ostr ) );
 
     ostr << ")";
@@ -530,15 +722,15 @@ DebugClient::toStr( const WorldModel & world,
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
 DebugClient::send()
 {
     if ( M_connected
          && M_socket )
     {
-        if ( M_socket->send( M_main_buffer.c_str(),
-                             M_main_buffer.length() + 1 ) == -1 )
+        if ( M_socket->writeDatagram( M_main_buffer.c_str(),
+                                      M_main_buffer.length() + 1 ) == -1 )
         {
             std::cerr << "debug server send error" << std::endl;
         }
@@ -548,19 +740,19 @@ DebugClient::send()
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
 DebugClient::write( const long & cycle )
 {
 #if 0
     if ( dlog.isOpen() )
     {
-//         char buf[32];
-//         snprintf( buf, 32, "%%%% step %ld\n", cycle );
-//         dlog.print( buf );
-//         dlog.print( "%% debug [" );
-//         dlog.print( M_main_buffer.c_str() );
-//         dlog.print( "]\n" );
+        //         char buf[32];
+        //         snprintf( buf, 32, "%%%% step %ld\n", cycle );
+        //         dlog.print( buf );
+        //         dlog.print( "%% debug [" );
+        //         dlog.print( M_main_buffer.c_str() );
+        //         dlog.print( "]\n" );
         dlog.printDebugClientMessage( cycle, M_main_buffer );
     }
 #endif
@@ -578,7 +770,7 @@ DebugClient::write( const long & cycle )
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
 DebugClient::clear()
 {
@@ -588,16 +780,19 @@ DebugClient::clear()
     M_target_point.invalidate();
     M_message.erase();
 
-    M_lines.clear();
-    M_triangles.clear();
-    M_rectangles.clear();
-    M_circles.clear();
+    M_impl->M_self_comment.clear();
+    M_impl->M_comment_map.clear();
+
+    M_impl->M_lines.clear();
+    M_impl->M_triangles.clear();
+    M_impl->M_rectangles.clear();
+    M_impl->M_circles.clear();
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
 DebugClient::addMessage( const char * msg,
                          ... )
@@ -610,23 +805,77 @@ DebugClient::addMessage( const char * msg,
         va_end( argp );
 
         M_message += g_buffer;
-        M_message += "/";
+        M_message += '|';
     }
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
+void
+DebugClient::addMessage( const std::string & msg )
+{
+    if ( M_on )
+    {
+        M_message += msg;
+        M_message += '|';
+    }
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+void
+DebugClient::addSelfComment( const char * msg,
+                             ... )
+{
+    if ( M_on )
+    {
+        va_list argp;
+        va_start( argp, msg );
+        vsnprintf( g_buffer, G_BUFFER_SIZE, msg, argp );
+        va_end( argp );
+
+        M_impl->M_self_comment += g_buffer;
+    }
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+void
+DebugClient::addComment( const PlayerObject * player,
+                         const char * msg,
+                         ... )
+{
+    if ( M_on )
+    {
+        va_list argp;
+        va_start( argp, msg );
+        vsnprintf( g_buffer, G_BUFFER_SIZE, msg, argp );
+        va_end( argp );
+
+        M_impl->M_comment_map[player] += g_buffer;
+    }
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
 void
 DebugClient::addLine( const Vector2D & from,
-                      const Vector2D & to )
+                      const Vector2D & to,
+                      const char * color )
 {
     if ( M_on )
     {
-        if ( M_lines.size() < MAX_LINE )
+        if ( M_impl->M_lines.size() < MAX_LINE )
         {
-            M_lines.push_back( Segment2D( from, to ) );
+            M_impl->M_lines.emplace_back( Segment2D( from, to ), color );
         }
     }
 }
@@ -634,15 +883,16 @@ DebugClient::addLine( const Vector2D & from,
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
-DebugClient::addTriangle( const Triangle2D & tri )
+DebugClient::addTriangle( const Triangle2D & tri,
+                          const char * color )
 {
     if ( M_on )
     {
-        if ( M_triangles.size() < MAX_TRIANGLE )
+        if ( M_impl->M_triangles.size() < MAX_TRIANGLE )
         {
-            M_triangles.push_back( tri );
+            M_impl->M_triangles.emplace_back( tri, color );
         }
     }
 }
@@ -650,15 +900,16 @@ DebugClient::addTriangle( const Triangle2D & tri )
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
-DebugClient::addRectangle( const Rect2D & rect )
+DebugClient::addRectangle( const Rect2D & rect,
+                           const char * color )
 {
     if ( M_on )
     {
-        if ( M_rectangles.size() < MAX_RECT )
+        if ( M_impl->M_rectangles.size() < MAX_RECT )
         {
-            M_rectangles.push_back( rect );
+            M_impl->M_rectangles.emplace_back( rect, color );
         }
     }
 }
@@ -666,15 +917,16 @@ DebugClient::addRectangle( const Rect2D & rect )
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
-DebugClient::addCircle( const Circle2D & circle )
+DebugClient::addCircle( const Circle2D & circle,
+                        const char * color )
 {
     if ( M_on )
     {
-        if ( M_circles.size() < MAX_CIRCLE )
+        if ( M_impl->M_circles.size() < MAX_CIRCLE )
         {
-            M_circles.push_back( circle );
+            M_impl->M_circles.emplace_back( circle, color );
         }
     }
 }
