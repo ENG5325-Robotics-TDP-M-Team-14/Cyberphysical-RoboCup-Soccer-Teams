@@ -48,10 +48,10 @@ namespace rcsc {
 */
 ConfFileParser::ConfFileParser( const std::string & file_path,
                                 const std::string & delim,
-                                const std::string & realm )
-    : M_file_path( file_path ),
-      M_delimiters( delim ),
-      M_realm( realm )
+                                const std::string & name_space )
+    : M_file_path( file_path )
+    , M_delimiters( delim )
+    , M_namespace( name_space )
 {
 
 }
@@ -63,19 +63,13 @@ ConfFileParser::ConfFileParser( const std::string & file_path,
 bool
 ConfFileParser::parse( ParamMap & param_map )
 {
-    if ( ! param_map.isValid() )
-    {
-        std::cerr << __FILE__ << ": ***ERROR*** detected invalid ParamMap "
-                  << param_map.groupName() << std::endl;
-        return false;
-    }
-
     std::ifstream fin( M_file_path.c_str() );
 
     if ( ! fin )
     {
-        std::cerr << __FILE__ << ": ***ERROR*** Failed to open config file ["
-                  << M_file_path << "]" << std::endl;
+        std::cerr << "***ERROR*** ConfFileParser. "
+                  << "Failed to open config file [" << M_file_path
+                  << "]" << std::endl;
         return false;
     }
 
@@ -95,22 +89,22 @@ ConfFileParser::parse( ParamMap & param_map )
             continue;
         }
 
-        if ( ! M_realm.empty() )
+        if ( ! M_namespace.empty() )
         {
-            char realm[256];
+            char ns[256];
             int n_read = 0;
-            if ( std::sscanf( line_buf.c_str(), " %255[^ :] :: %n ",
-                              realm, &n_read ) != 1
+            if ( std::sscanf( line_buf.c_str(), " %255s[^ :] :: %n ",
+                              ns, &n_read ) != 1
                  || n_read == 0 )
             {
-                // illegal relm format
+                // illegal namespace format
                 //std:: cerr << "***WARNING*** ConfFileParser "
-                //           << " Illegal realm format ["
+                //           << " Illegal namespace format ["
                 //           << line_buf << "]" << std::endl;
                 continue;
             }
 
-            if ( M_realm != realm )
+            if ( M_namespace != ns )
             {
                 // namespace does not match.
                 continue;
@@ -137,7 +131,7 @@ ConfFileParser::parse( ParamMap & param_map )
         }
 
         // get parameter entry from map
-        ParamEntity::Ptr param_ptr = param_map.findLongName( name_str );
+        ParamPtr param_ptr = param_map.findLongName( name_str );
 
         if ( ! param_ptr )
         {
@@ -151,23 +145,25 @@ ConfFileParser::parse( ParamMap & param_map )
         }
         else
         {
-            std::cerr << __FILE__ << ": ***ERROR*** Parse error at line " << n_line
-                      << " name=[" << name_str << "]"
-                      << " value=[" << value_str << "]"
+            std::cerr << "***ERROR*** ConfFileParser. "
+                      << "Parse error at line " << n_line << " name=["
+                      << name_str << "] value=[" << value_str << "]"
                       << std::endl;
         }
     }
 
     if ( ! fin.eof() )
     {
-        std::cerr << __FILE__ << ": ***ERROR*** Parser did not reach the end of file."
-                  << " [" << M_file_path << "]"
+        std::cerr << "***ERROR*** ConfFileParser. "
+                  << "Parser did not reach the end of file. ["
+                  << M_file_path << "]"
                   << std::endl;
     }
 
     fin.close();
 #ifdef DEBUG
-    std::cerr << __FILE__": [" << M_file_path << "] read " << n_line << " lines. "
+    std::cerr << "ConfFileParser. [" << M_file_path
+              << "] read " << n_line << " lines. "
               << n_params << " params."
               << std::endl;
 #endif

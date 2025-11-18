@@ -33,19 +33,19 @@
 #include <config.h>
 #endif
 
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+#ifdef HAVE_WINDOWS_H
+#include <windows.h>
+#endif
+
 #include "serializer_v4.h"
 
 #include "util.h"
 
 #include <cstring>
 #include <cmath>
-
-#ifdef HAVE_ARPA_INET_H
-#include <arpa/inet.h>
-#endif
-#ifdef HAVE_WINDOWS_H
-#include <windows.h>
-#endif
 
 namespace {
 inline
@@ -66,11 +66,20 @@ namespace rcg {
 
  */
 std::ostream &
-SerializerV4::serializeBegin( std::ostream & os,
-                              const std::string &,
-                              const std::string & )
+SerializerV4::serializeHeader( std::ostream & os )
 {
     return os << "ULG4\n";
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+std::ostream &
+SerializerV4::serializeParam( std::ostream & os,
+                              const std::string & msg )
+{
+    return os << msg << '\n';
 }
 
 /*-------------------------------------------------------------------*/
@@ -413,7 +422,7 @@ SerializerV4::serialize( std::ostream & os,
                          const Int16 board,
                          const std::string & msg )
 {
-    os << "(msg " << M_time << ' ' << board
+    os << "(msg " << M_time << ' ' << ntohs( board )
        << " \"" << msg << "\")\n";
 
     return os;
@@ -629,29 +638,6 @@ SerializerV4::serialize( std::ostream & os,
     return serialize( os, disp.show_ );
 }
 
-/*-------------------------------------------------------------------*/
-std::ostream &
-SerializerV4::serialize( std::ostream & os,
-                         const ServerParamT & param )
-{
-    return param.toServerString( os ) << '\n';
-}
-
-/*-------------------------------------------------------------------*/
-std::ostream &
-SerializerV4::serialize( std::ostream & os,
-                         const PlayerParamT & param )
-{
-    return param.toServerString( os ) << '\n';
-}
-
-/*-------------------------------------------------------------------*/
-std::ostream &
-SerializerV4::serialize( std::ostream & os,
-                         const PlayerTypeT & param )
-{
-    return param.toServerString( os ) << '\n';
-}
 
 /*-------------------------------------------------------------------*/
 /*!

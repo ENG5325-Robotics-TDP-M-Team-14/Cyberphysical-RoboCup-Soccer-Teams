@@ -32,13 +32,12 @@
 #ifndef RCSC_PLAYER_BALL_OBJECT_H
 #define RCSC_PLAYER_BALL_OBJECT_H
 
-#include <rcsc/common/server_param.h>
 #include <rcsc/geom/vector_2d.h>
 #include <rcsc/game_time.h>
 #include <rcsc/soccer_math.h>
 #include <rcsc/math_util.h>
 
-#include <list>
+#include <deque>
 
 namespace rcsc {
 
@@ -55,7 +54,6 @@ class SelfObject;
   -> updateAll() (updatePos(),updateOnlyVel(), updateOnlyRelativePos())
   -> updateByHeardInfo()
   -> updateByCollision()
-  -> updateByGameMode()
   -> updateSelfRelated()
 */
 class BallObject {
@@ -67,54 +65,73 @@ private:
     //! validation count threshold value for M_vel
     static int S_vel_count_thr;
 
-    Vector2D M_pos; //!< estimated global position
-    Vector2D M_pos_error; //!< estimated error of global position
-    int M_pos_count; //!< cycle count since the last observation
+    static const std::size_t MAX_RECORD; //!< max record size
 
-    Vector2D M_rpos; //!< estimated relative  position
-    Vector2D M_rpos_error; //!< estimated error fo relative position
-    int M_rpos_count; //!< cycle count since the last observation
+public:
+    /*!
+      \brief internal state representation
+     */
+    struct State {
+        Vector2D pos_; //!< estimated global position
+        Vector2D pos_error_; //!< estimated error of global position
+        int pos_count_; //!< accuracy count. this is usually the cycle count since last observation
 
-    Vector2D M_seen_pos; //!< seen global position
-    Vector2D M_seen_rpos; //!< seen relative position
-    int M_seen_pos_count; //!< cycle count since the last see update
+        Vector2D rpos_; //!< estimated relative position
+        Vector2D rpos_error_; //!< estimated error fo relative position
+        int rpos_count_; //!< accuracy count. this is usually the cycle count since last observation
 
-    Vector2D M_heard_pos; //!< heard global position
-    int M_heard_pos_count; //!< cycle count since the last hear update
+        Vector2D seen_pos_; //!< seen global position
+        Vector2D seen_rpos_; //!< seen relative position
+        int seen_pos_count_; //!< accuracy count. the cycle count since last see update
 
-    Vector2D M_vel; //!< estimated velocity
-    Vector2D M_vel_error; //!< estimated error of velocity
-    int M_vel_count; //!< cycle count since the last observation
+        Vector2D heard_pos_; //!< heard global position
+        int heard_pos_count_; //!< accuracy count. the cycle count since last hear update
 
-    Vector2D M_seen_vel; //!< seen velocity
-    int M_seen_vel_count; //!< cycle count since the last see update
+        Vector2D vel_; //!< estimated velocity
+        Vector2D vel_error_; //!< estimated error of velocity
+        int vel_count_; //!< accuracy count. this is usually the cycle count since last observation
 
-    Vector2D M_heard_vel; //!< heard velocity
-    int M_heard_vel_count; //!< cycle count since the last hear update
+        Vector2D seen_vel_; //!< seen velocity
+        int seen_vel_count_; //!< accuracy count. the cycle count since last see update
 
-    int M_lost_count; //!< cycle count since the ball lost detection
+        Vector2D heard_vel_; //!< heard velocity
+        int heard_vel_count_; //!< accuracy count. the cycle count since last hear update
 
-    int M_ghost_count; //!< ghost flag
+        int lost_count_; //!< the cycle count since ball lost
 
-    double M_dist_from_self; //!< estimated distance from self
-    AngleDeg M_angle_from_self; //!< estimated global angle from self
+        int ghost_count_; //!< ghost flag
 
+        /*!
+          \brief initialize all variables
+         */
+        State();
+    };
 
-    std::list< Vector2D > M_pos_history;
+private:
+
+    //! current state
+    State M_state;
+
+    std::deque< State > M_state_record;
+
+    //! estimated distance from self
+    double M_dist_from_self;
+    //! estimated global angle from self
+    AngleDeg M_angle_from_self;
+
+    //! relative position at previous cycle. updated only in pure internal update
+    Vector2D M_rpos_prev;
+
 
     // not used
-    BallObject( const BallObject & ball ) = delete;
+    BallObject( const BallObject & ball );
+    BallObject & operator=( const BallObject & ball );
 
 public:
     /*!
       \brief constructor. initialize member variables
     */
     BallObject();
-
-    /*!
-      \brief substitition operator
-     */
-    BallObject & operator=( const BallObject & ball) = default;
 
     /*!
       \brief set accuracy count threshold values.
@@ -128,123 +145,215 @@ public:
                         const int vel_thr );
 
     /*!
+      \brief get current state
+      \return const reference to the state object
+     */
+    const
+    State & state() const
+      {
+          return M_state;
+      }
+
+    /*!
+      \brief get state record container
+      \return const reference to the state container
+     */
+    const
+    std::deque< State > & stateRecord() const
+      {
+          return M_state_record;
+      }
+
+    /*!
+      \brief get estimated distance from self
+      \return distance value
+    */
+    const
+    double & distFromSelf() const
+      {
+          return M_dist_from_self;
+      }
+    /*!
+      \brief get estimated global angle from self
+      \return const reference to angle object
+    */
+    const
+    AngleDeg & angleFromSelf() const
+      {
+          return M_angle_from_self;
+      }
+
+    /*!
       \brief get estimated global coordinate
       \return const reference to point object
     */
-    const Vector2D & pos() const { return M_pos; }
+    const
+    Vector2D & pos() const
+      {
+          return M_state.pos_;
+      }
 
     /*!
       \brief get estimated error of global coordinate
       \return const reference to vector object
     */
-    const Vector2D & posError() const { return M_pos_error; }
+    const
+    Vector2D & posError() const
+      {
+          return M_state.pos_error_;
+      }
 
     /*!
       \brief get global position accuracy count
       \return cycle count from last observation
     */
-    int posCount() const { return M_pos_count; }
+    int posCount() const
+      {
+          return M_state.pos_count_;
+      }
 
     /*!
       \brief get estimated position relative from self
       \return const referenct to point object
     */
-    const Vector2D & rpos() const { return M_rpos; }
+    const
+    Vector2D & rpos() const
+      {
+          return M_state.rpos_;
+      }
 
     /*!
       \brief get estimated error of relative coordinate
       \return const reference to vector object
     */
-    const Vector2D & rposError() const { return M_rpos_error; }
+    const
+    Vector2D & rposError() const
+      {
+          return M_state.rpos_error_;
+      }
 
     /*!
       \brief get relative position accuracy count
       \return cycle count from last observation
     */
-    int rposCount() const { return M_rpos_count; }
+    int rposCount() const
+      {
+          return M_state.rpos_count_;
+      }
+
+    /*!
+      \brief get previous cycle relative position
+      \return const reference to point object
+    */
+    const
+    Vector2D & rposPrev() const
+      {
+          return M_rpos_prev;
+      }
 
     /*!
       \brief get the last seen position
       \return const reference to the point object
      */
-    const Vector2D & seenPos() const { return M_seen_pos; }
+    const
+    Vector2D & seenPos() const
+      {
+          return M_state.seen_pos_;
+      }
 
     /*!
       \brief get the number of cycles since last seen
       \return count since last seen
     */
-    int seenPosCount() const { return M_seen_pos_count; }
+    int seenPosCount() const
+      {
+          return M_state.seen_pos_count_;
+      }
 
     /*!
       \brief get the last seen relative position
       \return const reference to the variable
      */
-    const Vector2D & seenRPos() const { return M_seen_rpos; }
+    const
+    Vector2D & seenRPos() const
+      {
+          return M_state.seen_rpos_;
+      }
 
     /*!
       \brief get the last heard position
       \return const reference to the point object
      */
-    const Vector2D & heardPos() const { return M_heard_pos; }
+    const
+    Vector2D & heardPos() const
+      {
+          return M_state.heard_pos_;
+      }
 
     /*!
       \brief get the number of cycles since last observation
       \return count since last observation
     */
-    int heardPosCount() const { return M_heard_pos_count; }
+    int heardPosCount() const
+      {
+          return M_state.heard_pos_count_;
+      }
 
     /*!
       \brief get estimated velocity
       \return const referenct to vector object
     */
-    const Vector2D & vel() const { return M_vel; }
+    const
+    Vector2D & vel() const
+      {
+          return M_state.vel_;
+      }
 
     /*!
       \brief get estimated error of velocity
       \return const reference to vector object
     */
-    const Vector2D & velError() const { return M_vel_error; }
+    const
+    Vector2D & velError() const
+      {
+          return M_state.vel_error_;
+      }
 
     /*!
       \brief get velocity accuracy count
       \return cycle count from last observation
     */
-    int velCount() const { return M_vel_count; }
-
+    int velCount() const
+      {
+          return M_state.vel_count_;
+      }
     /*!
       \brief get the last seen velocity
       \return const reference to the point object
      */
-    const Vector2D & seenVel() const { return M_seen_vel; }
+    const
+    Vector2D & seenVel() const
+      {
+          return M_state.seen_vel_;
+      }
 
     /*!
       \brief get the number of cycles since last velocity seen
       \return count since last velocity seen
     */
-    int seenVelCount() const { return M_seen_vel_count; }
-
-    /*!
-      \brief get the last seen velocity
-      \return const reference to the point object
-     */
-    const Vector2D & heardVel() const { return M_heard_vel; }
-
-    /*!
-      \brief get the number of cycles since last velocity seen
-      \return count since last velocity seen
-    */
-    int heardVelCount() const { return M_heard_vel_count; }
-
-    /*!
-      \brief get the number of ghost detection count
-     */
-    int ghostCount() const { return M_ghost_count; }
+    int seenVelCount() const
+      {
+          return M_state.seen_vel_count_;
+      }
 
     /*!
       \brief get count since ball lost
       \return cycle count since last observation
     */
-    int lostCount() const { return M_lost_count; }
+    int lostCount() const
+      {
+          return M_state.lost_count_;
+      }
 
     /*!
       \brief velify global position accuracy
@@ -252,7 +361,7 @@ public:
     */
     bool posValid() const
       {
-        return M_pos_count < S_pos_count_thr;
+          return M_state.pos_count_ < S_pos_count_thr;
       }
 
     /*!
@@ -261,7 +370,7 @@ public:
     */
     bool rposValid() const
       {
-          return M_rpos_count < S_rpos_count_thr;
+          return M_state.rpos_count_ < S_rpos_count_thr;
       }
 
     /*!
@@ -270,41 +379,24 @@ public:
     */
     bool velValid() const
       {
-          return M_vel_count < S_vel_count_thr;
+          return M_state.vel_count_ < S_vel_count_thr;
       }
 
     /*!
-      \brief get estimated distance from self
-      \return distance value
+      \brief clear all confidence values and set ghost time
+      \param current current game time
     */
-    double distFromSelf() const { return M_dist_from_self; }
+    void setGhost( const GameTime & current );
 
     /*!
-      \brief get estimated global angle from self
-      \return const reference to angle object
-    */
-    const AngleDeg & angleFromSelf() const { return M_angle_from_self; }
-
-    /*!
-      \brief get the history of estimated position.
-      \return position list. the front element is the position at the previous cycle.
-     */
-    const std::list< Vector2D > & posHistory() const
-      {
-          return M_pos_history;
-      }
-
-    /*!
-      \brief clear all confidence values
-    */
-    void setGhost();
-
-    /*!
-      \brief update by intenal memory
-      \param act const reference to the action effector
+      \brief update status only with intenal info
+      \param act const reference to action effector
+      \param game_mode const reference to referee info
+      \param current current game time
     */
     void update( const ActionEffector & act,
-                 const GameMode & game_mode );
+                 const GameMode & game_mode,
+                 const GameTime & current );
 
     /*!
       \brief update status with fullstate info
@@ -343,12 +435,6 @@ public:
                             const int vel_count );
 
     /*!
-      \brief update positional data based on the current game mode
-      \param mode current game mode
-     */
-    void updateByGameMode( const GameMode & mode );
-
-    /*!
       \brief update relative position using see info.
       \param rpos observed relative position
       \param rpos_err estimated error of relative position
@@ -367,9 +453,9 @@ public:
                         const int vel_count );
 
     /*!
-      \brief update by other player's kickable effect
+      \brief update by opponent control effect
      */
-    void setPlayerKickable();
+    void setOpponentControlEffect();
 
     /*!
       \brief update position by see info (not include velocity)
@@ -413,29 +499,47 @@ public:
       \param sender_to_ball_dist distance from message sender to ball
       \param heard_pos heard position
       \param heard_vel heard velocity
-      \param pass with pass message
 
       This method is called just before decision.
     */
     void updateByHear( const ActionEffector & act,
                        const double & sender_to_ball_dist,
                        const Vector2D & heard_pos,
-                       const Vector2D & heard_vel,
-                       const bool pass );
+                       const Vector2D & heard_vel );
 
     /*!
       \brief update self related info
       \param self const reference to the self object
-      \param prev const reference to the previous ball object
 
       This method is called just before decision.
     */
-    void updateSelfRelated( const SelfObject & self,
-                            const BallObject & prev );
+    void updateSelfRelated( const SelfObject & self );
 
-    //
-    //
-    //
+    /*!
+      \brief update historical record data
+     */
+    void updateRecord();
+    // ------------------------------------------
+    // utilities
+
+
+    /*!
+      \brief get the recorded state
+      \param history_index desired index. 0 means current, 1 means previous cycle data
+      \return state pointer. if no matched data, NULL is returned.
+     */
+    const State * getState( const size_t history_index ) const;
+
+    /*!
+      \brief template method. check if ball is in the region
+      \param region template resion. REGION must have method contains()
+      \return true if region contains ball position
+    */
+    template < typename REGION >
+    bool isWithin( const REGION & region ) const
+      {
+          return region.contains( this->pos() );
+      }
 
     // inertia movement calculators
 
@@ -444,37 +548,29 @@ public:
       \param cycle this method estimates ball travel after this steps
       \return estimated travel vector
     */
-    Vector2D inertiaTravel( const int cycle ) const
-      {
-          return inertia_n_step_travel( vel(),
-                                        cycle,
-                                        ServerParam::i().ballDecay() );
-      }
+    Vector2D inertiaTravel( const int cycle ) const;
 
     /*!
       \brief estimate reach point
       \param cycle this method estimates ball point after this steps
       \return estimated point vector
     */
-    Vector2D inertiaPoint( const int cycle ) const
-      {
-          return inertia_n_step_point( pos(),
-                                       vel(),
-                                       cycle,
-                                       ServerParam::i().ballDecay() );
-      }
+    Vector2D inertiaPoint( const int cycle ) const;
+
 
     /*!
       \brief estimate reach point
       \return estimated point
     */
-    Vector2D inertiaFinalPoint() const
-      {
-          return inertia_final_point( pos(),
-                                      vel(),
-                                      ServerParam::i().ballDecay() );
-      }
+    Vector2D inertiaFinalPoint() const;
 
+    /*!
+      \brief estimate final reach point
+      \return estimated point vector
+    */
+    static
+    double calc_travel_step( const double & distance,
+                             const double & first_speed );
 };
 
 }

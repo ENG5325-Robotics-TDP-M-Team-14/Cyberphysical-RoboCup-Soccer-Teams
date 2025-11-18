@@ -35,11 +35,9 @@
 
 #include "player_config.h"
 
+#include <rcsc/common/logger.h>
 #include <rcsc/param/param_map.h>
-#include <rcsc/param/param_parser.h>
-#include <rcsc/types.h>
 
-#include <iostream>
 #include <cassert>
 
 namespace rcsc {
@@ -49,10 +47,8 @@ namespace rcsc {
 
 */
 PlayerConfig::PlayerConfig()
-    : M_param_map( new ParamMap( "Player options" ) )
 {
     setDefaultParam();
-    createParamMap();
 }
 
 /*-------------------------------------------------------------------*/
@@ -61,8 +57,8 @@ PlayerConfig::PlayerConfig()
 */
 PlayerConfig::~PlayerConfig()
 {
-    delete M_param_map;
-    M_param_map = nullptr;
+
+    //cerr << "delete PlayerConfig" << endl;
 }
 
 /*-------------------------------------------------------------------*/
@@ -74,14 +70,14 @@ PlayerConfig::setDefaultParam()
 {
     // basic setting
     M_team_name = "HELIOS_base";
-    M_version = 15;
+    M_version = 14;
     M_reconnect_number = 0;
     M_goalie = false;
 
     M_interval_msec = 10;
     M_server_wait_seconds = 5;
 
-    M_wait_time_thr_synch_view = 30; //79;
+    M_wait_time_thr_synch_view = 79;
     M_wait_time_thr_nosynch_view = 75;
 
     M_normal_view_time_thr = 15;
@@ -96,13 +92,11 @@ PlayerConfig::setDefaultParam()
 
     M_use_communication = true;
     M_hear_opponent_audio = false;
-    M_audio_shift = 0;
 
     M_use_fullstate = true;
     M_debug_fullstate = false;
 
     M_synch_see = false;
-    M_gaussian_see = false;
 
     // accuracy threshold
     M_self_pos_count_thr = 20;
@@ -144,14 +138,11 @@ PlayerConfig::setDefaultParam()
     M_offline_logging = false;
     M_offline_log_ext = ".ocl";
 
-    M_offline_client_number = Unum_Unknown;
+    M_offline_client_number = -1;
 
     //
     // debug logging
     //
-    M_debug_start_time = -1;
-    M_debug_end_time = 99999999;
-
     M_debug_log_ext = ".log";
 
     M_debug_system = false;
@@ -175,7 +166,6 @@ PlayerConfig::setDefaultParam()
     M_debug_communication = false;
     M_debug_analyzer = false;
     M_debug_action_chain = false;
-    M_debug_training = false;
 }
 
 /*-------------------------------------------------------------------*/
@@ -183,9 +173,9 @@ PlayerConfig::setDefaultParam()
 
 */
 void
-PlayerConfig::createParamMap()
+PlayerConfig::createParamMap( ParamMap & param_map )
 {
-    M_param_map->add()
+    param_map.add()
         ( "team_name", "t", &M_team_name, "specifies team name string." )
         ( "version", "v", &M_version, "specifies the protocol version to communicate with the rcssserver." )
         ( "reconnect", "r", &M_reconnect_number,
@@ -211,12 +201,10 @@ PlayerConfig::createParamMap()
 
         ( "use_communication", "", &M_use_communication )
         ( "hear_opponent_audio", "", &M_hear_opponent_audio )
-        ( "audio_shift", "", &M_audio_shift )
 
         ( "use_fullstate", "", &M_use_fullstate )
         ( "debug_fullstate", "", &M_debug_fullstate )
         ( "synch_see", "", &M_synch_see )
-        ( "gaussian_see", "", &M_gaussian_see )
 
         ( "self_pos_count_thr", "", &M_self_pos_count_thr )
         ( "self_vel_count_thr", "", &M_self_vel_count_thr )
@@ -244,9 +232,6 @@ PlayerConfig::createParamMap()
         ( "offline_log_ext", "", &M_offline_log_ext )
         ( "offline_client_number", "", &M_offline_client_number )
 
-        ( "debug_start_time", "", &M_debug_start_time )
-        ( "debug_end_time", "", &M_debug_end_time )
-
         ( "debug_log_ext", "", &M_debug_log_ext )
 
         ( "debug_system", "", BoolSwitch( &M_debug_system ) )
@@ -270,42 +255,7 @@ PlayerConfig::createParamMap()
         ( "debug_communication", "", BoolSwitch( &M_debug_communication ) )
         ( "debug_analyzer", "", BoolSwitch( &M_debug_analyzer ) )
         ( "debug_action_chain", "", BoolSwitch( &M_debug_action_chain ) )
-        ( "debug_training", "", BoolSwitch( &M_debug_training ) )
         ;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-void
-PlayerConfig::parse( ParamParser & parser )
-{
-    if ( M_param_map )
-    {
-        parser.parse( *M_param_map );
-    }
-
-    if ( M_offline_client_number < 1
-         || 11 < M_offline_client_number )
-    {
-        M_offline_client_number = Unum_Unknown;
-    }
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-std::ostream &
-PlayerConfig::printHelp( std::ostream & os ) const
-{
-    if ( M_param_map )
-    {
-        M_param_map->printHelp( os );
-    }
-
-    return os;
 }
 
 }

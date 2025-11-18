@@ -38,7 +38,42 @@
 #include <rcsc/common/logger.h>
 
 #include <algorithm>
+#include <iterator>
 #include <cstring>
+
+#if 0
+/*-------------------------------------------------------------------*/
+/*!
+  \brief stream operator
+  \param os reference to output stream
+  \param p printed data
+  \return reference to output stream
+*/
+inline
+std::ostream &
+operator<<( std::ostream & os,
+            const rcsc::FullstateSensor::PlayerT & p )
+{
+    return p.print( os );
+    /*
+    os << "FS player: side:" << p.side_
+       << " unum:" << p.unum_
+       << " goalie:" << p.goalie_
+       << " type:" << p.player_type_
+       << "\n    pos:" << p.pos_
+       << " vel:" << p.vel_
+       << " b:" << p.body_
+       << " n:" << p.neck_
+       << " h:" << rcsc::AngleDeg::normalize_angle( p.body_ + p.neck_ )
+       << " s:" << p.stamina_
+       << " e:" << p.effort_
+       << " r:" << p.recovery_
+       << " pdist:" << p.pointto_dist_
+       << " pdir:" << p.pointto_dir_;
+    return os;
+    */
+}
+#endif
 
 namespace rcsc {
 
@@ -70,43 +105,23 @@ FullstateSensor::PlayerT::print( std::ostream & os ) const
 /*!
 
 */
-FullstateSensor::FullstateSensor()
-    : M_time( -1, 0 ),
-      M_ball(),
-      M_our_score( 0 ),
-      M_their_score( 0 )
-{
-    M_our_players.reserve( 11 );
-    M_their_players.reserve( 11 );
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
 void
 FullstateSensor::parse( const char * msg,
-                        const SideID our_side,
-                        const double version,
+                        const double & version,
                         const GameTime & current )
 {
     M_time = current;
 
-    M_our_players.clear();
-    M_their_players.clear();
+    M_left_team.clear();
+    M_right_team.clear();
 
     if ( version >= 8.0 )
     {
-        parseV8( msg, our_side );
+        parseV8( msg );
     }
     else
     {
-        parseV7( msg, our_side );
-    }
-
-    if ( our_side == RIGHT )
-    {
-        reverseSide();
+        parseV7( msg );
     }
 }
 
@@ -115,24 +130,35 @@ FullstateSensor::parse( const char * msg,
 
 */
 void
-FullstateSensor::reverseSide()
+FullstateSensor::reverse()
 {
-    M_ball.pos_.reverse();
-    M_ball.vel_.reverse();
+    M_ball.pos_ *= -1.0;
+    M_ball.vel_ *= -1.0;
 
-    for ( PlayerT & p : M_our_players )
     {
-        p.pos_.reverse();
-        p.vel_.reverse();
-        p.body_ = AngleDeg::normalize_angle( p.body_ + 180.0 );
+        const PlayerCont::iterator end = M_left_team.end();
+        for ( PlayerCont::iterator it = M_left_team.begin();
+              it != end;
+              ++it )
+        {
+            it->pos_ *= -1.0;
+            it->vel_ *= -1.0;
+            it->body_ = AngleDeg::normalize_angle( it->body_ + 180.0 );
+        }
     }
 
-    for ( PlayerT & p : M_their_players )
     {
-        p.pos_.reverse();
-        p.vel_.reverse();
-        p.body_ = AngleDeg::normalize_angle( p.body_ + 180.0 );
+        const PlayerCont::iterator end = M_right_team.end();
+        for ( PlayerCont::iterator it = M_right_team.begin();
+              it != end;
+              ++it )
+        {
+            it->pos_ *= -1.0;
+            it->vel_ *= -1.0;
+            it->body_ = AngleDeg::normalize_angle( it->body_ + 180.0 );
+        }
     }
+
 }
 
 /*-------------------------------------------------------------------*/
@@ -140,8 +166,7 @@ FullstateSensor::reverseSide()
 
 */
 void
-FullstateSensor::parseV8( const char * msg,
-                          const SideID our_side )
+FullstateSensor::parseV8( const char * msg )
 {
     /*
       fullstate v8+ format:
@@ -164,22 +189,15 @@ FullstateSensor::parseV8( const char * msg,
       players : {<player>|<player> <players>}
 
       player : (v8-13)
-      ((p {l|r} <unum> {g|<player_type_id>})
-       <pos.x> <pos.y> <vel.x> <vel.y> <body_angle> <neck_angle>[ <point_dist> <point_dir>]
-       (stamina <stamina> <effort> <recovery>[ <capacity>]))
+       ((p {l|r} <unum> {g|<player_type_id>})
+        <pos.x> <pos.y> <vel.x> <vel.y> <body_angle> <neck_angle>[ <point_dist> <point_dir>]
+        (<stamina> <effort> <recovery>[ <capacity>]))
 
-      player : (v14) tackle/kick/yellow/red
-      ((p {l|r} <unum> [g] <player_type_id>)
-       <pos.x> <pos.y> <vel.x> <vel.y> <body_angle> <neck_angle>[ <point_dist> <point_dir>]
-       (stamina <stamina> <effort> <recovery>[ <capacity>])
-       [t|k] [y|r])
-
-      player: v18+
-      ((p {l|r} <unum> [g] <player_type_id>)
-       <pos.x> <pos.y> <vel.x> <vel.y> <body_angle> <neck_angle>[ <point_dist> <point_dir>]
-       (focus_point <focus_dist> <focus_dir>)
-       (stamina <stamina> <effort> <recovery>[ <capacity>])
-       [t|k] [y|r])
+      player : (v14)
+        ((p {l|r} <unum> [g] <player_type_id>)
+         <pos.x> <pos.y> <vel.x> <vel.y> <body_angle> <neck_angle>[ <point_dist> <point_dir>]
+         (<stamina> <effort> <recovery>[ <capacity>])
+         [t|k] [y|r])
 
       */
 
@@ -220,20 +238,8 @@ FullstateSensor::parseV8( const char * msg,
     // (score <team_points> <enemy_points>)
     while ( *msg != '\0' && *msg != '(' ) ++msg; // skip to (score
     while ( *msg != '\0' && *msg != ' ' ) ++msg; // skip to " LSCORE..."
-
-    int score_l = static_cast< int >( std::strtol( msg, &next, 10) ); msg = next;
-    int score_r = static_cast< int >( std::strtol( msg, &next, 10 ) ); msg = next;
-
-    if ( our_side == LEFT )
-    {
-        M_our_score = score_l;
-        M_their_score = score_r;
-    }
-    else
-    {
-        M_our_score = score_r;
-        M_their_score = score_l;
-    }
+    M_left_score = static_cast< int >( std::strtol( msg, &next, 10) ); msg = next;
+    M_right_score = static_cast< int >( std::strtol( msg, &next, 10 ) ); msg = next;
 
     // ball info
     // ((b) <pos.x> <pos.y> <vel.x> <vel.y>)
@@ -246,12 +252,14 @@ FullstateSensor::parseV8( const char * msg,
     M_ball.vel_.y = std::strtod( msg, &next ); msg = next;
 
     //((p {l|r} <unum>{g|<player_type_id>}) <pos.x> <pos.y>
-    //   <vel.x> <vel.y> <body_angle> <neck_angle>
-    //   <focus_dist> <focus_dir>
-    //   [<point_dist> <point_dir>]
-    //   (stamina <stamina> <effort> <recovery>[ <capacity>])
-    //   [t|k|f] [y|r])
+    //   <vel.x> <vel.y> <body_angle> <neck_angle>[ <point_dist> <point_dir>]
+    //   (<stamina> <effort> <recovery>[ <capacity>])
+    //   [t|k] [y|r])
     //
+    //((p {l|r} <unum> [g] <player_type_id>}) <pos.x> <pos.y>
+    //   <vel.x> <vel.y> <body_angle> <neck_angle>[ <point_dist> <point_dir>]
+    //   (<stamina> <effort> <recovery>[ <capacity>])
+    //   [t|k|f] [y|r])
     while ( *msg != '\0' && *msg != '(' ) ++msg; // skip to "(p"
     while ( *msg != '\0' )
     {
@@ -297,36 +305,24 @@ FullstateSensor::parseV8( const char * msg,
         player.vel_.y = std::strtod( msg, &next ); msg = next;
         player.body_ = std::strtod( msg, &next ); msg = next;
         player.neck_ = std::strtod( msg, &next ); msg = next;
-
-        while ( *msg != '\0' && *msg == ' ' ) ++msg;
+        ++msg;
         if ( *msg != '(' )
         {
             player.pointto_dist_ = std::strtod( msg, &next ); msg = next;
             player.pointto_dir_ = std::strtod( msg, &next ); msg = next;
         }
-        while ( *msg != '\0' && *msg != '(' ) ++msg; // skip to "("
-
-        if ( std::strncmp( msg, "(focus_point ", 13 ) == 0 )
+        while ( *msg != '\0' && *msg != '(' ) ++msg; // skip to "(stamina"
+        while ( *msg != '\0' && *msg != ' ' ) ++msg; // skip to space " "
+        ++msg;
+        player.stamina_ = std::strtod( msg, &next ); msg = next;
+        player.effort_ = std::strtod( msg, &next ); msg = next;
+        player.recovery_ = std::strtod( msg, &next ); msg = next;
+        if ( *msg != ')' )
         {
-            msg += 13;
-            player.focus_dist_ = std::strtod( msg, &next ); msg = next;
-            player.focus_dir_ = std::strtod( msg, &next ); msg = next;
-            while ( *msg != '\0' && *msg != '(' ) ++msg; // skip to "("
+            player.stamina_capacity_ = std::strtod( msg, &next ); msg = next;
         }
 
-        if ( std::strncmp( msg, "(stamina ", 9 ) == 0 )
-        {
-            msg += 9;
-            player.stamina_ = std::strtod( msg, &next ); msg = next;
-            player.effort_ = std::strtod( msg, &next ); msg = next;
-            player.recovery_ = std::strtod( msg, &next ); msg = next;
-            if ( *msg != ')' )
-            {
-                player.stamina_capacity_ = std::strtod( msg, &next ); msg = next;
-            }
-            while ( *msg == ')' ) ++msg;
-        }
-
+        while ( *msg == ')' ) ++msg;
         while ( *msg == ' ' ) ++msg;
 
         if ( *msg == 'k' ) // kick
@@ -357,13 +353,13 @@ FullstateSensor::parseV8( const char * msg,
             player.card_ = RED;
         }
 
-        if ( our_side == player.side_ )
+        if ( LEFT == player.side_ )
         {
-            M_our_players.push_back( player );
+            M_left_team.push_back( player );
         }
         else
         {
-            M_their_players.push_back( player );
+            M_right_team.push_back( player );
         }
     }
 }
@@ -373,8 +369,7 @@ FullstateSensor::parseV8( const char * msg,
 
 */
 void
-FullstateSensor::parseV7( const char * msg,
-                          const SideID our_side )
+FullstateSensor::parseV7( const char * msg )
 {
     /*
       (fullstate <time> (pmode <play_mode>) (vmode <qual> <width>)
@@ -403,19 +398,8 @@ FullstateSensor::parseV7( const char * msg,
 
     while ( *msg != '(' ) ++msg; // skip to (score
     while ( *msg != ' ' ) ++msg; // skip to " LSCORE..."
-
-    int score_l = static_cast< int >( std::strtol( msg, &next, 10 ) ); msg = next;
-    int score_r = static_cast< int >( std::strtol( msg, &next, 10 ) ); msg = next;
-    if ( our_side == LEFT )
-    {
-        M_our_score = score_l;
-        M_their_score = score_r;
-    }
-    else
-    {
-        M_our_score = score_r;
-        M_their_score = score_l;
-    }
+    M_left_score = static_cast< int >( std::strtol( msg, &next, 10 ) ); msg = next;
+    M_right_score = static_cast< int >( std::strtol( msg, &next, 10 ) ); msg = next;
 
     while ( *msg != '(' ) ++msg; // skip to (ball
     while ( *msg != ' ' ) ++msg; // skip "(ball"
@@ -457,13 +441,13 @@ FullstateSensor::parseV7( const char * msg,
         player.recovery_ = std::strtod( msg, &next ); msg = next;
         // now, msg point the last paren of this player
 
-        if ( our_side == player.side_ )
+        if ( LEFT == player.side_ )
         {
-            M_our_players.push_back( player );
+            M_left_team.push_back( player );
         }
         else
         {
-            M_our_players.push_back( player );
+            M_right_team.push_back( player );
         }
     }
 }
@@ -476,23 +460,32 @@ std::ostream &
 FullstateSensor::print( std::ostream & os ) const
 {
     os << "Fullstate: " << M_time
-       << " score " << M_our_score << " - " << M_their_score
+       << " score " << M_left_score << " - " << M_right_score
        << '\n';
 
     os << "FS ball "
        << M_ball.pos_ << M_ball.vel_ << M_ball.vel_.r()
        << '\n';
 
-    for ( const PlayerT & p : M_our_players )
+#if 0
+    std::copy( M_left_team.begin(), M_left_team.end(),
+               std::ostream_iterator< PlayerT >( os, "\n" ) );
+    std::copy( M_right_team.begin(), M_right_team.end(),
+               std::ostream_iterator< PlayerT >( os, "\n" ) );
+#else
+    for ( PlayerCont::const_iterator it = M_left_team.begin();
+          it != M_left_team.end();
+          ++it )
     {
-        p.print( os );
+        it->print( os );
     }
-
-    for ( const PlayerT & p : M_their_players )
+    for ( PlayerCont::const_iterator it = M_right_team.begin();
+          it != M_right_team.end();
+          ++it )
     {
-        p.print( os );
+        it->print( os );
     }
-
+#endif
     return os;
 }
 
@@ -533,16 +526,22 @@ FullstateSensor::printWithWorld( const WorldModel & world ) const
                   "____internal (%+.3f %+.3f)",
                   world.ball().velError().x, world.ball().velError().y );
 
-    for ( const PlayerT & p : ourPlayers() )
+    const FullstateSensor::PlayerCont& player_cont
+        = ( world.isOurLeft()
+            ? leftTeam()
+            : rightTeam() );
+    for ( FullstateSensor::PlayerCont::const_iterator it = player_cont.begin();
+          it != player_cont.end();
+          ++it )
     {
-        if ( p.unum_ == world.self().unum() )
+        if ( it->unum_ == world.self().unum() )
         {
             dlog.addText( Logger::WORLD,
                           "FS self  (%+.3f %+.3f) (%+.3f %+.3f) b=%+.2f n=%+.2f f=%+.2f",
-                          p.pos_.x, p.pos_.y,
-                          p.vel_.x, p.vel_.y,
-                          p.body_, p.neck_,
-                          AngleDeg::normalize_angle( p.body_ + p.neck_ ) );
+                          it->pos_.x, it->pos_.y,
+                          it->vel_.x, it->vel_.y,
+                          it->body_, it->neck_,
+                          AngleDeg::normalize_angle( it->body_ + it->neck_ ) );
 
             dlog.addText( Logger::WORLD,
                           "____internal (%+.3f %+.3f) (%+.3f %+.3f) b=%+.2f n=%+.2f f=%+.2f",
@@ -552,7 +551,7 @@ FullstateSensor::printWithWorld( const WorldModel & world ) const
                           world.self().neck().degree(),
                           world.self().face().degree() );
 
-            tmpv = p.pos_ - world.self().pos();
+            tmpv = it->pos_ - world.self().pos();
             double d = tmpv.r();
             dlog.addText( Logger::WORLD,
                           "__self pos err (%+.3f %+.3f) %.3f %s",
@@ -562,7 +561,7 @@ FullstateSensor::printWithWorld( const WorldModel & world ) const
                           world.self().posError().x,
                           world.self().posError().y,
                           world.self().posError().r() );
-            tmpv = p.vel_ - world.self().vel();
+            tmpv = it->vel_ - world.self().vel();
             dlog.addText( Logger::WORLD,
                           "__self vel err (%+.3f %+.3f) %.3f",
                           tmpv.x, tmpv.y, tmpv.r() );
@@ -571,7 +570,7 @@ FullstateSensor::printWithWorld( const WorldModel & world ) const
                           world.self().velError().x,
                           world.self().velError().y,
                           world.self().velError().r() );
-            tmpv = ball().pos_ - p.pos_;
+            tmpv = ball().pos_ - it->pos_;
             dlog.addText( Logger::WORLD,
                           "__ball rpos (%+.3f %+.3f) %.3f",
                           tmpv.x, tmpv.y, tmpv.r() );

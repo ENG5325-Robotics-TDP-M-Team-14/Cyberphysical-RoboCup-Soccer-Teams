@@ -44,15 +44,16 @@ class ParamParser {
 private:
 
     // non copyable
-    ParamParser( const ParamParser & ) = delete;
-    ParamParser & operator=( const ParamParser & ) = delete;
+    ParamParser( const ParamParser & );
+    ParamParser & operator=( const ParamParser & );
 
 protected:
 
     /*!
       \brief protected access
      */
-    ParamParser() = default;
+    ParamParser()
+      { }
 
 public:
 

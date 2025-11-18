@@ -34,6 +34,7 @@
 
 #include <rcsc/geom/angle_deg.h>
 
+#include <functional>
 #include <iostream>
 #include <cmath>
 
@@ -76,8 +77,8 @@ public:
       \param xx assigned x value
       \param yy assigned x value
     */
-    Vector2D( const double xx,
-              const double yy )
+    Vector2D( const double & xx,
+              const double & yy )
         : x( xx ),
           y( yy )
       { }
@@ -96,9 +97,9 @@ public:
       \param xx assigned x value
       \param yy assigned y value
       \return reference to itself
-    */
-    Vector2D & assign( const double xx,
-                       const double yy )
+     */
+    Vector2D & assign( const double & xx,
+                       const double & yy )
       {
           x = xx;
           y = yy;
@@ -110,8 +111,8 @@ public:
       \param radius vector's radius
       \param dir vector's angle
       \return reference to itself
-    */
-    Vector2D & setPolar( const double radius,
+     */
+    Vector2D & setPolar( const double & radius,
                          const AngleDeg & dir )
       {
           x = radius * dir.cos();
@@ -122,8 +123,9 @@ public:
     /*!
       \brief invalidate this object
       \return this
-    */
-    const Vector2D & invalidate()
+     */
+    const
+    Vector2D & invalidate()
       {
           x = ERROR_VALUE;
           y = ERROR_VALUE;
@@ -133,7 +135,7 @@ public:
     /*!
       \brief get the squared length of vector.
       \return squared length
-    */
+     */
     double r2() const
       {
           return x * x + y * y;
@@ -142,7 +144,7 @@ public:
     /*!
       \brief get the length of vector.
       \return length value
-    */
+     */
     double r() const
       {
           //return std::hypot( x, y );
@@ -170,7 +172,7 @@ public:
     /*!
       \brief get the length of vector. this method is equivalent to r().
       \return length value
-    */
+     */
     double length() const
       {
           return r();
@@ -188,7 +190,7 @@ public:
     /*!
       \brief get the angle of vector.
       \return angle
-    */
+     */
     AngleDeg th() const
       {
           return AngleDeg( AngleDeg::atan2_deg( y, x ) );
@@ -197,7 +199,7 @@ public:
     /*!
       \brief get the angle of vector. this method is equivalent to th().
       \return angle
-    */
+     */
     AngleDeg dir() const
       {
           return th();
@@ -206,7 +208,7 @@ public:
     /*!
       \brief get new vector that XY values were set to absolute value.
       \return new vector that all values are absolute.
-    */
+     */
     Vector2D abs() const
       {
           return Vector2D( std::fabs( x ), std::fabs( y ) );
@@ -215,7 +217,7 @@ public:
     /*!
       \brief get absolute x value
       \return absolute x value
-    */
+     */
     double absX() const
       {
           return std::fabs( x );
@@ -224,7 +226,7 @@ public:
     /*!
       \brief get absolute y value
       \return absolute y value
-    */
+     */
     double absY() const
       {
           return std::fabs( y );
@@ -234,7 +236,7 @@ public:
       \brief add vector.
       \param v added vector
       \return reference to itself
-    */
+     */
     Vector2D & add( const Vector2D & v )
       {
           x += v.x;
@@ -247,9 +249,9 @@ public:
       \param xx added x value
       \param yy added y value
       \return reference to itself
-    */
-    Vector2D & add( const double xx,
-                    const double yy )
+     */
+    Vector2D & add( const double & xx,
+                    const double & yy )
       {
           x += xx;
           y += yy;
@@ -261,7 +263,7 @@ public:
       \param scalar scaling factor
       \return *this.
     */
-    Vector2D & scale( const double scalar )
+    Vector2D & scale( const double & scalar )
       {
           x *= scalar;
           y *= scalar;
@@ -271,8 +273,9 @@ public:
     /*!
       \brief return this vector
       \return const reference of this vector
-    */
-    const Vector2D & operator+() const
+     */
+    const
+    Vector2D & operator+() const
       {
           return *this;
       }
@@ -280,7 +283,7 @@ public:
     /*!
       \brief create reversed vector
       \return new vector that XY values are reversed.
-    */
+     */
     Vector2D operator-() const
       {
           return Vector2D( -x, -y );
@@ -290,8 +293,9 @@ public:
       \brief add vector to itself
       \param v added vector
       \return const reference to itself
-    */
-    const Vector2D & operator+=( const Vector2D & v )
+     */
+    const
+    Vector2D & operator+=( const Vector2D & v )
       {
           x += v.x;
           y += v.y;
@@ -302,8 +306,9 @@ public:
       \brief subtract vector to itself
       \param v subtract argument
       \return const reference to itself
-    */
-    const Vector2D & operator-=( const Vector2D & v )
+     */
+    const
+    Vector2D & operator-=( const Vector2D & v )
       {
           x -= v.x;
           y -= v.y;
@@ -314,8 +319,9 @@ public:
       \brief multiplied by 'scalar'
       \param scalar multiplication argument
       \return const reference to itself
-    */
-    const Vector2D & operator*=( const double scalar )
+     */
+    const
+    Vector2D & operator*=( const double & scalar )
       {
           //x *= scalar;
           //y *= scalar;
@@ -327,8 +333,9 @@ public:
       \brief divided by 'scalar'.
       \param scalar division argument
       \return const reference to itself
-    */
-    const Vector2D & operator/=( const double scalar )
+     */
+    const
+    Vector2D & operator/=( const double & scalar )
       {
           //if ( scalar != 0 )
           if ( std::fabs( scalar ) > EPSILON )
@@ -364,33 +371,6 @@ public:
       }
 
     /*!
-      \brief get the squared distance from this to (xx,yy).
-      \param xx x coordinate of the target point
-      \param yy y coordinate of the target point
-      \return squared distance to (xx,yy)
-    */
-    double dist2( const double xx,
-                  const double yy ) const
-      {
-          return ( std::pow( this->x - xx, 2 )
-                   + std::pow( this->y - yy, 2 ) );
-      }
-
-    /*!
-      \brief get the distance from this to (xx, yy).
-      \param xx x coordinate of the target point
-      \param yy y coordinate of the target point
-      \return distance to (xx, yy)
-    */
-    double dist( const double xx,
-                 const double yy ) const
-      {
-          //return std::hypot( this->x - xx,
-          //                   this->y - yy );
-          return std::sqrt( dist2( xx, yy ) );
-      }
-
-    /*!
       \brief reverse vector components
       \return *this.
     */
@@ -404,7 +384,7 @@ public:
     /*!
       \brief get reversed vector.
       \return new vector object
-    */
+     */
     Vector2D reversedVector() const
       {
           return Vector2D( *this ).reverse();
@@ -415,7 +395,7 @@ public:
       \param len new length to be set
       \return reference to itself
     */
-    Vector2D & setLength( const double len )
+    Vector2D & setLength( const double & len )
       {
           double mag = this->r();
           //if ( mag == 0 )
@@ -432,7 +412,7 @@ public:
       \param len new length to be set
       \return new vector that the length is set to 'len'
     */
-    Vector2D setLengthVector( const double len ) const
+    Vector2D setLengthVector( const double & len ) const
       {
           return Vector2D( *this ).setLength( len );
       }
@@ -460,8 +440,8 @@ public:
       \brief rotate this vector with 'deg'
       \param deg rotated angle by double type
       \return reference to itself
-    */
-    Vector2D & rotate( const double deg )
+     */
+    Vector2D & rotate( const double & deg )
       {
           double c = std::cos( deg * AngleDeg::DEG2RAD );
           double s = std::sin( deg * AngleDeg::DEG2RAD );
@@ -473,7 +453,7 @@ public:
       \brief rotate this vector with 'angle'.
       \param angle rotated angle
       \return reference to itself
-    */
+     */
     Vector2D & rotate( const AngleDeg & angle )
       {
           return rotate( angle.degree() );
@@ -483,8 +463,8 @@ public:
       \brief get new vector that is rotated by 'deg'.
       \param deg rotated angle. double type.
       \return new vector rotated by 'deg'
-    */
-    Vector2D rotatedVector( const double deg ) const
+     */
+    Vector2D rotatedVector( const double & deg ) const
       {
           return Vector2D( *this ).rotate( deg );
       }
@@ -493,7 +473,7 @@ public:
       \brief get new vector that is rotated by 'angle'.
       \param angle rotated angle.
       \return new vector rotated by 'angle'
-    */
+     */
     Vector2D rotatedVector( const AngleDeg & angle ) const
       {
           return Vector2D( *this ).rotate( angle.degree() );
@@ -503,7 +483,7 @@ public:
       \brief set vector's angle to 'angle'
       \param dir new angle to be set
       \return reference to itself
-    */
+     */
     Vector2D & setDir( const AngleDeg & dir )
       {
           double radius = this->r();
@@ -563,7 +543,7 @@ public:
       {
           //return dist2( other ) < EPSILON * EPSILON;
           return std::fabs( this->x - other.x ) < EPSILON
-                                                  && std::fabs( this->y - other.y ) < EPSILON;
+              && std::fabs( this->y - other.y ) < EPSILON;
       }
 
     //////////////////////////////////////////////
@@ -577,7 +557,7 @@ public:
     */
     inline
     static
-    Vector2D polar2vector( const double mag,
+    Vector2D polar2vector( const double & mag,
                            const AngleDeg & theta )
       {
           return Vector2D( mag * theta.cos(), mag * theta.sin() );
@@ -591,7 +571,7 @@ public:
     */
     inline
     static
-    Vector2D from_polar( const double mag,
+    Vector2D from_polar( const double & mag,
                          const AngleDeg & theta )
       {
           return Vector2D( mag * theta.cos(), mag * theta.sin() );
@@ -646,7 +626,7 @@ public:
       \return reference to ostream
     */
     std::ostream & printRound( std::ostream & os,
-                               const double prec = 0.1 ) const
+                               const double & prec = 0.1 ) const
       {
           os << '('  << rint( x / prec ) * prec
              << ", " << rint( y / prec ) * prec << ')';
@@ -660,116 +640,175 @@ public:
       \class XCmp
       \brief comparison predicate for X value.
     */
-    struct XCmp {
+    class XCmp
+        : public std::binary_function< Vector2D, Vector2D, bool > {
+    public:
         /*!
           \brief functional operator.
           \param lhs left hand side argument.
           \param rhs right hand side argument.
           \return compared result.
-        */
-        bool operator()( const Vector2D & lhs,
-                         const Vector2D & rhs ) const
+         */
+        result_type operator()( const first_argument_type & lhs,
+                                const second_argument_type & rhs ) const
           {
               return lhs.x < rhs.x;
           }
     };
 
     /*!
-      \struct YCmp
+      \class YCmp
       \brief comparison predicate for Y value.
     */
-    struct YCmp {
+    class YCmp
+        : public std::binary_function< Vector2D, Vector2D, bool > {
+    public:
         /*!
           \brief functional operator.
           \param lhs left hand side argument.
           \param rhs right hand side argument.
           \return compared result.
-        */
-        bool operator()( const Vector2D & lhs,
-                         const Vector2D & rhs ) const
+         */
+        result_type operator()( const first_argument_type & lhs,
+                                const second_argument_type & rhs ) const
           {
               return lhs.y < rhs.y;
           }
     };
 
     /*!
-      \struct AbsXCmp
+      \class AbsXCmp
       \brief comparison predicate for absolute X value.
     */
-    struct AbsXCmp {
+    class AbsXCmp
+        : public std::binary_function< Vector2D, Vector2D, bool > {
+    public:
         /*!
           \brief functional operator.
           \param lhs left hand side argument.
           \param rhs right hand side argument.
           \return compared result.
-        */
-        bool operator()( const Vector2D & lhs,
-                         const Vector2D & rhs ) const
+         */
+        result_type operator()( const first_argument_type & lhs,
+                                const second_argument_type & rhs ) const
           {
               return lhs.absX() < rhs.absX();
           }
     };
 
     /*!
-      \struct AbsYCmp
+      \class AbsYCmp
       \brief comparison predicate for absolute Y value.
     */
-    struct AbsYCmp {
+    class AbsYCmp
+        : public std::binary_function< Vector2D, Vector2D, bool > {
+    public:
         /*!
           \brief functional operator.
           \param lhs left hand side argument.
           \param rhs right hand side argument.
           \return compared result.
-        */
-        bool operator()( const Vector2D & lhs,
-                         const Vector2D & rhs ) const
+         */
+        result_type operator()( const first_argument_type & lhs,
+                                const second_argument_type & rhs ) const
           {
               return lhs.absY() < rhs.absY();
           }
     };
 
     /*!
-      \struct XYCmp
+      \class XYCmp
       \brief comparison predicate for XY value (X -> Y order).
-    */
-    struct XYCmp {
+     */
+    class XYCmp
+        : public std::binary_function< Vector2D, Vector2D, bool > {
+    public:
         /*!
           \brief functional operator.
           \param lhs left hand side argument.
           \param rhs right hand side argument.
           \return compared result.
-        */
-        bool operator()( const Vector2D & lhs,
-                         const Vector2D & rhs ) const
+         */
+        result_type operator()( const first_argument_type & lhs,
+                                const second_argument_type & rhs ) const
           {
               return ( lhs.x < rhs.x
                        ? true
                        : lhs.x > rhs.x
                        ? false
                        : lhs.y < rhs.y );
+              // if ( lhs.x < rhs.x ) return true;
+              // else if ( lhs.x > rhs.x ) return false;
+              // else return lhs.y < rhs.y;
           }
 
     };
 
     /*!
-      \struct YXCmp
+      \class YXCmp
       \brief comparison predicatio for XY value (Y -> X order)
-    */
-    struct YXCmp {
+     */
+    class YXCmp
+        : public std::binary_function< Vector2D, Vector2D, bool > {
+    public:
         /*!
           \brief functional operator.
           \param lhs left hand side argument.
           \param rhs right hand side argument.
           \return compared result.
-        */
-        bool operator()( const Vector2D & lhs,
-                         const Vector2D & rhs ) const
+         */
+        result_type operator()( const first_argument_type & lhs,
+                                const second_argument_type & rhs ) const
           {
               return ( lhs.y < rhs.y
                        || ( lhs.y == rhs.y && lhs.x < rhs.x ) );
           }
     };
 
+    /*!
+      \class Equal
+      \brief check if two vectors are completely same or not.
+     */
+    class Equal
+        : public std::binary_function< Vector2D, Vector2D, bool > {
+    public:
+        /*!
+          \brief functional operator.
+          \param lhs left hand side argument.
+          \param rhs right hand side argument.
+          \return compared result.
+         */
+        result_type operator()( const first_argument_type & lhs,
+                                const second_argument_type & rhs ) const
+          {
+              return lhs.equals( rhs );
+          }
+    };
+
+    //////////////////////////////////////////////
+    // functor for region
+
+    /*!
+      \class IsWithin
+      \brief template predicate for 2D region sign detection.
+     */
+    template < typename REGION >
+    class IsWithin
+        : public std::unary_function< Vector2D, bool > {
+    private:
+        const REGION M_region; //!< considered region.
+    public:
+        //! constructor
+        explicit
+        IsWithin( const REGION & region )
+            : M_region( region )
+          { }
+        //! functional operator
+        result_type operator()( const argument_type & position ) const
+          {
+              return M_region.contains( position );
+          }
+    };
 };
 
 } // end of namespace
@@ -851,7 +890,7 @@ inline
 const
 rcsc::Vector2D
 operator*( const rcsc::Vector2D & lhs,
-           const double rhs )
+           const double & rhs )
 {
     return rcsc::Vector2D( lhs ) *= rhs;
 }
@@ -866,14 +905,14 @@ inline
 const
 rcsc::Vector2D
 operator/( const rcsc::Vector2D & lhs,
-           const double rhs )
+           const double & rhs )
 {
     return rcsc::Vector2D( lhs ) /= rhs;
 }
 
 /*!
   \brief never used
-*/
+ */
 template < typename T >
 bool
 operator<( const rcsc::Vector2D & lhs,
@@ -881,7 +920,7 @@ operator<( const rcsc::Vector2D & lhs,
 
 /*!
   \brief never used
-*/
+ */
 template < typename T >
 bool
 operator<=( const rcsc::Vector2D & lhs,
@@ -889,7 +928,7 @@ operator<=( const rcsc::Vector2D & lhs,
 
 /*!
   \brief never used
-*/
+ */
 template < typename T >
 bool
 operator>( const rcsc::Vector2D & lhs,
@@ -897,15 +936,15 @@ operator>( const rcsc::Vector2D & lhs,
 
 /*!
   \brief never used
-*/
+ */
 template < typename T >
 bool
 operator>=( const rcsc::Vector2D & lhs,
-            const T & rhs );
+           const T & rhs );
 
 /*!
   \brief never used
-*/
+ */
 template < typename T >
 bool
 operator<( const T & lhs,
@@ -914,7 +953,7 @@ operator<( const T & lhs,
 
 /*!
   \brief never used
-*/
+ */
 template < typename T >
 bool
 operator<=(const T & lhs,
@@ -923,7 +962,7 @@ operator<=(const T & lhs,
 
 /*!
   \brief never used
-*/
+ */
 template < typename T >
 bool
 operator>( const T & lhs,
@@ -931,7 +970,7 @@ operator>( const T & lhs,
 
 /*!
   \brief never used
-*/
+ */
 template < typename T >
 bool
 operator>=( const T & lhs,
@@ -939,7 +978,7 @@ operator>=( const T & lhs,
 
 /*!
   \brief never used
-*/
+ */
 template < typename T >
 bool
 operator==( const T & lhs,
@@ -947,7 +986,7 @@ operator==( const T & lhs,
 
 /*!
   \brief never used
-*/
+ */
 template < typename T >
 bool
 operator!=( const T & lhs,

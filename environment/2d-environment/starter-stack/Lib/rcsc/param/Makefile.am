@@ -1,8 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-noinst_LTLIBRARIES = librcsc_param.la
-#lib_LTLIBRARIES = librcsc_param.la
-
+lib_LTLIBRARIES = librcsc_param.la
 librcsc_param_la_SOURCES = \
 	cmd_line_parser.cpp \
 	conf_file_parser.cpp \

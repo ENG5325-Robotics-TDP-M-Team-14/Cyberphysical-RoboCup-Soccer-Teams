@@ -41,7 +41,6 @@
 #include <rcsc/geom/rect_2d.h>
 #include <rcsc/common/logger.h>
 #include <rcsc/common/server_param.h>
-#include <rcsc/common/player_param.h>
 #include <rcsc/common/player_type.h>
 #include <rcsc/game_time.h>
 #include <rcsc/math_util.h>
@@ -52,38 +51,22 @@
 #include <functional>
 #include <fstream>
 
-// #define DEBUG_PROFILE
+#define DEBUG_PROFILE
 // #define DEBUG
-// #define DEBUG_OPPONENT
-// #define DEBUG_PRINT_STATE_CACHE
-// #define DEBUG_PRINT_SEQUENCE
-// #define DEBUG_EVALUATE
-// #define DEBUG_ONE_STEP
-// #define DEBUG_TWO_STEP
+#define DEBUG_EVALUATE
 // #define DEBUG_THREE_STEP
-// #define DEBUG_THREE_STEP_DETAIL
 
 namespace rcsc {
 
-namespace  {
-
-const double NEAR_SIDE_RATE = 0.3;
-const double MID_RATE = 0.5;
-const double FAR_SIDE_RATE = 0.7;
-
-const int STATE_DIVS_NEAR = 12;
-const int STATE_DIVS_MID = 15;
-const int STATE_DIVS_FAR = 20;
-const int NUM_STATE = STATE_DIVS_NEAR + STATE_DIVS_MID + STATE_DIVS_FAR;
-
-const size_t MAX_TABLE_SIZE = 1024;
-
+const double KickTable::NEAR_SIDE_RATE = 0.3;
+const double KickTable::MID_RATE = 0.5;
+const double KickTable::FAR_SIDE_RATE = 0.7;
 
 /*!
- \struct TableSorter
+ \struct TableCmp
  \brief kick path evaluator
 */
-struct PathSorter {
+struct TableCmp {
     /*!
       \brief compare operation function
       \param lhs left hand side variable
@@ -93,7 +76,7 @@ struct PathSorter {
     bool operator()( const KickTable::Path & lhs,
                      const KickTable::Path & rhs )
       {
-          if ( std::fabs( lhs.max_speed_ - rhs.max_speed_ ) < 1.0e-3 )
+          if ( lhs.max_speed_ == rhs.max_speed_ )
           {
               return lhs.power_ < rhs.power_;
           }
@@ -103,10 +86,10 @@ struct PathSorter {
 
 
 /*!
- \struct SequenceSorter
+ \struct Sequence
  \brief kick sequence evaluator
 */
-struct SequenceSorter {
+struct SequenceCmp {
     /*!
       \brief compare operation function
       \param lhs left hand side variable
@@ -122,62 +105,44 @@ struct SequenceSorter {
 
 /*-------------------------------------------------------------------*/
 /*!
-  \brief caclulate the distance of near side sub-target
-  \param player_type calculated PlayerType
-  \return distance from the center of the player
-*/
-inline
+
+ */
 double
-calc_near_dist( const PlayerType & player_type,
-                const double kick_margin_delta = 0.0 )
+KickTable::calc_near_dist( const PlayerType & player_type )
 {
     //       0.3 + 0.6*0.3 + 0.085 = 0.565
     // near: 0.3 + 0.7*0.3 + 0.085 = 0.595
     //       0.3 + 0.8*0.3 + 0.085 = 0.625
-
-    double kmargin = std::min( player_type.kickableMargin(),
-                               player_type.kickableMargin() + kick_margin_delta );
     return bound( player_type.playerSize() + ServerParam::i().ballSize() + 0.1,
                   ( player_type.playerSize()
-                    + ( kmargin * NEAR_SIDE_RATE )
+                    + ( player_type.kickableMargin() * NEAR_SIDE_RATE )
                     + ServerParam::i().ballSize() ),
                   player_type.kickableArea() - 0.2 );
 }
 
 /*-------------------------------------------------------------------*/
 /*!
-  \brief caclulate the distance of middile distance sub-target
-  \param player_type calculated PlayerType
-  \return distance from the center of the player
-*/
-inline
+
+ */
 double
-calc_mid_dist( const PlayerType & player_type,
-               const double kick_margin_delta = 0.0 )
+KickTable::calc_mid_dist( const PlayerType & player_type )
 {
     //      0.3 + 0.6*0.5 + 0.085 = 0.705
     // mid: 0.3 + 0.7*0.5 + 0.085 = 0.735
     //      0.3 + 0.8*0.5 + 0.085 = 0.765
-
-    double kmargin = std::min( player_type.kickableMargin(),
-                               player_type.kickableMargin() + kick_margin_delta );
     return bound( player_type.playerSize() + ServerParam::i().ballSize() + 0.1,
                   ( player_type.playerSize()
-                    + ( kmargin * MID_RATE )
+                    + ( player_type.kickableMargin() * MID_RATE )
                     + ServerParam::i().ballSize() ),
                   player_type.kickableArea() - 0.2 );
 }
 
 /*-------------------------------------------------------------------*/
 /*!
-  \brief caclulate the distance of far side sub-target
-  \param player_type calculated PlayerType
-  \return distance from the center of the player
-*/
-inline
+
+ */
 double
-calc_far_dist( const PlayerType & player_type,
-               const double kick_margin_delta = 0.0 )
+KickTable::calc_far_dist( const PlayerType & player_type )
 {
     //      0.3 + 0.6*0.7 + 0.085 = 0.865 (=0.985-0.12 -> 0.785)
     // far: 0.3 + 0.7*0.7 + 0.085 = 0.875 (=1.085-0.21)
@@ -191,29 +156,12 @@ calc_far_dist( const PlayerType & player_type,
     // far: 0.3 + 0.7*0.675 + 0.085 = 0.8575 (=1.085-0.2275)
     //      0.3 + 0.8*0.675 + 0.085 = 0.925  (=1.185-0.26)
 
-    double kmargin = std::min( player_type.kickableMargin(),
-                               player_type.kickableMargin() + kick_margin_delta );
     return bound( player_type.playerSize() + ServerParam::i().ballSize() + 0.1,
                   ( player_type.playerSize()
-                    + ( kmargin * FAR_SIDE_RATE )
+                    + ( player_type.kickableMargin() * FAR_SIDE_RATE )
                     + ServerParam::i().ballSize() ),
                   player_type.kickableArea() - 0.2 );
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
- */
-bool
-is_risky_flag( const int flag )
-{
-    return ( flag & KickTable::NEXT_TACKLABLE
-             || flag & KickTable::NEXT_KICKABLE
-             || flag & KickTable::TACKLABLE
-             || flag & KickTable::MAYBE_RELEASE_INTERFERE
-             || flag & KickTable::KICK_MISS_POSSIBILITY );
-}
-
+                  //player_type.kickableArea() - 0.22 );
 }
 
 /*-------------------------------------------------------------------*/
@@ -222,7 +170,7 @@ is_risky_flag( const int flag )
  */
 Vector2D
 KickTable::calc_max_velocity( const AngleDeg & target_angle,
-                              const double krate,
+                              const double & krate,
                               const Vector2D & ball_vel )
 {
     const double ball_speed_max2 = std::pow( ServerParam::i().ballSpeedMax(), 2 );
@@ -305,10 +253,9 @@ KickTable::instance()
 
  */
 KickTable::KickTable()
-    : M_player_size( 0.0 ),
-      M_kickable_margin( 0.0 ),
-      M_ball_size( 0.0 ),
-      M_use_risky_node( false )
+    : M_player_size( 0.0 )
+    , M_kickable_margin( 0.0 )
+    , M_ball_size( 0.0 )
 {
     for ( int i = 0; i < MAX_DEPTH; ++ i )
     {
@@ -340,7 +287,7 @@ KickTable::createTables()
 
     createStateList( player_type );
 
-    Timer timer;
+    MSecTimer timer;
 
     const double angle_step = 360.0 / DEST_DIR_DIVS;
     AngleDeg angle = -180.0;
@@ -351,33 +298,37 @@ KickTable::createTables()
     }
 
     dlog.addText( Logger::KICK,
-                  "(KickTable::createTables) elapsed %f [ms]",
+                  __FILE__": createTables() elapsed %.3f [ms]",
                   timer.elapsedReal() );
 
 #if 0
     const double kprate = ServerParam::i().kickPowerRate();
-    for ( const State & s : M_state_list )
+    for ( std::vector< State >::iterator s = M_state_list.begin();
+          s != M_state_list.end();
+          ++s )
     {
         std::cout << "  state "
-                  << " index=" << s.index_
-                  << " angle="  << s.pos_.th()
-                  << " dist="  << s.pos_.r()
-                  << " pos=" << s.pos_
-                  << " kick_rate=" << s.kick_rate_
-                  << " (" << s.kick_rate_ / kprate * 100.0 << "%)"
+                  << " index=" << s->index_
+                  << " angle="  << s->pos_.th()
+                  << " dist="  << s->pos_.r()
+                  << " pos=" << s->pos_
+                  << " kick_rate=" << s->kick_rate_
+                  << " (" << s->kick_rate_ / kprate * 100.0 << "%)"
                   << std::endl;
     }
 
     for ( int i = 0; i < DEST_DIR_DIVS; ++i, angle += angle_step )
     {
         std::cout << "create table " << i << " : angle="  << angle << std::endl;
-        for ( const Path & p : M_tables[i] )
+        for ( std::vector< Path >::iterator p = M_tables[i].begin();
+              p != M_tables[i].end();
+              ++p )
         {
             std::cout << "  table "
-                      << " origin=" << p.origin_
-                      << " dest=" << p.dest_
-                      << " max_speed=" << p.max_speed_
-                      << " power=" << p.power_
+                      << " origin=" << p->origin_
+                      << " dest=" << p->dest_
+                      << " max_speed=" << p->max_speed_
+                      << " power=" << p->power_
                       << std::endl;
         }
     }
@@ -572,11 +523,13 @@ KickTable::write( const std::string & file_path )
     //
     // write state list
     //
-    for ( const State & s : M_state_list )
+    for ( std::vector< State >::const_iterator s = M_state_list.begin();
+          s != M_state_list.end();
+          ++s )
     {
-        fout << s.index_ << ' '
-             << s.pos_.x << ' ' << s.pos_.y << ' '
-             << s.kick_rate_ << '\n';
+        fout << s->index_ << ' '
+             << s->pos_.x << ' ' << s->pos_.y << ' '
+             << s->kick_rate_ << '\n';
     }
     std::cerr << std::flush;
 
@@ -584,12 +537,14 @@ KickTable::write( const std::string & file_path )
     {
         fout << M_tables[dir].size() << '\n';
 
-        for ( const Path & t : M_tables[dir] )
+        for ( std::vector< Path >::const_iterator t = M_tables[dir].begin();
+              t != M_tables[dir].end();
+              ++t )
         {
-            fout << t.origin_ << ' '
-                 << t.dest_ << ' '
-                 << t.max_speed_ << ' '
-                 << t.power_ << '\n';
+            fout << t->origin_ << ' '
+                 << t->dest_ << ' '
+                 << t->max_speed_ << ' '
+                 << t->power_ << '\n';
         }
     }
 
@@ -606,9 +561,9 @@ KickTable::write( const std::string & file_path )
 void
 KickTable::createStateList( const PlayerType & player_type )
 {
-    const double near_dist = calc_near_dist( player_type, PlayerParam::i().kickableMarginDeltaMin() );
-    const double mid_dist = calc_mid_dist( player_type, PlayerParam::i().kickableMarginDeltaMin() );
-    const double far_dist = calc_far_dist( player_type, PlayerParam::i().kickableMarginDeltaMin() );
+    const double near_dist = calc_near_dist( player_type );
+    const double mid_dist = calc_mid_dist( player_type );
+    const double far_dist = calc_far_dist( player_type );
 
     const double near_angle_step = 360.0 / STATE_DIVS_NEAR;
     const double mid_angle_step = 360.0 / STATE_DIVS_MID;
@@ -634,7 +589,7 @@ KickTable::createStateList( const PlayerType & player_type )
         AngleDeg angle = -180.0 + ( near_angle_step * near );
         Vector2D pos = Vector2D::polar2vector( near_dist, angle );
         double krate = player_type.kickRate( near_dist, angle.degree() );
-        M_state_list.emplace_back( index, near_dist, pos, krate );
+        M_state_list.push_back( State( index, near_dist, pos, krate ) );
         ++index;
     }
 
@@ -643,7 +598,7 @@ KickTable::createStateList( const PlayerType & player_type )
         AngleDeg angle = -180.0 + ( mid_angle_step * mid );
         Vector2D pos = Vector2D::polar2vector( mid_dist, angle );
         double krate = player_type.kickRate( mid_dist, angle.degree() );
-        M_state_list.emplace_back( index, mid_dist, pos, krate );
+        M_state_list.push_back( State( index, mid_dist, pos, krate ) );
         ++index;
     }
 
@@ -652,16 +607,18 @@ KickTable::createStateList( const PlayerType & player_type )
         AngleDeg angle = -180.0 + ( far_angle_step * far );
         Vector2D pos = Vector2D::polar2vector( far_dist, angle );
         double krate = player_type.kickRate( far_dist, angle.degree() );
-        M_state_list.emplace_back( index, far_dist, pos, krate );
+        M_state_list.push_back( State( index, far_dist, pos, krate ) );
         ++index;
     }
 
 #if 0
-    for ( const State & s : M_state_list )
+    for ( std::vector< State >::const_iterator s = M_state_list.begin();
+          s != M_state_list.end();
+          ++s )
     {
-        std::cerr << s.index_ << ' '
-                  << s.pos_.x << ' ' << s.pos_.y << ' '
-                  << s.kick_rate_ << '\n';
+        std::cerr << s->index_ << ' '
+                  << s->pos_.x << ' ' << s->pos_.y << ' '
+                  << s->kick_rate_ << '\n';
     }
     std::cerr << std::flush;
 #endif
@@ -698,8 +655,7 @@ KickTable::createTable( const AngleDeg & angle,
         }
     }
 
-    std::sort( table.begin(), table.end(), PathSorter() );
-
+    std::sort( table.begin(), table.end(), TableCmp() );
     if ( table.size() > MAX_TABLE_SIZE )
     {
         table.erase( table.begin() + MAX_TABLE_SIZE,
@@ -727,14 +683,14 @@ KickTable::updateState( const WorldModel & world )
     // update current state
     //
 #ifdef DEBUG_PROFILE
-    Timer timer;
+    MSecTimer timer;
 #endif
 
     createStateCache( world );
 
 #ifdef DEBUG_PROFILE
     dlog.addText( Logger::KICK,
-                  "(KickTable::updateState) KickTable_elapsed %f [ms]",
+                  __FILE__": updateState() elapsed %.3f [ms]",
                   timer.elapsedReal() );
 #endif
 }
@@ -748,7 +704,7 @@ KickTable::createStateCache( const WorldModel & world )
 {
 #ifdef DEBUG
     dlog.addText( Logger::KICK,
-                  "(KickTable::createStateCache)" );
+                  __FILE__": createStateCache()" );
 #endif
 
     const ServerParam & param = ServerParam::i();
@@ -821,7 +777,7 @@ KickTable::createStateCache( const WorldModel & world )
             pos.setLength( near_dist );
             pos += self_pos;
 
-            M_state_cache[i].emplace_back( index, near_dist, pos, krate );
+            M_state_cache[i].push_back( State( index, near_dist, pos, krate ) );
             checkInterfereAt( world, i + 1, M_state_cache[i].back() );
             if ( ! pitch.contains( pos ) )
             {
@@ -846,7 +802,7 @@ KickTable::createStateCache( const WorldModel & world )
             pos.setLength( mid_dist );
             pos += self_pos;
 
-            M_state_cache[i].emplace_back( index, mid_dist, pos, krate );
+            M_state_cache[i].push_back( State( index, mid_dist, pos, krate ) );
             checkInterfereAt( world, i + 1, M_state_cache[i].back() );
             if ( ! pitch.contains( pos ) )
             {
@@ -871,7 +827,7 @@ KickTable::createStateCache( const WorldModel & world )
             pos.setLength( far_dist );
             pos += self_pos;
 
-            M_state_cache[i].emplace_back( index, far_dist, pos, krate );
+            M_state_cache[i].push_back( State( index, far_dist, pos, krate ) );
             checkInterfereAt( world, i + 1, M_state_cache[i].back() );
             if ( ! pitch.contains( pos ) )
             {
@@ -897,11 +853,11 @@ KickTable::createStateCache( const WorldModel & world )
 void
 KickTable::checkCollisionAfterRelease( const WorldModel & world,
                                        const Vector2D & target_point,
-                                       const double first_speed )
+                                       const double & first_speed )
 {
 #ifdef DEBUG
     dlog.addText( Logger::KICK,
-                  "(KickTable::checkCollisionAfterRelease)" );
+                  __FILE__": checkCollisionAfterRelease()" );
 #endif
 
     const PlayerType & self_type = world.self().playerType();
@@ -948,9 +904,12 @@ KickTable::checkCollisionAfterRelease( const WorldModel & world,
         self_pos += self_vel;
         self_vel *= self_type.playerDecay();
 
-        for ( State & state : M_state_cache[i] )
+        const std::vector< State >::iterator end = M_state_cache[i].end();
+        for ( std::vector< State >::iterator it = M_state_cache[i].begin();
+              it != end;
+              ++it )
         {
-            Vector2D release_pos = ( target_point - state.pos_ );
+            Vector2D release_pos = ( target_point - it->pos_ );
             release_pos.setLength( first_speed );
 
             if ( self_pos.dist2( release_pos ) < collide_dist2 )
@@ -960,12 +919,12 @@ KickTable::checkCollisionAfterRelease( const WorldModel & world,
                               "__ collision cached_state (%d) index=%d state_pos=(%.2f %.2f)"
                               " release_pos=(%.2f %.2f) dist=%.3f",
                               i + 1,
-                              state.index_,
-                              state.pos_.x, state.pos_.y,
+                              it->index_,
+                              it->pos_.x, it->pos_.y,
                               release_pos.x, release_pos.y,
                               self_pos.dist( release_pos ) );
 #endif
-                state.flag_ |= SELF_COLLISION;
+                it->flag_ |= SELF_COLLISION;
             }
             else
             {
@@ -973,10 +932,10 @@ KickTable::checkCollisionAfterRelease( const WorldModel & world,
                 dlog.addText( Logger::KICK,
                               "__ no collision cached_state (%d) index=%d (%.2f %.2f)",
                               i + 1,
-                              state.index_,
-                              state.pos_.x, state.pos_.y );
+                              it->index_,
+                              it->pos_.x, it->pos_.y );
 #endif
-                state.flag_ &= ~SELF_COLLISION;
+                it->flag_ &= ~SELF_COLLISION;
             }
         }
     }
@@ -988,42 +947,42 @@ KickTable::checkCollisionAfterRelease( const WorldModel & world,
  */
 void
 KickTable::checkInterfereAt( const WorldModel & world,
-                             const int step,
+                             const int /*cycle*/,
                              State & state )
 {
     static const Rect2D penalty_area( Vector2D( ServerParam::i().theirPenaltyAreaLineX(),
                                                 - ServerParam::i().penaltyAreaHalfWidth() ),
                                       Size2D( ServerParam::i().penaltyAreaLength(),
                                               ServerParam::i().penaltyAreaWidth() ) );
-#ifndef DEBUG_OPPONENT
-    (void)step;
-#endif
 
     int flag = 0x0000;
 
-    for ( const PlayerObject * o : world.opponentsFromBall() )
+    const PlayerPtrCont::const_iterator end = world.opponentsFromBall().end();
+    for ( PlayerPtrCont::const_iterator o = world.opponentsFromBall().begin();
+          o != end;
+          ++o )
     {
-        if ( o->posCount() >= 8 ) continue;
-        if ( o->isGhost() ) continue;
-        if ( o->distFromBall() > 10.0 ) break;
+        if ( (*o)->posCount() >= 8 ) continue;
+        if ( (*o)->isGhost() ) continue;
+        if ( (*o)->distFromBall() > 10.0 ) break;
 
-        const Vector2D opp_next = o->pos() + o->vel();
+        const Vector2D opp_next = (*o)->pos() + (*o)->vel();
         const double opp_dist = opp_next.dist( state.pos_ );
 
-        if ( o->isTackling() )
+        if ( (*o)->isTackling() )
         {
-            if ( opp_dist < ( o->playerTypePtr()->playerSize()
+            if ( opp_dist < ( (*o)->playerTypePtr()->playerSize()
                               + ServerParam::i().ballSize() )
                  )
             {
                 flag |= KICKABLE;
-#ifdef DEBUG_OPPONENT
+#ifdef DEBUG
                 dlog.addText( Logger::KICK,
-                              "%d: state %d (%.2f %.2f) opp=%d(%.2f %.2f) is tackling but may collide",
-                              step, state.index_,
+                              "____ state %d (%.2f %.2f) opp=%d(%.1f %.1f) is tackling but may be collided",
+                              state.index_,
                               state.pos_.x, state.pos_.y,
-                              o->unum(),
-                              o->pos().x, o->pos().y );
+                              (*o)->unum(),
+                              (*o)->pos().x, (*o)->pos().y );
 #endif
                 break;
             }
@@ -1031,27 +990,27 @@ KickTable::checkInterfereAt( const WorldModel & world,
             continue;
         }
 
-        const double control_area = ( ( o->goalie()
-                                        && penalty_area.contains( o->pos() )
+        const double control_area = ( ( (*o)->goalie()
+                                        && penalty_area.contains( (*o)->pos() )
                                         && penalty_area.contains( state.pos_ ) )
                                       ? ServerParam::i().catchableArea()
-                                      : o->playerTypePtr()->kickableArea() );
+                                      : (*o)->playerTypePtr()->kickableArea() );
         //
         // check kick possibility
         //
 
-        if ( ! o->isGhost()
-             && o->posCount() <= 2
+        if ( ! (*o)->isGhost()
+             && (*o)->posCount() <= 2
              && opp_dist < control_area + 0.15 )
         {
             flag |= KICKABLE;
-#ifdef DEBUG_OPPONENT
+#ifdef DEBUG
             dlog.addText( Logger::KICK,
-                          "%d: state %d (%.2f %.2f) kickable opp %d(%.2f %.2f)",
-                          step, state.index_,
+                          "____ state %d (%.2f %.2f) kickable opp %d(%.1f %.1f)",
+                          state.index_,
                           state.pos_.x, state.pos_.y,
-                          o->unum(),
-                          o->pos().x, o->pos().y );
+                          (*o)->unum(),
+                          (*o)->pos().x, (*o)->pos().y );
 #endif
             break;
         }
@@ -1059,8 +1018,8 @@ KickTable::checkInterfereAt( const WorldModel & world,
         //
         //
         //
-        const AngleDeg opp_body =  ( o->bodyCount() <= 1
-                                     ? o->body()
+        const AngleDeg opp_body =  ( (*o)->bodyCount() <= 1
+                                     ? (*o)->body()
                                      : ( state.pos_ - opp_next ).th() );
         Vector2D player_2_pos = state.pos_ - opp_next;
         player_2_pos.rotate( - opp_body );
@@ -1075,20 +1034,20 @@ KickTable::checkInterfereAt( const WorldModel & world,
             if ( tackle_dist > 1.0e-5 )
             {
                 double tackle_prob = ( std::pow( player_2_pos.absX() / tackle_dist,
-                                                 ServerParam::i().foulExponent() )
+                                                 ServerParam::i().tackleExponent() )
                                        + std::pow( player_2_pos.absY() / ServerParam::i().tackleWidth(),
-                                                   ServerParam::i().foulExponent() ) );
+                                                   ServerParam::i().tackleExponent() ) );
                 if ( tackle_prob < 1.0
                      && 1.0 - tackle_prob > 0.7 ) // success probability
                 {
                     flag |= TACKLABLE;
-#ifdef DEBUG_OPPONENT
+#ifdef DEBUG
                     dlog.addText( Logger::KICK,
-                                  "%d: state %d (%.2f %.2f) tackle opp %d(%.1f %.1f)",
-                                  step, state.index_,
+                                  "____ state %d (%.2f %.2f) tackle opp %d(%.1f %.1f)",
+                                  state.index_,
                                   state.pos_.x, state.pos_.y,
-                                  o->unum(),
-                                  o->pos().x, o->pos().y );
+                                  (*o)->unum(),
+                                  (*o)->pos().x, (*o)->pos().y );
 #endif
                 }
             }
@@ -1096,7 +1055,7 @@ KickTable::checkInterfereAt( const WorldModel & world,
 
         // check kick or tackle possibility after dash
 
-        const PlayerType * player_type = o->playerTypePtr();
+        const PlayerType * player_type = (*o)->playerTypePtr();
         const double max_accel = ( ServerParam::i().maxDashPower()
                                    * player_type->dashPowerRate()
                                    * player_type->effortMax() );
@@ -1108,26 +1067,26 @@ KickTable::checkInterfereAt( const WorldModel & world,
              )
         {
             flag |= NEXT_KICKABLE;
-#ifdef DEBUG_OPPONENT
+#ifdef DEBUG
             dlog.addText( Logger::KICK,
-                          "%d: state %d (%.2f %.2f) next kickable opp %d(%.1f %.1f)",
-                          step, state.index_,
+                          "____ state %d (%.2f %.2f) next kickable opp %d(%.1f %.1f)",
+                          state.index_,
                           state.pos_.x, state.pos_.y,
-                          o->unum(),
-                          o->pos().x, o->pos().y );
+                          (*o)->unum(),
+                          (*o)->pos().x, (*o)->pos().y );
 #endif
         }
         else if ( player_2_pos.absY() < ServerParam::i().tackleWidth() * 0.7
                   && player_2_pos.x > 0.0
                   && player_2_pos.x - max_accel < ServerParam::i().tackleDist() - 0.3 )
         {
-#ifdef DEBUG_OPPONENT
+#ifdef DEBUG
             dlog.addText( Logger::KICK,
-                          "%d: state %d (%.2f %.2f) next tackle opp %d(%.1f %.1f)",
-                          step, state.index_,
+                          "____ state %d (%.2f %.2f) next tackle opp %d(%.1f %.1f)",
+                          state.index_,
                           state.pos_.x, state.pos_.y,
-                          o->unum(),
-                          o->pos().x, o->pos().y );
+                          (*o)->unum(),
+                          (*o)->pos().x, (*o)->pos().y );
 #endif
             flag |= NEXT_TACKLABLE;
         }
@@ -1143,18 +1102,21 @@ KickTable::checkInterfereAt( const WorldModel & world,
 void
 KickTable::checkInterfereAfterRelease( const WorldModel & world,
                                        const Vector2D & target_point,
-                                       const double first_speed )
+                                       const double & first_speed )
 {
     checkInterfereAfterRelease( world, target_point, first_speed, 1, M_current_state );
 
     for ( int i = 0; i < MAX_DEPTH; ++i )
     {
-        for ( State & state : M_state_cache[i] )
+        const std::vector< State >::iterator end = M_state_cache[i].end();
+        for ( std::vector< State >::iterator state = M_state_cache[i].begin();
+              state != end;
+              ++state )
         {
-            state.flag_ &= ~RELEASE_INTERFERE;
-            state.flag_ &= ~MAYBE_RELEASE_INTERFERE;
+            state->flag_ &= ~RELEASE_INTERFERE;
+            state->flag_ &= ~MAYBE_RELEASE_INTERFERE;
 
-            checkInterfereAfterRelease( world, target_point, first_speed, i + 2, state );
+            checkInterfereAfterRelease( world, target_point, first_speed, i + 2, *state );
         }
     }
 }
@@ -1166,7 +1128,7 @@ KickTable::checkInterfereAfterRelease( const WorldModel & world,
 void
 KickTable::checkInterfereAfterRelease( const WorldModel & world,
                                        const Vector2D & target_point,
-                                       const double first_speed,
+                                       const double & first_speed,
                                        const int cycle,
                                        State & state )
 {
@@ -1188,21 +1150,24 @@ KickTable::checkInterfereAfterRelease( const WorldModel & world,
                   ball_pos.x, ball_pos.y );
 #endif
 
-    for ( const PlayerObject * o : world.opponentsFromBall() )
+    const PlayerPtrCont::const_iterator o_end = world.opponentsFromBall().end();
+    for ( PlayerPtrCont::const_iterator o = world.opponentsFromBall().begin();
+          o != o_end;
+          ++o )
     {
-        if ( o->posCount() >= 8 ) continue;
-        if ( o->isGhost() ) continue;
-        if ( o->distFromBall() > 10.0 ) break;
+        if ( (*o)->posCount() >= 8 ) continue;
+        if ( (*o)->isGhost() ) continue;
+        if ( (*o)->distFromBall() > 10.0 ) break;
 
-        Vector2D opp_pos = o->inertiaPoint( cycle );
+        Vector2D opp_pos = (*o)->inertiaPoint( cycle );
         if ( ! opp_pos.isValid() )
         {
-            opp_pos = o->pos() + o->vel();
+            opp_pos = (*o)->pos() + (*o)->vel();
         }
 
-        if ( o->isTackling() )
+        if ( (*o)->isTackling() )
         {
-            if ( opp_pos.dist( ball_pos ) < ( o->playerTypePtr()->playerSize()
+            if ( opp_pos.dist( ball_pos ) < ( (*o)->playerTypePtr()->playerSize()
                                               + ServerParam::i().ballSize() )
                  )
             {
@@ -1214,19 +1179,19 @@ KickTable::checkInterfereAfterRelease( const WorldModel & world,
                               cycle,
                               state.index_,
                               state.pos_.x, state.pos_.y,
-                              o->unum(),
-                              o->pos().x, o->pos().y );
+                              (*o)->unum(),
+                              (*o)->pos().x, (*o)->pos().y );
 #endif
             }
 
             continue;
         }
 
-        double control_area = ( ( o->goalie()
+        double control_area = ( ( (*o)->goalie()
                                   && penalty_area.contains( opp_pos )
                                   && penalty_area.contains( ball_pos ) )
                                 ? ServerParam::i().catchableArea()
-                                : o->playerTypePtr()->kickableArea() );
+                                : (*o)->playerTypePtr()->kickableArea() );
         control_area += 0.1;
         double control_area2 = std::pow( control_area, 2 );
 
@@ -1248,15 +1213,15 @@ KickTable::checkInterfereAfterRelease( const WorldModel & world,
                           cycle,
                           state.index_,
                           state.pos_.x, state.pos_.y,
-                          o->unum(),
-                          o->pos().x, o->pos().y );
+                          (*o)->unum(),
+                          (*o)->pos().x, (*o)->pos().y );
 #endif
         }
 #if 1
         else //if ( cycle <= 1 )
         {
-            const AngleDeg opp_body =  ( o->bodyCount() <= 1
-                                     ? o->body()
+            const AngleDeg opp_body =  ( (*o)->bodyCount() <= 1
+                                     ? (*o)->body()
                                      : ( ball_pos - opp_pos ).th() );
             Vector2D player_2_pos = ball_pos - opp_pos;
             player_2_pos.rotate( - opp_body );
@@ -1282,16 +1247,16 @@ KickTable::checkInterfereAfterRelease( const WorldModel & world,
                                       cycle,
                                       state.index_,
                                       state.pos_.x, state.pos_.y,
-                                      o->unum(),
-                                      o->pos().x, o->pos().y );
+                                      (*o)->unum(),
+                                      (*o)->pos().x, (*o)->pos().y );
 #endif
                     }
                 }
             }
 
-            //if ( o->bodyCount() <= 1 )
+            //if ( (*o)->bodyCount() <= 1 )
             {
-                const PlayerType * player_type = o->playerTypePtr();
+                const PlayerType * player_type = (*o)->playerTypePtr();
                 const double max_accel
                     = ServerParam::i().maxDashPower()
                     * player_type->dashPowerRate()
@@ -1312,8 +1277,8 @@ KickTable::checkInterfereAfterRelease( const WorldModel & world,
                                   cycle,
                                   state.index_,
                                   state.pos_.x, state.pos_.y,
-                                  o->unum(),
-                                  o->pos().x, o->pos().y );
+                                  (*o)->unum(),
+                                  (*o)->pos().x, (*o)->pos().y );
 #endif
                 }
                 else if ( player_2_pos.absY() < ServerParam::i().tackleWidth() * 0.7
@@ -1327,8 +1292,8 @@ KickTable::checkInterfereAfterRelease( const WorldModel & world,
                                   cycle,
                                   state.index_,
                                   state.pos_.x, state.pos_.y,
-                                  o->unum(),
-                                  o->pos().x, o->pos().y );
+                                  (*o)->unum(),
+                                  (*o)->pos().x, (*o)->pos().y );
 #endif
                 }
             }
@@ -1344,11 +1309,11 @@ KickTable::checkInterfereAfterRelease( const WorldModel & world,
 bool
 KickTable::simulateOneStep( const WorldModel & world,
                             const Vector2D & target_point,
-                            const double first_speed )
+                            const double & first_speed )
 {
     if ( M_current_state.flag_ & SELF_COLLISION )
     {
-#ifdef DEBUG_ONE_STEP
+#ifdef DEBUG
         dlog.addText( Logger::KICK,
                       "xx__ 1 step: self collision" );
 #endif
@@ -1357,7 +1322,7 @@ KickTable::simulateOneStep( const WorldModel & world,
 
     if ( M_current_state.flag_ & RELEASE_INTERFERE )
     {
-#ifdef DEBUG_ONE_STEP
+#ifdef DEBUG
         dlog.addText( Logger::KICK,
                       "xx__ 1 step: opponent can interfere after release" );
 #endif
@@ -1373,7 +1338,7 @@ KickTable::simulateOneStep( const WorldModel & world,
     double accel_r = accel.r();
     if ( accel_r > current_max_accel )
     {
-#ifdef DEBUG_ONE_STEP
+#ifdef DEBUG
         dlog.addText( Logger::KICK,
                       "xx__ 1 step: failed. max_vel=required_accel=%f > max_accel=%f",
                       accel_r, current_max_accel );
@@ -1383,7 +1348,6 @@ KickTable::simulateOneStep( const WorldModel & world,
                                               world.ball().vel() );
         accel = max_vel - world.ball().vel();
         M_candidates.push_back( Sequence() );
-        M_candidates.back().index_ = 0;
         M_candidates.back().flag_ = M_current_state.flag_;
         M_candidates.back().pos_list_.push_back( world.ball().pos() + max_vel );
         M_candidates.back().speed_ = max_vel.r();
@@ -1392,12 +1356,11 @@ KickTable::simulateOneStep( const WorldModel & world,
     }
 
     M_candidates.push_back( Sequence() );
-    M_candidates.back().index_ = 0;
     M_candidates.back().flag_ = M_current_state.flag_;
     M_candidates.back().pos_list_.push_back( world.ball().pos() + target_vel );
     M_candidates.back().speed_ = first_speed;
     M_candidates.back().power_ = accel_r / M_current_state.kick_rate_;
-#ifdef DEBUG_ONE_STEP
+#if 1
     dlog.addText( Logger::KICK,
                   "ok__ 1 step: target_vel=(%.2f %.2f)%.3f required_accel=%.3f < max_accel=%.3f"
                   " kick_rate=%f power=%.1f",
@@ -1418,7 +1381,7 @@ KickTable::simulateOneStep( const WorldModel & world,
 bool
 KickTable::simulateTwoStep( const WorldModel & world,
                             const Vector2D & target_point,
-                            const double first_speed )
+                            const double & first_speed )
 {
     static const double max_power = ServerParam::i().maxPower();
     static const double accel_max = ServerParam::i().ballAccelMax();
@@ -1426,7 +1389,7 @@ KickTable::simulateTwoStep( const WorldModel & world,
 
     const PlayerType & self_type = world.self().playerType();
     const double current_max_accel = std::min( M_current_state.kick_rate_ * max_power, accel_max );
-
+#if 1
     const ServerParam & param = ServerParam::i();
     const double my_kickable_area = self_type.kickableArea();
 
@@ -1442,60 +1405,57 @@ KickTable::simulateTwoStep( const WorldModel & world,
     const double current_speed_rate
         = 0.5 + 0.5 * ( world.ball().vel().r()
                         / ( param.ballSpeedMax() * param.ballDecay() ) );
+#endif
+    const Vector2D my_final_pos
+        = world.self().pos()
+        + world.self().vel()
+        + world.self().vel() * self_type.playerDecay();
 
     int success_count = 0;
     double max_speed2 = 0.0;
-    int count = 1;
 
-    for ( int i = 0; i < NUM_STATE; ++i, ++count )
+    for ( int i = 0; i < NUM_STATE; ++i )
     {
         const State & state = M_state_cache[0][i];
 
         if ( state.flag_ & OUT_OF_PITCH )
         {
-#ifdef DEBUG_TWO_STEP
+#ifdef DEBUG
             dlog.addText( Logger::KICK,
-                          "%d: xx__ 2 step: skip. out of pitch. state_pos=(%.2f %.2f)",
-                          count, state.pos_.x, state.pos_.y );
+                          "xx__ 2 step: skip. out of pitch. state_pos=(%.2f %.2f)",
+                          state.pos_.x, state.pos_.y );
 #endif
             continue;
         }
 
         if ( state.flag_ & KICKABLE )
         {
-#ifdef DEBUG_TWO_STEP
+#ifdef DEBUG
             dlog.addText( Logger::KICK,
-                          "%d: xx__ 2 step: skip. exist kicable opp. state_pos=(%.2f %.2f)",
-                          count, state.pos_.x, state.pos_.y );
+                          "xx__ 2 step: skip. exist kicable opp. state_pos=(%.2f %.2f)",
+                          state.pos_.x, state.pos_.y );
 #endif
             continue;
         }
 
         if ( state.flag_ & SELF_COLLISION )
         {
-#ifdef DEBUG_TWO_STEP
+#ifdef DEBUG
             dlog.addText( Logger::KICK,
-                          "%d: xx__ 2 step: skip. self collision. state_pos=(%.2f %.2f)",
-                          count, state.pos_.x, state.pos_.y );
+                          "xx__ 2 step: skip. self collision. state_pos=(%.2f %.2f)",
+                          state.pos_.x, state.pos_.y );
 #endif
             continue;
         }
 
         if ( state.flag_ & RELEASE_INTERFERE )
         {
-#ifdef DEBUG_TWO_STEP
+#ifdef DEBUG
             dlog.addText( Logger::KICK,
-                          "%d: xx__ 2 step: interfere after release. state_pos=(%.2f %.2f)",
-                          count, state.pos_.x, state.pos_.y );
+                          "xx__ 2 step: interfere after release. state_pos=(%.2f %.2f)",
+                          state.pos_.x, state.pos_.y );
 #endif
-            //return false;
-            continue;
-        }
-
-        if ( ! M_use_risky_node
-             && is_risky_flag( state.flag_ ) )
-        {
-            continue;
+            return false;
         }
 
         int kick_miss_flag = SAFETY;
@@ -1507,13 +1467,14 @@ KickTable::simulateTwoStep( const WorldModel & world,
 
         if ( accel_r > current_max_accel )
         {
-#ifdef DEBUG_TWO_STEP
+#ifdef DEBUG
             dlog.addText( Logger::KICK,
-                          "%d: xx__ 2 step: failed(1) required_accel=%.3f > max_accel=%.3f",
-                          count, accel_r, current_max_accel );
+                          "xx__ 2 step: failed(1) required_accel=%.3f > max_accel=%.3f",
+                          accel_r, current_max_accel );
 #endif
             continue;
         }
+#if 1
         {
             double kick_power = accel_r / world.self().kickRate();
             double ball_noise = vel.r() * param.ballRand();
@@ -1524,24 +1485,20 @@ KickTable::simulateTwoStep( const WorldModel & world,
             if ( ( my_noise + ball_noise + max_kick_rand ) //* 0.9
                  > my_kickable_area - state.dist_ - 0.05 ) //0.1 )
             {
-#ifdef DEBUG_TWO_STEP
+#ifdef DEBUG
                 dlog.addText( Logger::KICK,
-                              "%d: xx__ 2 step: failed. buffer is not safety. power=%.3f"
+                              "xx__ 2 step: failed. buffer is not safety. power=%.3f"
                               " my_kickable=%.3f state_dist=%.3f,"
                               " noise=%f(my_noise=%f ball_noise=%f kick_rand=%f)",
-                              count, kick_power,
+                              kick_power,
                               my_kickable_area, state.dist_,
                               ( my_noise + ball_noise + max_kick_rand ) * 0.9,
                               my_noise, ball_noise, max_kick_rand );
 #endif
                 kick_miss_flag |= KICK_MISS_POSSIBILITY;
-                // if ( ! M_use_risky_node )
-                // {
-                //     continue;
-                // }
             }
         }
-
+#endif
         vel *= ball_decay;
 
         accel = target_vel - vel;
@@ -1549,10 +1506,10 @@ KickTable::simulateTwoStep( const WorldModel & world,
 
         if ( accel_r > std::min( state.kick_rate_ * max_power, accel_max ) )
         {
-#ifdef DEBUG_TWO_STEP
+#ifdef DEBUG
             dlog.addText( Logger::KICK,
-                          "%d: xx__ 2step: failed(2) required_accel=%.3f > max_accel=%.3f",
-                          count, accel_r, std::min( state.kick_rate_ * max_power, accel_max ) );
+                          "xx__ 2step: failed(2) required_accel=%.3f > max_accel=%.3f",
+                          accel_r, std::min( state.kick_rate_ * max_power, accel_max ) );
 #endif
             if ( success_count == 0 )
             {
@@ -1569,7 +1526,6 @@ KickTable::simulateTwoStep( const WorldModel & world,
                     max_speed2 = d2;
                     accel = max_vel - vel;
 
-                    M_candidates.back().index_ = 100 + count;
                     M_candidates.back().flag_ = ( ( M_current_state.flag_ & ~RELEASE_INTERFERE )
                                                   | state.flag_ );
                     M_candidates.back().pos_list_.clear();
@@ -1577,10 +1533,10 @@ KickTable::simulateTwoStep( const WorldModel & world,
                     M_candidates.back().pos_list_.push_back( state.pos_ + max_vel );
                     M_candidates.back().speed_ = std::sqrt( max_speed2 );
                     M_candidates.back().power_ = accel.r() / state.kick_rate_;
-#ifdef DEBUG_TWO_STEP
+#ifdef DEBUG
                     dlog.addText( Logger::KICK,
-                                  "%d: ____ update max vel (%.2f %.2f) %.3f",
-                                  count, max_vel.x, max_vel.y,
+                                  "____ update max vel (%.2f %.2f) %.3f",
+                                  max_vel.x, max_vel.y,
                                   M_candidates.back().speed_ );
 #endif
                 }
@@ -1589,7 +1545,6 @@ KickTable::simulateTwoStep( const WorldModel & world,
         }
 
         M_candidates.push_back( Sequence() );
-        M_candidates.back().index_ = 100 + count;
         M_candidates.back().flag_ = ( ( M_current_state.flag_ & ~RELEASE_INTERFERE )
                                       | state.flag_
                                       | kick_miss_flag );
@@ -1597,10 +1552,10 @@ KickTable::simulateTwoStep( const WorldModel & world,
         M_candidates.back().pos_list_.push_back( state.pos_ + target_vel );
         M_candidates.back().speed_ = first_speed;
         M_candidates.back().power_ = accel_r / state.kick_rate_;
-#ifdef DEBUG_TWO_STEP
+#ifdef DEBUG
         dlog.addText( Logger::KICK,
-                      "%d: ok__ 2 step: last_power=%.2f subtarget=(%.2f %.2f)",
-                      count, M_candidates.back().power_,
+                      "ok__ 2 step: last_power=%.2f subtarget=(%.2f %.2f)",
+                      M_candidates.back().power_,
                       state.pos_.x, state.pos_.y );
 #endif
     }
@@ -1615,7 +1570,7 @@ KickTable::simulateTwoStep( const WorldModel & world,
 bool
 KickTable::simulateThreeStep( const WorldModel & world,
                               const Vector2D & target_point,
-                              const double first_speed )
+                              const double & first_speed )
 {
     static const double max_power = ServerParam::i().maxPower();
     static const double accel_max = ServerParam::i().ballAccelMax();
@@ -1651,7 +1606,7 @@ KickTable::simulateThreeStep( const WorldModel & world,
 
 #ifdef DEBUG
     dlog.addText( Logger::KICK,
-                  "(KickTable::simulateThreeStep) target angle index = %d ",
+                  __FILE__": simulateThreeStep() target angle index = %d ",
                   target_angle_index );
 #endif
 
@@ -1660,8 +1615,9 @@ KickTable::simulateThreeStep( const WorldModel & world,
     int success_count = 0;
     double max_speed2 = 0.0;
 
-    size_t count = 0;
-    for ( std::vector< Path >::const_iterator it = table.begin(), end = table.end();
+    int count = 0;
+    const std::vector< Path >::const_iterator end = table.end();
+    for ( std::vector< Path >::const_iterator it = table.begin();
           it != end && count < MAX_TABLE_SIZE && success_count <= 10;
           ++it, ++count )
     {
@@ -1670,72 +1626,64 @@ KickTable::simulateThreeStep( const WorldModel & world,
 
         if ( state_1st.flag_ & OUT_OF_PITCH )
         {
-#ifdef DEBUG_THREE_STEP_DETAIL
+#ifdef DEBUG_THREE_STEP
             dlog.addText( Logger::KICK,
-                          "%zd: xx__ 3 step: skip. out of pitch. state_1st pos=(%.2f %.2f)",
-                          count, state_1st.pos_.x, state_1st.pos_.y );
+                          "xx__ 3 step: skip. out of pitch. state_1st pos=(%.2f %.2f)",
+                          state_1st.pos_.x, state_1st.pos_.y );
 #endif
             continue;
         }
 
         if ( state_2nd.flag_ & OUT_OF_PITCH )
         {
-#ifdef DEBUG_THREE_STEP_DETAIL
+#ifdef DEBUG_THREE_STEP
             dlog.addText( Logger::KICK,
-                          "%zd: xx__ 3 step: skip. out of pitch. state_2nd pos=(%.2f %.2f)",
-                          count, state_2nd.pos_.x, state_2nd.pos_.y );
+                          "xx__ 3 step: skip. out of pitch. state_2nd pos=(%.2f %.2f)",
+                          state_2nd.pos_.x, state_2nd.pos_.y );
 #endif
             continue;
         }
 
         if ( state_1st.flag_ & KICKABLE )
         {
-#ifdef DEBUG_THREE_STEP_DETAIL
+#ifdef DEBUG_THREE_STEP
             dlog.addText( Logger::KICK,
-                          "%zd: xx__ 3 step: skip. exist kicable opp. state_1st pos=(%.2f %.2f)",
-                          count, state_1st.pos_.x, state_1st.pos_.y );
+                          "xx__ 3 step: skip. exist kicable opp. state_1st pos=(%.2f %.2f)",
+                          state_1st.pos_.x, state_1st.pos_.y );
 #endif
             continue;
         }
 
         if ( state_2nd.flag_ & KICKABLE )
         {
-#ifdef DEBUG_THREE_STEP_DETAIL
+#ifdef DEBUG_THREE_STEP
             dlog.addText( Logger::KICK,
-                          "%zd: xx__ 3 step: skip. exist kicable opp. state_2nd pos=(%.2f %.2f)",
-                          count, state_2nd.pos_.x, state_2nd.pos_.y );
+                          "xx__ 3 step: skip. exist kicable opp. state_2nd pos=(%.2f %.2f)",
+                          state_2nd.pos_.x, state_2nd.pos_.y );
 #endif
             continue;
         }
 
         if ( state_2nd.flag_ & SELF_COLLISION )
         {
-#ifdef DEBUG_THREE_STEP_DETAIL
+#ifdef DEBUG_THREE_STEP
             dlog.addText( Logger::KICK,
-                          "%zd: xx__ 3 step: skip. self collision. state_2nd_pos=(%.2f %.2f)",
-                          count, state_2nd.pos_.x, state_2nd.pos_.y );
+                          "xx__ 3 step: skip. self collision. state_2nd_pos=(%.2f %.2f)",
+                          state_2nd.pos_.x, state_2nd.pos_.y );
 #endif
             continue;
         }
 
         if ( state_2nd.flag_ & RELEASE_INTERFERE )
         {
-#ifdef DEBUG_THREE_STEP_DETAIL
+#ifdef DEBUG_THREE_STEP
             dlog.addText( Logger::KICK,
-                          "%zd: xx__ 3 step: interfere after release. state_pos=(%.2f %.2f)",
-                          count, state_2nd.pos_.x, state_2nd.pos_.y );
+                          "xx__ 3 step: interfere after release. state_pos=(%.2f %.2f)",
+                          state.pos_.x, state.pos_.y );
 #endif
-            //return false;
-            continue;
+            return false;
         }
 
-        if ( ! M_use_risky_node
-             && ( is_risky_flag( state_1st.flag_ )
-                  || is_risky_flag( state_2nd.flag_ ) )
-             )
-        {
-            continue;
-        }
 
         const Vector2D target_vel = ( target_point - state_2nd.pos_ ).setLengthVector( first_speed );
 
@@ -1747,10 +1695,10 @@ KickTable::simulateThreeStep( const WorldModel & world,
 
         if ( accel_r2 > current_max_accel2 )
         {
-#ifdef DEBUG_THREE_STEP_DETAIL
+#ifdef DEBUG_THREE_STEP
             dlog.addText( Logger::KICK,
-                          "%zd: xx__ 3 step: failed(1) required_accel=%.3f > max_accel=%.3f",
-                          count, std::sqrt( accel_r2 ), std::sqrt( current_max_accel2 ) );
+                          "xx__ 3 step: failed(1) required_accel=%.3f > max_accel=%.3f",
+                          std::sqrt( accel_r2 ), std::sqrt( current_max_accel2 ) );
 #endif
             continue;
         }
@@ -1763,25 +1711,20 @@ KickTable::simulateThreeStep( const WorldModel & world,
                 = self_type.kickRand()
                 * ( kick_power / param.maxPower() )
                 * ( current_pos_rate + current_speed_rate );
-            if ( ( my_noise1 + ball_noise + max_kick_rand )
-                 > my_kickable_area - state_1st.dist_ - 0.1 )
+            if ( ( my_noise1 + ball_noise + max_kick_rand ) //* 0.95
+                 > my_kickable_area - state_1st.dist_ - 0.05 ) //0.1 )
             {
 #ifdef DEBUG_THREE_STEP
                 dlog.addText( Logger::KICK,
-                              "%zd: xx__ 3 step: 1st kick may cause unkickable. power=%.3f"
+                              "xx__ 3 step: failed. 1st kick may cause unkickable. power=%.3f"
                               " my_kickable=%.3f state_dist=%.3f,"
                               " noise=%f(my_noise=%f ball_noise=%f kick_rand=%f)",
-                              count,
                               kick_power,
                               my_kickable_area, state_1st.dist_,
                               ( my_noise1 + ball_noise + max_kick_rand ) * 0.9,
                               my_noise1, ball_noise, max_kick_rand );
 #endif
                 kick_miss_flag |= KICK_MISS_POSSIBILITY;
-                // if ( ! M_use_risky_node )
-                // {
-                //     continue;
-                // }
             }
         }
 #endif
@@ -1792,12 +1735,11 @@ KickTable::simulateThreeStep( const WorldModel & world,
         accel = vel2 - vel1;
         accel_r2 = accel.r2();
 
-        if ( accel_r2 > square( std::min( state_1st.kick_rate_ * max_power * 0.9, accel_max ) ) )
+        if ( accel_r2 > square( std::min( state_1st.kick_rate_ * max_power, accel_max ) ) )
         {
-#ifdef DEBUG_THREE_STEP_DETAIL
+#ifdef DEBUG_THREE_STEP
             dlog.addText( Logger::KICK,
-                          "%zd: xx__ 3 step: failed(2) required_accel=%.3f > max_accel=%.3f",
-                          count,
+                          "xx__ 3 step: failed(2) required_accel=%.3f > max_accel=%.3f",
                           std::sqrt( accel_r2 ),
                           std::min( state_1st.kick_rate_ * max_power, accel_max ) );
 #endif
@@ -1809,7 +1751,7 @@ KickTable::simulateThreeStep( const WorldModel & world,
         accel_r2 = accel.r2();
         if ( accel_r2 > square( std::min( state_2nd.kick_rate_ * max_power, accel_max ) ) )
         {
-#ifdef DEBUG_THREE_STEP_DETAIL
+#ifdef DEBUG_THREE_STEP
             dlog.addText( Logger::KICK,
                           "xx__ 3 step: failed(3) required_accel=%.3f > max_accel=%.3f",
                           std::sqrt( accel_r2 ),
@@ -1823,14 +1765,13 @@ KickTable::simulateThreeStep( const WorldModel & world,
                 double d2 = max_vel.r2();
                 if ( max_speed2 < d2 )
                 {
-                    if ( M_candidates.empty() ) // max_speed2 == 0.0
+                    if ( max_speed2 == 0.0 )
                     {
                         M_candidates.push_back( Sequence() );
                     }
                     max_speed2 = d2;
                     accel = max_vel - vel2;
 
-                    M_candidates.back().index_ = 10000 + count;
                     M_candidates.back().flag_ = ( ( M_current_state.flag_ & ~RELEASE_INTERFERE )
                                                   | ( state_1st.flag_ & ~RELEASE_INTERFERE )
                                                   | state_2nd.flag_ );
@@ -1853,7 +1794,6 @@ KickTable::simulateThreeStep( const WorldModel & world,
         }
 
         M_candidates.push_back( Sequence() );
-        M_candidates.back().index_ = 10000 + count;
         M_candidates.back().flag_ = ( ( M_current_state.flag_ & ~RELEASE_INTERFERE )
                                       | ( state_1st.flag_ & ~RELEASE_INTERFERE )
                                       | state_2nd.flag_
@@ -1866,8 +1806,7 @@ KickTable::simulateThreeStep( const WorldModel & world,
 
 #ifdef DEBUG_THREE_STEP
         dlog.addText( Logger::KICK,
-                      "%zd: ok__ 3 step: last_power=%.2f sub1=(%.2f %.2f) sub2(%.2f %.2f)",
-                      count,
+                      "ok__ 3 step: last_power=%.2f sub1=(%.2f %.2f) sub2(%.2f %.2f)",
                       M_candidates.back().power_,
                       state_1st.pos_.x, state_1st.pos_.y,
                       state_2nd.pos_.x, state_2nd.pos_.y );
@@ -1895,197 +1834,102 @@ KickTable::simulateThreeStep( const WorldModel & world,
 
  */
 void
-KickTable::evaluate( const WorldModel & wm,
-                     const double first_speed,
-                     const double allowable_speed )
+KickTable::evaluate( const double & first_speed,
+                     const double & allowable_speed )
 {
     dlog.addText( Logger::KICK,
-                  "(KickTable::evaluate) candidate size=%zd",
-                  M_candidates.size() );
-
-#ifndef DEBUG_PRINT_EVALUATE
-    (void)wm;
-#endif
+                  __FILE__": evaluate() candidate size=%d",
+                  (int)M_candidates.size() );
 
     const double power_thr1 = ServerParam::i().maxPower() * 0.94;
     const double power_thr2 = ServerParam::i().maxPower() * 0.9;
 
-    int count = 0;
-    for ( Sequence & seq : M_candidates )
+    const std::vector< Sequence >::iterator end = M_candidates.end();
+    for ( std::vector< Sequence >::iterator it = M_candidates.begin();
+          it != end;
+          ++it )
     {
-        ++count;
+        const int n_kick = it->pos_list_.size();
 
-        const int n_kick = seq.pos_list_.size();
+        it->score_ = 1000.0;
 
-        seq.score_ = 1000.0;
-
-        if ( seq.speed_ < first_speed )
+        if ( it->speed_ < first_speed )
         {
             if ( n_kick > 1
-                 || seq.speed_ < allowable_speed )
+                 || it->speed_ < allowable_speed )
             {
-                seq.score_ = -10000.0;
-                seq.score_ -= ( first_speed - seq.speed_ ) * 100000.0;
+                it->score_ = -10000.0;
+                it->score_ -= ( first_speed - it->speed_ ) * 100000.0;
             }
             else
             {
-                seq.score_ -= 50.0;
+                it->score_ -= 50.0;
             }
         }
 
-        if ( seq.flag_ & TACKLABLE ) seq.score_ -= 500.0;
+        if ( it->flag_ & TACKLABLE ) it->score_ -= 500.0;
 
-        if ( seq.flag_ & NEXT_TACKLABLE ) seq.score_ -= 300.0;
+        if ( it->flag_ & NEXT_TACKLABLE ) it->score_ -= 300.0;
 
-        if ( seq.flag_ & NEXT_KICKABLE ) seq.score_ -= 600.0;
+        if ( it->flag_ & NEXT_KICKABLE ) it->score_ -= 600.0;
 
-        if ( seq.flag_ & MAYBE_RELEASE_INTERFERE )
+        if ( it->flag_ & MAYBE_RELEASE_INTERFERE )
         {
             if ( n_kick == 1 )
             {
-                seq.score_ -= 250.0;
+                it->score_ -= 250.0;
             }
             else
             {
-                seq.score_ -= 200.0;
+                it->score_ -= 200.0;
             }
         }
 
         if ( n_kick == 3 )
         {
-            seq.score_ -= 200.0;
+            it->score_ -= 200.0;
         }
         else if ( n_kick == 2 )
         {
-            seq.score_ -= 50.0;
+            it->score_ -= 50.0;
         }
 
         if ( n_kick > 1 )
         {
-            if ( seq.power_ > power_thr1 )
+            if ( it->power_ > power_thr1 )
             {
-                seq.score_ -= 75.0;
+                it->score_ -= 75.0;
             }
-            else if ( seq.power_ > power_thr2 )
+            else if ( it->power_ > power_thr2 )
             {
-                seq.score_ -= 25.0;
+                it->score_ -= 25.0;
             }
         }
 
-        seq.score_ -= seq.power_ * 0.5;
+        it->score_ -= it->power_ * 0.5;
 
-        if ( seq.flag_ & KICK_MISS_POSSIBILITY )
+        if ( it->flag_ & KICK_MISS_POSSIBILITY )
         {
-            seq.score_ -= 30.0;
+            it->score_ -= 30.0;
 #ifdef DEBUG_EVALUATE
             dlog.addText( Logger::KICK,
-                          "%d: (eval) %d maybe kick failure flag=%x n_kick=%d speed=%.3f last_kick_power=%f",
-                          count, seq.index_, seq.flag_, n_kick, seq.speed_, seq.power_ );
+                          "____ sequence kick miss possibility flag=%x n_kick=%d speed=%.3f last_kick_power=%f",
+                          it->flag_,
+                          n_kick,
+                          it->speed_,
+                          it->power_ );
 #endif
         }
 #ifdef DEBUG_EVALUATE
         dlog.addText( Logger::KICK,
-                      "%d: (eval) %d score %.2f flag=%x n_kick=%d speed=%.3f last_kick_power=%f",
-                      count, seq.index_, seq.score_, seq.flag_, n_kick, seq.speed_, seq.power_ );
-
-        //if ( count == 4 ) debug_print_sequence( wm, *it );
+                      "__ sequence score %.2f flag=%x n_kick=%d speed=%.3f last_kick_power=%f",
+                      it->score_,
+                      it->flag_,
+                      n_kick,
+                      it->speed_,
+                      it->power_ );
 #endif
     }
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
- */
-void
-KickTable::debugPrintStateCache()
-{
-    for ( int i = 0; i < MAX_DEPTH; ++i )
-    {
-        for ( const State & s : M_state_cache[i] )
-        {
-            char buf[8];
-
-            if ( s.flag_ & OUT_OF_PITCH ) snprintf( buf, 8, "#333" );
-            else if  ( s.flag_ & SELF_COLLISION ) snprintf( buf, 8, "#FF0" );
-            if ( s.flag_ & KICKABLE ) snprintf( buf, 8, "#F00" );
-            else if ( s.flag_ & TACKLABLE ) snprintf( buf, 8, "#800" );
-            else if ( s.flag_ & NEXT_KICKABLE ) snprintf( buf, 8, "#00F" );
-            else if ( s.flag_ & NEXT_TACKLABLE ) snprintf( buf, 8, "#008" );
-            else if ( s.flag_ & RELEASE_INTERFERE ) snprintf( buf, 8, "#0F0" );
-            else if ( s.flag_ & MAYBE_RELEASE_INTERFERE ) snprintf( buf, 8, "#080" );
-            else if ( s.flag_ & KICK_MISS_POSSIBILITY ) snprintf( buf, 8, "#0FF" );
-            dlog.addRect( Logger::KICK,
-                          s.pos_.x - 0.01, s.pos_.y - 0.01, 0.02, 0.02,
-                          buf, true );
-
-            snprintf( buf, 8, "%d", i+1 );
-            dlog.addMessage( Logger::KICK, s.pos_, buf );
-        }
-    }
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
- */
-void
-KickTable::debugPrintSequence( const WorldModel & wm,
-                               const KickTable::Sequence & seq )
-{
-    if ( ! seq.pos_list_.empty() )
-    {
-        dlog.addLine( Logger::KICK,
-                      wm.ball().pos(), seq.pos_list_.front(),
-                      "#F00" );
-        dlog.addRect( Logger::KICK,
-                      seq.pos_list_.front().x - 0.02,
-                      seq.pos_list_.front().y - 0.02,
-                      0.04, 0.04, "#F00" );
-
-        for ( size_t i = 1; i < seq.pos_list_.size(); ++i )
-        {
-            dlog.addLine( Logger::KICK,
-                          seq.pos_list_[i-1], seq.pos_list_[i],
-                          std::max( 0, int( 255 - i * 80 ) ), 0, 0 );
-            dlog.addRect( Logger::KICK,
-                      seq.pos_list_[i].x - 0.02,
-                      seq.pos_list_[i].y - 0.02,
-                      0.04, 0.04, "#F00" );
-        }
-    }
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
- */
-namespace {
-bool
-check_candidates_max_speed( const std::vector< KickTable::Sequence > & candidates,
-                            const double speed_thr )
-{
-    for ( const KickTable::Sequence & seq : candidates )
-    {
-        if ( seq.speed_ > speed_thr )
-        {
-            // dlog.addText( Logger::KICK,
-            //               "(KickTable::check_candidate) OK %d speed=%.3f  thr=%.3f",
-            //               seq.index_, seq.speed_, speed_thr );
-            dlog.addText( Logger::KICK,
-                          "(KickTable::check_candidate) OK found" );
-            return true;
-        }
-        // dlog.addText( Logger::KICK,
-        //               "(KickTable::check_candidate) NG %d speed=%.3f  thr=%.3f",
-        //               seq.index_, seq.speed_, speed_thr );
-    }
-
-    dlog.addText( Logger::KICK,
-                  "(KickTable::check_candidate) NG not found" );
-    return false;
-}
-
 }
 
 /*-------------------------------------------------------------------*/
@@ -2095,15 +1939,15 @@ check_candidates_max_speed( const std::vector< KickTable::Sequence > & candidate
 bool
 KickTable::simulate( const WorldModel & world,
                      const Vector2D & target_point,
-                     const double first_speed,
-                     const double allowable_speed,
+                     const double & first_speed,
+                     const double & allowable_speed,
                      const int max_step,
                      Sequence & sequence )
 {
     if ( M_state_list.empty() )
     {
         dlog.addText( Logger::KICK,
-                      "(KickTable::simulate) KickTable is not initialized!." );
+                      __FILE__": simulate() KickTable is not initialized!." );
         std::cerr << "KickTable has not been initialized! "
                   << "KickTable::instance().createTable() has to be called before using KickTable::simulate()."
                   << std::endl;
@@ -2111,7 +1955,7 @@ KickTable::simulate( const WorldModel & world,
     }
 
 #ifdef DEBUG_PROFILE
-    Timer timer;
+    MSecTimer timer;
 #endif
 
     double target_speed = bound( 0.0,
@@ -2122,7 +1966,7 @@ KickTable::simulate( const WorldModel & world,
                               target_speed );
 
     dlog.addText( Logger::KICK,
-                  "(KickTable::simulate) start. target=(%.2f %.2f) speed=%.2f",
+                  __FILE__": simulate() start. target=(%.2f %.2f) speed=%.2f",
                   target_point.x, target_point.y,
                   target_speed );
 
@@ -2137,20 +1981,14 @@ KickTable::simulate( const WorldModel & world,
                                 target_point,
                                 target_speed );
 
-#ifdef DEBUG_PRINT_STATE_CACHE
-    debugPrintStateCache();
-#endif
-
     if ( max_step >= 1
          && simulateOneStep( world,
                              target_point,
                              target_speed ) )
     {
         dlog.addText( Logger::KICK,
-                      "(KickTable::simulate) found 1 step" );
+                      __FILE__": simulate() found 1 step" );
     }
-
-    M_use_risky_node = false;
 
     if ( max_step >= 2
          && simulateTwoStep( world,
@@ -2158,7 +1996,7 @@ KickTable::simulate( const WorldModel & world,
                              target_speed ) )
     {
         dlog.addText( Logger::KICK,
-                      "(KickTable::simulate) found 2 step" );
+                      __FILE__": simulate() found 2 step" );
     }
 
     if ( max_step >= 3
@@ -2167,58 +2005,27 @@ KickTable::simulate( const WorldModel & world,
                                target_speed ) )
     {
         dlog.addText( Logger::KICK,
-                      "(KickTable::simulate) found 3 step" );
-    }
-
-    // dlog.addText( Logger::KICK,
-    //               "(KickTable::simulate) candidate size = %zd", M_candidates.size() );
-
-    if ( ! check_candidates_max_speed( M_candidates, speed_thr ) )
-    {
-        M_use_risky_node = true;
-
-        // dlog.addText( Logger::KICK,
-        //               "(KickTable::simulate) try risky mode" );
-
-        if ( max_step >= 2
-             && simulateTwoStep( world,
-                                 target_point,
-                                 target_speed ) )
-        {
-            dlog.addText( Logger::KICK,
-                          "(KickTable::simulate) found 2 step with risky node" );
-        }
-
-        if ( max_step >= 3
-             && simulateThreeStep( world,
-                                   target_point,
-                                   target_speed ) )
-        {
-            dlog.addText( Logger::KICK,
-                          "(KickTable::simulate) found 3 step with risky node" );
-        }
+                      __FILE__": simulate() found 3 step" );
     }
 
     // TODO:
     // 4 steps simulation
 
+    // TODO:
+    // dynamic evaluator
+    evaluate( target_speed, speed_thr );
+
     if ( M_candidates.empty() )
     {
-        dlog.addText( Logger::KICK,
-                      "(KickTable::simulate) No candidate" );
         return false;
     }
 
-    // TODO:
-    // dynamic evaluator
-    evaluate( world, target_speed, speed_thr );
-
     sequence = *std::max_element( M_candidates.begin(),
                                   M_candidates.end(),
-                                  SequenceSorter() );
+                                  SequenceCmp() );
 
     dlog.addText( Logger::KICK,
-                  "(KickTable::simulate) result next_pos=(%.2f %.2f) flag=%x n_kick=%d speed=%.2f power=%.2f score=%.2f",
+                  __FILE__": simulate() result next_pos=(%.2f %.2f)  flag=%x n_kick=%d speed=%.2f power=%.2f score=%.2f",
                   sequence.pos_list_.front().x,
                   sequence.pos_list_.front().y,
                   sequence.flag_,
@@ -2226,13 +2033,10 @@ KickTable::simulate( const WorldModel & world,
                   sequence.speed_,
                   sequence.power_,
                   sequence.score_ );
-#ifdef DEBUG_PRINT_SEQUENCE
-    debugPrintSequence( world, sequence );
-#endif
 
 #ifdef DEBUG_PROFILE
     dlog.addText( Logger::KICK,
-                  "(KickTable::simulate) KickTable_elapsed=%f [ms].",
+                  __FILE__": simulate() kick_table_elapsed=%.4f [ms].",
                   timer.elapsedReal() );
 #endif
     return sequence.speed_ >= target_speed - rcsc::EPS;

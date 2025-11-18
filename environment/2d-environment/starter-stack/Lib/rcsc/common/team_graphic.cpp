@@ -36,6 +36,7 @@
 #include "team_graphic.h"
 
 #include <algorithm>
+#include <functional> // ptr_fun
 #include <string>
 #include <fstream>
 #include <iostream>
@@ -48,7 +49,7 @@ namespace {
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 static
 bool
 read_xpm_string( std::istream & is,
@@ -86,7 +87,7 @@ read_xpm_string( std::istream & is,
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 static
 bool
 read_xpm_header( std::istream & is,
@@ -100,7 +101,7 @@ read_xpm_header( std::istream & is,
 
     if ( ! read_xpm_string( is, buf ) )
     {
-        std::cerr << __FILE__
+        std::cerr << __FILE__ << ' ' << __LINE__
                   << ": (read_xpm_header) could not read xpm line. ["
                   << buf << ']'
                   << std::endl;
@@ -110,7 +111,7 @@ read_xpm_header( std::istream & is,
     if ( std::sscanf( buf.c_str(), " %d %d %d %d ",
                       width, height, n_color, cpp ) != 4 )
     {
-        std::cerr << __FILE__
+        std::cerr << __FILE__ << ' ' << __LINE__
                   << ": (read_xpm_header) Illegal xpm header [" << buf << "]"
                   << std::endl;
         return false;
@@ -121,9 +122,9 @@ read_xpm_header( std::istream & is,
          || *height % rcsc::TeamGraphic::TILE_SIZE != 0
          || *height > rcsc::TeamGraphic::MAX_HEIGHT
          || *n_color < 1
-         || *cpp != rcsc::TeamGraphic::CPP )
+         || *cpp != 1 )
     {
-        std::cerr << __FILE__
+        std::cerr << __FILE__ << ' ' << __LINE__
                   << ": (read_xpm_header) Unsupported xpm data. [" << buf << "]\n"
                   << " width=" << *width
                   << " height=" << *height
@@ -146,7 +147,7 @@ read_xpm_header( std::istream & is,
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 static
 bool
 read_xpm_colors( std::istream & is,
@@ -160,7 +161,7 @@ read_xpm_colors( std::istream & is,
         if ( ! read_xpm_string( is, buf )
              || buf.empty() )
         {
-            std::cerr << __FILE__
+            std::cerr << __FILE__ << ' ' << __LINE__
                       << ": (read_xpm_colors) Illegal xpm color [" << buf << "]"
                       << std::endl;
             return false;
@@ -175,7 +176,7 @@ read_xpm_colors( std::istream & is,
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 static
 bool
 read_xpm_body( std::istream & is,
@@ -190,7 +191,7 @@ read_xpm_body( std::istream & is,
         if ( ! read_xpm_string( is, buf )
              || buf.length() != width )
         {
-            std::cerr << __FILE__
+            std::cerr << __FILE__ << ' ' << __LINE__
                       << ": (read_xpm_body) Illegal xpm line [" << buf << "]"
                       << std::endl;
             return false;
@@ -205,33 +206,26 @@ read_xpm_body( std::istream & is,
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 static
 bool
-xpm_file_to_strings( const std::string & filepath,
-                     std::vector< std::string > & xpm_strings )
+read_xpm( std::istream & is,
+          std::vector< std::string > & xpm_strings )
 {
-    std::ifstream fin( filepath );
-    if ( ! fin )
-    {
-        std::cerr << __FILE__": (xpm_file_to_strings) Could not open the xpm file [" << filepath << "]" << std::endl;
-        return false;
-    }
-
     int width, height, n_color, cpp;
-    if ( ! read_xpm_header( fin,
+    if ( ! read_xpm_header( is,
                             xpm_strings,
                             &width, &height, &n_color, &cpp ) )
     {
         return false;
     }
 
-    if ( ! read_xpm_colors( fin, n_color, xpm_strings ) )
+    if ( ! read_xpm_colors( is, n_color, xpm_strings ) )
     {
         return false;
     }
 
-    if ( ! read_xpm_body( fin, width, height, xpm_strings ) )
+    if ( ! read_xpm_body( is, width, height, xpm_strings ) )
     {
         return false;
     }
@@ -245,144 +239,95 @@ xpm_file_to_strings( const std::string & filepath,
 
 namespace rcsc {
 
+const int TeamGraphic::MAX_WIDTH = 256;
+const int TeamGraphic::MAX_HEIGHT = 64;
+const int TeamGraphic::TILE_SIZE = 8;
+const int TeamGraphic::MAX_COLOR = 256;
+
 /*-------------------------------------------------------------------*/
+/*!
+
+*/
 TeamGraphic::XpmTile::XpmTile( const int width,
                                const int height,
                                const int cpp )
-    : M_width( width ),
-      M_height( height ),
-      M_cpp( cpp )
+    : M_width( width )
+    , M_height( height )
+    , M_cpp( cpp )
 {
     M_pixel_lines.reserve( TILE_SIZE );
 }
 
 /*-------------------------------------------------------------------*/
+/*!
+
+*/
 std::ostream &
-TeamGraphic::XpmTile::print( std::ostream & os,
-                             const char separator ) const
+TeamGraphic::XpmTile::print( std::ostream & os ) const
 {
     os << '"' << width()
        << ' ' << height()
        << ' ' << colors().size()
        << ' ' << cpp()
        << '"';
+    //os << "\n";
 
-    for ( const std::shared_ptr< std::string > & c : colors() )
+    const std::vector< boost::shared_ptr< std::string > >::const_iterator cend
+        = colors().end();
+    for ( std::vector< boost::shared_ptr< std::string > >::const_iterator it
+              = colors().begin();
+          it != cend;
+          ++it )
     {
-        os << separator << '"' << *c << '"';
+        os << " \"" << **it << '"';
+        //os << "\n";
     }
 
-    for ( const std::string & line : pixelLines() )
+    const std::vector< std::string >::const_iterator pend = pixelLines().end();
+    for ( std::vector< std::string >::const_iterator it = pixelLines().begin();
+          it != pend;
+          ++it )
     {
-        os << separator << '"' << line << '"';
+        os << " \"" << *it << '"';
+        //os << "\n";
     }
 
     return os;
 }
 
 /*-------------------------------------------------------------------*/
+/*!
+
+*/
 TeamGraphic::TeamGraphic()
-    : M_width( 0 ),
-      M_height( 0 ),
-      M_cpp( CPP )
+    : M_width( 0 )
+    , M_height( 0 )
+    , M_cpp( 1 )
 {
 
 }
 
 /*-------------------------------------------------------------------*/
+/*!
+
+*/
 void
 TeamGraphic::clear()
 {
     M_width = 0;
     M_height = 0;
-    M_cpp = CPP;
+    M_cpp = 1;
 
     M_colors.clear();
     M_tiles.clear();
 }
 
 /*-------------------------------------------------------------------*/
+/*!
+
+*/
 bool
-TeamGraphic::isValid() const
-{
-    if ( colors().empty()
-         || tiles().empty()
-         || width() <= 0
-         || height() <= 0
-         || M_cpp != 1 )
-    {
-        return false;
-    }
-
-    int max_x = 0;
-    int max_y = 0;
-
-    for ( const Map::value_type & tile : tiles() )
-    {
-        if ( tile.first.first > max_x ) max_x = tile.first.first;
-        if ( tile.first.second > max_y ) max_y = tile.first.second;
-    }
-
-    if ( static_cast< int >( tiles().size() ) != ( max_x + 1 ) * ( max_y + 1 ) )
-    {
-        return false;
-    }
-
-    return true;
-}
-
-
-/*-------------------------------------------------------------------*/
-bool
-TeamGraphic::readXpmFile( const std::string & filepath )
-{
-    //
-    // read file stream and store to string vector
-    //
-    std::vector< std::string > xpm_strings;
-    if ( ! xpm_file_to_strings( filepath, xpm_strings ) )
-    {
-        std::cerr << "Illegal xpm file [" << filepath << "]"
-                  << std::endl;
-        return false;
-    }
-
-    //
-    // create the char array
-    //
-    const size_t array_size = xpm_strings.size();
-    char ** xpm;
-    xpm = new char*[ array_size ];
-    for ( size_t i = 0; i < array_size; ++i )
-    {
-        xpm[i] = new char[ xpm_strings[i].length() + 1 ];
-        std::strcpy( xpm[i], xpm_strings[i].c_str() );
-    }
-
-    //
-    // create xpm tiles
-    //
-    bool result = true;
-    if ( ! fromRawXpm( xpm ) )
-    {
-        result = false;
-    }
-
-    //
-    // release the char array
-    //
-    for ( size_t i = 0; i < array_size; ++i )
-    {
-        delete [] xpm[i];
-    }
-    delete [] xpm;
-
-    return result;
-}
-
-/*-------------------------------------------------------------------*/
-bool
-TeamGraphic::fromRawXpm( const char * const * xpm_data )
+TeamGraphic::createXpmTiles( const char * const * xpm_data )
 {
     if ( ! xpm_data ) return false;
 
@@ -405,7 +350,7 @@ TeamGraphic::fromRawXpm( const char * const * xpm_data )
          || xpm_height % TILE_SIZE != 0
          || xpm_height > MAX_HEIGHT
          || xpm_n_color > MAX_COLOR
-         || xpm_cpp != CPP )
+         || xpm_cpp != 1 )
     {
         std::cerr << "Unsupported xpm data. \n"
                   << "  width=" << xpm_width
@@ -460,7 +405,7 @@ TeamGraphic::fromRawXpm( const char * const * xpm_data )
     //
     for ( int i = 0; i < xpm_n_color; ++i, ++xpm_data )
     {
-        std::shared_ptr< std::string > ptr( new std::string( *xpm_data ) );
+        boost::shared_ptr< std::string > ptr( new std::string( *xpm_data ) );
         M_colors.push_back( ptr );
     }
 
@@ -484,10 +429,19 @@ TeamGraphic::fromRawXpm( const char * const * xpm_data )
 
             Index index( index_x, index_y );
 
-            XpmTile::Ptr tile( new XpmTile( ( max_x - start_x ) / xpm_cpp, // width
-                                            max_y - start_y, // height
-                                            xpm_cpp ) );
+            Ptr tile( new XpmTile( ( max_x - start_x ) / xpm_cpp, // width
+                                   max_y - start_y, // height
+                                   xpm_cpp ) );
 
+            M_tiles.insert( std::pair< Index, Ptr >( index, tile ) );
+
+//             std::cout << "---- tile " << M_tiles.size()
+//                       << " (" << index_x << ' ' << index_y << ')'
+//                       << " size=" << max_x - start_x
+//                       << "x" << max_y - start_y
+//                       << " (start_x,start_y)=(" << start_x << ',' << start_y
+//                       << ")"
+//                       << std::endl;
             for ( int y = start_y; y < max_y; ++y )
             {
                 tile->addPixelLine( std::string( xpm_data[y],
@@ -498,28 +452,34 @@ TeamGraphic::fromRawXpm( const char * const * xpm_data )
                 //          << "] : " << y
                 //          << std::endl;
             }
+        }
+    }
 
-            //
-            // set shared color data strings
-            //
-            for ( const std::shared_ptr< std::string > & color : M_colors )
+    //
+    // set shared color data strings
+    //
+    const Map::iterator tile_end = M_tiles.end();
+    const std::vector< boost::shared_ptr< std::string > >::iterator color_end = M_colors.end();
+
+    for ( std::vector< boost::shared_ptr< std::string > >::iterator color = M_colors.begin();
+          color != color_end;
+          ++color )
+    {
+        for ( Map::iterator tile = M_tiles.begin();
+              tile != tile_end;
+              ++tile )
+        {
+            const std::vector< std::string >::const_iterator line_end = tile->second->pixelLines().end();
+            for ( std::vector< std::string >::const_iterator line = tile->second->pixelLines().begin();
+                  line != line_end;
+                  ++line )
             {
-                for ( const std::string & line : tile->pixelLines() )
+                if ( line->find( (**color)[0] ) != std::string::npos )
                 {
-                    if ( line.find( (*color)[0] ) != std::string::npos )
-                    {
-                        tile->addColor( color );
-                        break;
-                    }
+                    tile->second->addColor( *color );
+                    break;
                 }
             }
-
-            M_tiles.insert( Map::value_type( index, tile ) );
-            // std::cout << "---- tile " << M_tiles.size()
-            //           << " (" << index_x << ' ' << index_y << ')'
-            //           << " size=" << max_x - start_x << "x" << max_y - start_y
-            //           << " (start_x,start_y)=(" << start_x << ',' << start_y << ")"
-            //           << std::endl;
         }
     }
 
@@ -527,33 +487,44 @@ TeamGraphic::fromRawXpm( const char * const * xpm_data )
 }
 
 /*-------------------------------------------------------------------*/
+/*!
+
+*/
 bool
-TeamGraphic::addXpmTile( const int x,
-                         const int y,
-                         const std::vector< std::string > & xpm_tile )
+TeamGraphic::parse( const char * server_msg )
 {
-    if ( x < 0
-        || y < 0
-        || ( x + 1 ) * TILE_SIZE > MAX_WIDTH
-        || ( y + 1 ) * TILE_SIZE > MAX_HEIGHT )
+    int n_read = 0;
+    char side = '?';
+    int x = -1, y = -1;
+
+    if ( std::sscanf( server_msg, "(team_graphic_%c ( %d %d %n ",
+                      &side, &x, &y,
+                      &n_read ) != 3
+         || ( side != 'l' && side != 'r' )
+         || x < 0
+         || y < 0
+         || n_read == 0 )
     {
-        std::cerr << "(TeamGraphic::addXpmTile) Unsupported xpm tile index [" << x << ',' << y << "]" << std::endl;
         return false;
     }
+    server_msg += n_read;
 
-    if ( xpm_tile.empty() )
+    if ( ( x + 1 ) * TILE_SIZE > MAX_WIDTH
+         || ( y + 1 ) * TILE_SIZE > MAX_HEIGHT )
     {
-        std::cerr << "(TeamGraphic::addXpmTile) Empty data." << std::endl;
+        std::cerr << "Unsupported xpm tile index ["
+                  << x << ',' << y << "]"
+                  << std::endl;
         return false;
     }
 
     //
     // header
     //
-    int n_read = 0;
+    n_read = 0;
     int xpm_width = 0, xpm_height = 0, xpm_n_color = 0, xpm_cpp = 0;
-    if ( std::sscanf( xpm_tile[0].c_str(),
-                      "  %d %d %d %d %n ",
+    if ( std::sscanf( server_msg,
+                      " \" %d %d %d %d \" %n ",
                       &xpm_width, &xpm_height, &xpm_n_color, &xpm_cpp,
                       &n_read ) != 4
          || xpm_width != TILE_SIZE
@@ -562,27 +533,33 @@ TeamGraphic::addXpmTile( const int x,
          || xpm_cpp != 1
          || n_read == 0 )
     {
-        std::cerr << "(TeamGraphic::addXpmTile) Illegal xpm header [" << xpm_tile[0] << "]" << std::endl;
+        std::cerr << "Illegal xpm header [" << server_msg << "]"
+                  << std::endl;
         return false;
     }
+    server_msg += n_read;
 
-    if ( xpm_tile.size() != size_t( 1 + xpm_n_color + xpm_height ) )
-    {
-        std::cerr << "(TeamGraphic::addXpmTile) Illegal xpm size. defined=" << xpm_tile[0] << " size=" << xpm_tile.size() << std::endl;
-        return false;
-    }
+    Index index( x, y );
 
-    const Index index( x, y );
-    XpmTile::Ptr tile( new XpmTile( xpm_width, xpm_height, xpm_cpp ) );
+    Ptr tile( new XpmTile( xpm_width, xpm_height, xpm_cpp ) );
+
+
+    char line_buf[8192];
 
     //
     // colors
     //
-    const size_t color_max( 1 + xpm_n_color );
-    for ( size_t i = 1; i < color_max; ++i )
+    for ( int i = 0; i < xpm_n_color; ++i )
     {
-        std::shared_ptr< std::string > new_col( new std::string( xpm_tile[i] ) );
-        std::shared_ptr< std::string > col = findColor( *new_col );
+        if ( std::sscanf( server_msg, " \"%8191[^\"]\" %n ",
+                          line_buf, &n_read ) != 1 )
+        {
+            return false;
+        }
+        server_msg += n_read;
+
+        boost::shared_ptr< std::string > new_col( new std::string( line_buf ) );
+        boost::shared_ptr< std::string > col = findColor( *new_col );
         if ( col )
         {
             tile->addColor( col );
@@ -597,21 +574,25 @@ TeamGraphic::addXpmTile( const int x,
     //
     // pixels
     //
-    const size_t pixel_max( 1 + xpm_n_color + xpm_height );
-    const size_t line_width( xpm_width * xpm_cpp );
-
-    for ( size_t i = color_max; i < pixel_max; ++i )
+    for ( int i = 0; i < xpm_height; ++i )
     {
-        if ( xpm_tile[i].length() != line_width )
+        if ( std::sscanf( server_msg, " \"%8191[^\"]\" %n ",
+                          line_buf, &n_read ) != 1 )
+        {
+            return false;
+        }
+        server_msg += n_read;
+
+        if ( static_cast< int >( std::strlen( line_buf ) ) != xpm_width * xpm_cpp )
         {
             return false;
         }
 
-        tile->addPixelLine( xpm_tile[i] );
+        tile->addPixelLine( line_buf );
     }
 
     // insert new tile
-    M_tiles.insert( std::pair< Index, XpmTile::Ptr >( index, tile ) );
+    M_tiles.insert( std::pair< Index, Ptr >( index, tile ) );
 
     if ( M_width < ( x + 1 ) * TILE_SIZE )
     {
@@ -627,18 +608,141 @@ TeamGraphic::addXpmTile( const int x,
 }
 
 /*-------------------------------------------------------------------*/
-std::shared_ptr< std::string >
+/*!
+
+*/
+bool
+TeamGraphic::readXpmFile( const char * file_path )
+{
+    std::ifstream fin( file_path );
+    if ( ! fin )
+    {
+        std::cerr << "Could not open the xpm file [" << file_path << "]"
+                  << std::endl;
+        return false;
+    }
+
+    //
+    // read file stream and store to string vector
+    //
+    std::vector< std::string > xpm_strings;
+    if ( ! read_xpm( fin, xpm_strings ) )
+    {
+        std::cerr << "Illegal xpm file [" << file_path << "]"
+                  << std::endl;
+        return false;
+    }
+
+    //
+    // create the char array
+    //
+    const size_t array_size = xpm_strings.size();
+    char ** xpm;
+    xpm = new char*[ array_size ];
+    for ( size_t i = 0; i < array_size; ++i )
+    {
+        xpm[i] = new char[ xpm_strings[i].length() + 1 ];
+        std::strcpy( xpm[i], xpm_strings[i].c_str() );
+    }
+
+    //
+    // create xpm tiles
+    //
+    bool result = true;
+    if ( ! createXpmTiles( xpm ) )
+    {
+        result = false;
+    }
+
+    //
+    // release the char array
+    //
+    for ( size_t i = 0; i < array_size; ++i )
+    {
+        delete [] xpm[i];
+    }
+    delete [] xpm;
+
+    return result;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+TeamGraphic::isValid() const
+{
+    if ( colors().empty()
+         || tiles().empty()
+         || width() <= 0
+         || height() <= 0
+         || M_cpp != 1 )
+    {
+        return false;
+    }
+
+    int max_x = 0;
+    int max_y = 0;
+
+    const Map::const_iterator end = tiles().end();
+    for ( Map::const_iterator tile = tiles().begin();
+          tile != end;
+          ++tile )
+    {
+        if ( tile->first.first > max_x ) max_x = tile->first.first;
+        if ( tile->first.second > max_y ) max_y = tile->first.second;
+    }
+
+    if ( static_cast< int >( tiles().size() ) != ( max_x + 1 ) * ( max_y + 1 ) )
+    {
+        return false;
+    }
+
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+boost::shared_ptr< std::string >
 TeamGraphic::findColor( const std::string & str )
 {
-    for ( std::shared_ptr< std::string > color : M_colors )
+    const std::vector< boost::shared_ptr< std::string > >::iterator color_end = M_colors.end();
+    for ( std::vector< boost::shared_ptr< std::string > >::iterator color = M_colors.begin();
+          color != color_end;
+          ++color )
     {
-        if ( *color == str )
+        if ( **color == str )
         {
-            return color;
+            return *color;
         }
     }
 
-    return std::shared_ptr< std::string >();
+    return boost::shared_ptr< std::string >();
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+std::ostream &
+TeamGraphic::print( std::ostream & os ) const
+{
+    const Map::const_iterator end = tiles().end();
+    for ( Map::const_iterator tile = tiles().begin();
+          tile != end;
+          ++tile )
+    {
+        //os << "colors = " << tile->second->colors().size() << "\n";
+        os << '(' << tile->first.first
+           << ' ' << tile->first.second << ' ';
+        tile->second->print( os );
+        os << ")\n";
+    }
+
+    return os;
 }
 
 }

@@ -58,7 +58,7 @@ CoachInitCommand::CoachInitCommand( const std::string & team_name,
 
 */
 std::ostream &
-CoachInitCommand::toCommandString( std::ostream & to ) const
+CoachInitCommand::toStr( std::ostream & to ) const
 {
     to << "(init " << M_team_name;
     if ( ! M_coach_name.empty() )
@@ -73,7 +73,7 @@ CoachInitCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-CoachByeCommand::toCommandString( std::ostream & to ) const
+CoachByeCommand::toStr( std::ostream & to ) const
 {
     return to << "(bye)";
 }
@@ -83,7 +83,7 @@ CoachByeCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-CoachCheckBallCommand::toCommandString( std::ostream & to ) const
+CoachCheckBallCommand::toStr( std::ostream & to ) const
 {
     return to << "(check_ball)";
 }
@@ -93,7 +93,7 @@ CoachCheckBallCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-CoachLookCommand::toCommandString( std::ostream & to ) const
+CoachLookCommand::toStr( std::ostream & to ) const
 {
     return to << "(look)";
 }
@@ -103,7 +103,7 @@ CoachLookCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-CoachTeamNamesCommand::toCommandString( std::ostream & to ) const
+CoachTeamNamesCommand::toStr( std::ostream & to ) const
 {
     return to << "(team_names)";
 }
@@ -113,7 +113,7 @@ CoachTeamNamesCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-CoachEyeCommand::toCommandString( std::ostream & to ) const
+CoachEyeCommand::toStr( std::ostream & to ) const
 {
     if ( M_on )
     {
@@ -130,7 +130,7 @@ CoachEyeCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-CoachChangePlayerTypeCommand::toCommandString( std::ostream & to ) const
+CoachChangePlayerTypeCommand::toStr( std::ostream & to ) const
 {
     if ( M_type < 0
          || PlayerParam::i().playerTypes() <= M_type )
@@ -165,9 +165,11 @@ CoachChangePlayerTypesCommand( const std::vector< std::pair< int, int > > & type
 {
     M_types.reserve( types.size() );
 
-    for ( const std::pair< int, int > & v : types )
+    for ( std::vector< std::pair< int, int > >::const_iterator it = types.begin();
+          it != types.end();
+          ++it )
     {
-        add( v.first, v.second );
+        add( it->first, it->second );
     }
 }
 
@@ -182,7 +184,7 @@ CoachChangePlayerTypesCommand::add( const int unum,
     if ( unum < 1
          || 11 < unum )
     {
-        std::cerr << "(CoachChangePlayerTypesCommand::add) Illegal player number "
+        std::cerr << "CoachChangePlayerTypesCommand::add() Illegal player number "
                   << unum
                   << std::endl;
         return;
@@ -191,19 +193,22 @@ CoachChangePlayerTypesCommand::add( const int unum,
     if ( type < 0
          || PlayerParam::i().playerTypes() <= type )
     {
-        std::cerr << "(CoachChangePlayerTypesCommand::add) Illegal player type id "
+        std::cerr << "CoachChangePlayerTypesCommand::add() Illegal player type id "
                   << type
                   << std::endl;
         return;
     }
 
-    for ( const std::pair< int, int > & v : M_types )
+    for ( std::vector< std::pair< int, int > >::iterator it = M_types.begin();
+          it != M_types.end();
+          ++it )
     {
-        if ( v.first == unum )
+        if ( it->first == unum )
         {
-            std::cerr << "(CoachChangePlayerTypesCommand::add) unum "
+            std::cerr << "CoachChangePlayerTypesCommand::add() unum "
                       << unum << " is already registered. overwritten."
                       << std::endl;
+            it->second = type;
             return;
         }
     }
@@ -216,28 +221,30 @@ CoachChangePlayerTypesCommand::add( const int unum,
 
 */
 std::ostream &
-CoachChangePlayerTypesCommand::toCommandString( std::ostream & to ) const
+CoachChangePlayerTypesCommand::toStr( std::ostream & to ) const
 {
     if ( M_types.empty() )
     {
-        std::cerr << "CoachChangePlayerTypesCommand::toCommandString()  Empty data!"
+        std::cerr << "CoachChangePlayerTypesCommand::toStr()  Empty data!"
                   << std::endl;
         return to;
     }
 
     to << "(change_player_types ";
 
-    for ( const std::pair< int, int > & v : M_types )
+    for ( std::vector< std::pair< int, int > >::const_iterator it = M_types.begin();
+          it != M_types.end();
+          ++it )
     {
-        if ( v.first < 1
-             || 11 < v.first
-             || v.second < 0
-             || PlayerParam::i().playerTypes() <= v.second )
+        if ( it->first < 1
+             || 11 < it->first
+             || it->second < 0
+             || PlayerParam::i().playerTypes() <= it->second )
         {
             continue;
         }
 
-        to << '(' << v.first << ' ' << v.second << ')';
+        to << '(' << it->first << ' ' << it->second << ')';
     }
 
     return to << ")";
@@ -248,18 +255,9 @@ CoachChangePlayerTypesCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-CoachFreeformCommand::toCommandString( std::ostream & to ) const
+CoachSayCommand::toStr( std::ostream & to ) const
 {
-    if ( M_version < 7.0 )
-    {
-        to << "(say " << M_message << ")";
-    }
-    else
-    {
-        to << "(say (freeform \"" << M_message << "\"))";
-    }
-
-    return to;
+    return to << "(say " << M_clang_msg << ")";
 }
 
 /*-------------------------------------------------------------------*/
@@ -279,12 +277,14 @@ CoachTeamGraphicCommand( const unsigned int x,
         std::cerr << "team_graphic: xpm over flow" << std::endl;
         M_xpm_lines.erase( M_xpm_lines.begin() + 8, M_xpm_lines.end() );
     }
-    for ( std::string & str : M_xpm_lines )
+    for ( std::vector< std::string >::iterator it = M_xpm_lines.begin();
+          it != M_xpm_lines.end();
+          ++it )
     {
-        if ( str.size() > 8 )
+        if ( it->size() > 8 )
         {
             std::cerr << "team_graphic: xpm line over flow" << std::endl;
-            str.erase( str.begin() + 8, str.end() );
+            it->erase( it->begin() + 8, it->end() );
         }
     }
 }
@@ -294,13 +294,15 @@ CoachTeamGraphicCommand( const unsigned int x,
 
 */
 std::ostream &
-CoachTeamGraphicCommand::toCommandString( std::ostream & to ) const
+CoachTeamGraphicCommand::toStr( std::ostream & to ) const
 {
     to << "(team_graphic (" << M_x << " " << M_y;
 
-    for ( const std::string & str : M_xpm_lines )
+    for ( std::vector< std::string >::const_iterator it = M_xpm_lines.begin();
+          it != M_xpm_lines.end();
+          ++it )
     {
-        to << " \"" << str << "\"";
+        to << " \"" << *it << "\"";
     }
     return to << "))";
 }
@@ -310,7 +312,7 @@ CoachTeamGraphicCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-CoachCompressionCommand::toCommandString( std::ostream & to ) const
+CoachCompressionCommand::toStr( std::ostream & to ) const
 {
     return to << "(compression " << M_level << ")";
 }
@@ -320,7 +322,7 @@ CoachCompressionCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-CoachDoneCommand::toCommandString( std::ostream & to ) const
+CoachDoneCommand::toStr( std::ostream & to ) const
 {
     return to << "(done)";
 }

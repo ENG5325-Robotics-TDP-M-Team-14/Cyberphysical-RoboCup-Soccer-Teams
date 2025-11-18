@@ -29,13 +29,11 @@
 
 /////////////////////////////////////////////////////////////////////
 
-#ifndef RCSC_PLAYER_PENALTY_KICK_STATE_H
-#define RCSC_PLAYER_PENALTY_KICK_STATE_H
+#ifndef PENALTY_KICK_STATE_H
+#define PENALTY_KICK_STATE_H
 
 #include <rcsc/game_time.h>
 #include <rcsc/types.h>
-
-#include <vector>
 
 namespace rcsc {
 
@@ -71,18 +69,14 @@ private:
     //! current kick kicker's side id
     int M_kick_taker_side;
 
-    //! kick taker order
-    int M_kick_taker_order[11];
+    //! current kick kicker's uniform number
+    int M_kick_taker_unum;
 
 public:
     /*!
       \brief init member variables
     */
     PenaltyKickState();
-
-    // no copyable
-    PenaltyKickState( const PenaltyKickState & ) = delete;
-    const PenaltyKickState& operator=( const PenaltyKickState & ) = delete;
 
     /*!
       \brief get time when playmode is changed
@@ -154,7 +148,11 @@ public:
       \return checked result.
      */
     bool isKickTaker( const SideID side,
-                      const int unum ) const;
+                      const int unum ) const
+      {
+          return M_kick_taker_side == side
+              && M_kick_taker_unum == unum;
+      }
 
     /*!
       \brief update status using refeee message
@@ -168,10 +166,14 @@ public:
 
     /*!
       \brief set kick taker's uniform number
-      \param order order number [0,10]
       \param unum uniform number
      */
-    void setKickTakerOrder( const std::vector< int > & unum_set );
+    void setKickTaker( const SideID side,
+                       const int unum )
+      {
+          M_kick_taker_side = side;
+          M_kick_taker_unum = unum;
+      }
 
 };
 

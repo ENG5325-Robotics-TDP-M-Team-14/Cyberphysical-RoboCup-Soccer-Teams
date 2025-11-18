@@ -2,7 +2,7 @@
 
 /*!
   \file coach_agent.cpp
-  \brief basic coach agent Source File
+  \brief basic coach agent Header File
 */
 
 /*
@@ -38,26 +38,20 @@
 #include "coach_audio_sensor.h"
 #include "coach_config.h"
 #include "coach_command.h"
-#include "coach_visual_sensor.h"
+#include "global_visual_sensor.h"
+#include "global_world_model.h"
 
-#include <rcsc/clang/clang_message.h>
-
-#include <rcsc/common/abstract_client.h>
-#include <rcsc/common/audio_codec.h>
-#include <rcsc/common/online_client.h>
-#include <rcsc/common/offline_client.h>
+#include <rcsc/common/basic_client.h>
 #include <rcsc/common/logger.h>
 #include <rcsc/common/server_param.h>
 #include <rcsc/common/player_param.h>
 #include <rcsc/common/player_type.h>
 #include <rcsc/common/team_graphic.h>
 #include <rcsc/common/audio_memory.h>
-#include <rcsc/common/say_message_parser.h>
 
 #include <rcsc/param/param_map.h>
 #include <rcsc/param/conf_file_parser.h>
 #include <rcsc/param/cmd_line_parser.h>
-#include <rcsc/timer.h>
 #include <rcsc/version.h>
 
 #include <sstream>
@@ -91,23 +85,10 @@ struct CoachAgent::Impl {
     GameMode game_mode_;
 
     //! visual sensor data
-    CoachVisualSensor visual_;
+    GlobalVisualSensor visual_;
 
     //! audio sensor
     CoachAudioSensor audio_;
-
-    //! time when see_global is received
-    TimeStamp see_time_stamp_;
-
-    //! the flags for team_graphic ok message
-    std::set< TeamGraphic::Index > team_graphic_ok_set_;
-
-
-    //! freeform message queue
-    std::vector< FreeformMessage::Ptr > freeform_messages_;
-
-    //! clang message to be sent
-    CLangMessage::ConstPtr clang_message_;
 
     /*!
       \brief initialize all members
@@ -143,7 +124,7 @@ struct CoachAgent::Impl {
     /*!
       \brief send init or reconnect command to server
 
-      init commad is sent in AbstractClient's run() method
+      init commad is sent in BasicClient's run() method
       Do not call this method yourself!
      */
     void sendInitCommand();
@@ -153,26 +134,12 @@ struct CoachAgent::Impl {
      */
     void sendSettingCommands();
 
+
     /*!
       \brief send disconnection command message to server
       and set the server status to end.
      */
     void sendByeCommand();
-
-    /*!
-      \brief send queued clang message.
-     */
-    void sendCLang();
-
-    /*!
-      \brief send queued freeform messages in one message.
-     */
-    void sendFreeformMessage();
-
-    /*!
-      \brief build message string from queued FreeformMessage.
-     */
-    void buildFreeformMessage( std::string & to );
 
     /*!
       \brief analyze init replay message
@@ -344,12 +311,12 @@ CoachAgent::Impl::updateCurrentTime( const long & new_time,
         {
             if ( by_see_global )
             {
-                current_time_.assign( current_time_.cycle(),
-                                      current_time_.stopped() + 1 );
                 dlog.addText( Logger::LEVEL_ANY,
                               "CYCLE %ld-%ld --------------------"
                               " stopped time was updated by see_global",
-                              current_time_.cycle(), current_time_.stopped() );
+                              current_time_.cycle(), current_time_.stopped() + 1 );
+                current_time_.assign( current_time_.cycle(),
+                                      current_time_.stopped() + 1 );
             }
         }
     }
@@ -362,7 +329,6 @@ CoachAgent::Impl::updateCurrentTime( const long & new_time,
                           "CYCLE %ld-0  -------------------------------------------------",
                           new_time );
         }
-
         current_time_.assign( new_time, 0 );
     }
 }
@@ -397,12 +363,12 @@ CoachAgent::Impl::updateServerStatus()
 
 */
 CoachAgent::CoachAgent()
-    : SoccerAgent(),
-      M_impl( new Impl( *this ) ),
-      M_debug_client(),
-      M_worldmodel()
+    : SoccerAgent()
+    , M_impl( new Impl( *this ) )
+    , M_debug_client()
+    , M_worldmodel()
 {
-    std::shared_ptr< AudioMemory > audio_memory( new AudioMemory );
+    boost::shared_ptr< AudioMemory > audio_memory( new AudioMemory );
 
     M_worldmodel.setAudioMemory( audio_memory );
 }
@@ -419,30 +385,9 @@ CoachAgent::~CoachAgent()
 /*-------------------------------------------------------------------*/
 /*!
 
- */
-std::shared_ptr< AbstractClient >
-CoachAgent::createConsoleClient()
-{
-    std::shared_ptr< AbstractClient > ptr;
-
-    if ( config().offlineClientMode() )
-    {
-        ptr = std::shared_ptr< AbstractClient >( new OfflineClient() );
-    }
-    else
-    {
-        ptr = std::shared_ptr< AbstractClient >( new OnlineClient() );
-    }
-
-    return ptr;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
 */
 const
-CoachVisualSensor &
+GlobalVisualSensor &
 CoachAgent::visualSensor() const
 {
     return M_impl->visual_;
@@ -463,17 +408,6 @@ CoachAgent::audioSensor() const
 /*!
 
 */
-const
-std::set< TeamGraphic::Index > &
-CoachAgent::teamGraphicOKSet() const
-{
-    return M_impl->team_graphic_ok_set_;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
 bool
 CoachAgent::initImpl( CmdLineParser & cmd_parser )
 {
@@ -485,37 +419,43 @@ CoachAgent::initImpl( CmdLineParser & cmd_parser )
         ( "help" , "", BoolSwitch( &help ), "print help message.")
         ( "coach-config", "", &coach_config_file, "specifies coach config file." );
 
+    ParamMap coach_param_map( "Coach options" );
+    M_config.createParamMap( coach_param_map );
+
     // analyze command line for system options
     cmd_parser.parse( system_param_map );
     if ( help )
     {
         std::cout << copyright() << std::endl;
         system_param_map.printHelp( std::cout );
-        config().printHelp( std::cout );
+        coach_param_map.printHelp( std::cout );
         return false;
     }
 
-    // parse config file
+    // analyze config file for coach config options
     if ( ! coach_config_file.empty() )
     {
         ConfFileParser conf_parser( coach_config_file.c_str() );
-        M_config.parse( conf_parser );
+        conf_parser.parse( coach_param_map );
     }
 
-    // parser command line
-    M_config.parse( cmd_parser );
+    // analyze command line for coach options
+    cmd_parser.parse( coach_param_map );
 
     if ( config().version() < 1.0
-         || MAX_PROTOCOL_VERSION < config().version() )
+         || 15.0 <= config().version() )
     {
-        std::cerr << "(CoachAgent::initImpl) Unsupported client version: " << config().version()
+        std::cerr << "Unsupported client version: " << config().version()
                   << std::endl;
         return false;
     }
 
     M_impl->setDebugFlags();
 
-    AudioCodec::instance().createMap( config().audioShift() );
+    if ( config().offlineClientMode() )
+    {
+        M_client->setClientMode( BasicClient::OFFLINE );
+    }
 
     return true;
 }
@@ -542,9 +482,10 @@ CoachAgent::handleStart()
     }
 
     // just create a connection. init command is automaticaly sent
-    // by AbstractClient's run() method.
+    // by BasicClient's run() method.
     if ( ! M_client->connectTo( config().host().c_str(),
-                                config().port() ) )
+                                config().port(),
+                                static_cast< long >( config().intervalMSec() ) ) )
     {
         std::cerr << config().teamName()
                   << " coach: ***ERROR*** Failed to connect." << std::endl;
@@ -552,10 +493,15 @@ CoachAgent::handleStart()
         return false;
     }
 
-    M_client->setIntervalMSec( config().intervalMSec() );
+    if ( config().offlineLogging() )
+    {
+        if ( ! M_impl->openOfflineLog() )
+        {
+            return false;
+        }
+    }
 
     M_impl->sendInitCommand();
-
     return true;
 }
 
@@ -598,7 +544,7 @@ CoachAgent::handleMessage()
     GameTime start_time = M_impl->current_time_;
 
     // receive and analyze message
-    while ( M_client->receiveMessage() > 0 )
+    while ( M_client->recvMessage() > 0 )
     {
         ++counter;
         parse( M_client->message() );
@@ -646,7 +592,7 @@ CoachAgent::handleMessageOffline()
         return;
     }
 
-    if ( M_client->receiveMessage() > 0 )
+    if ( M_client->recvMessage() > 0 )
     {
         parse( M_client->message() );
     }
@@ -669,7 +615,7 @@ CoachAgent::handleMessageOffline()
 
 */
 void
-CoachAgent::handleTimeout( const int timeout_count,
+CoachAgent::handleTimeout( const int /*timeout_count*/,
                            const int waited_msec )
 {
     if ( ! M_client )
@@ -678,20 +624,6 @@ CoachAgent::handleTimeout( const int timeout_count,
                   << std::endl;
         return;
     }
-
-    TimeStamp cur_time;
-
-    std::int64_t msec_from_see = -1;
-    if ( M_impl->see_time_stamp_.isValid() )
-    {
-        msec_from_see = cur_time.elapsedSince( M_impl->see_time_stamp_ );
-    }
-
-    dlog.addText( Logger::SYSTEM,
-                  "----- Timeout. msec from see_global = [%ld] ms."
-                  " Timeout count = %d",
-                  msec_from_see / ServerParam::i().slowDownFactor(),
-                  timeout_count );
 
     if ( waited_msec > config().serverWaitSeconds() * 1000 )
     {
@@ -749,17 +681,9 @@ CoachAgent::handleExit()
 
 */
 void
-CoachAgent::addSayMessageParser( SayMessageParser * parser )
+CoachAgent::addSayMessageParser( boost::shared_ptr< SayMessageParser > parser )
 {
-    if ( ! parser )
-    {
-        std::cerr << __FILE__ << ' ' << __LINE__
-                  << ": NULL SayMessageParser." << std::endl;
-        return;
-    }
-
-    SayMessageParser::Ptr ptr( parser );
-    M_impl->audio_.addParser( ptr );
+    M_impl->audio_.addParser( parser );
 }
 
 /*-------------------------------------------------------------------*/
@@ -794,7 +718,7 @@ CoachAgent::finalize()
 void
 CoachAgent::Impl::initDebug()
 {
-    if ( ! agent_.config().offlineClientMode() )
+    if ( agent_.M_client->clientMode() == BasicClient::ONLINE )
     {
         if ( agent_.config().debugServerConnect() )
         {
@@ -843,9 +767,9 @@ CoachAgent::Impl::openOfflineLog()
 
     if ( ! agent_.M_client->openOfflineLog( filepath ) )
     {
-        std::cerr << agent_.config().teamName() << " coach: "
-                  << "Failed to open the offline client log file ["
-                  << filepath << "]" << std::endl;
+        std::cerr << "Failed to open the offline client log file ["
+                  << filepath
+                  << "]" << std::endl;
         agent_.M_client->setServerAlive( false );
         return false;
     }
@@ -938,22 +862,11 @@ CoachAgent::action()
         M_client->printOfflineThink();
     }
 
-    Timer timer;
-    dlog.addText( Logger::SYSTEM,
-                  __FILE__" (action) start" );
+    M_worldmodel.updateJustBeforeDecision( M_impl->current_time_ );
 
     if ( M_impl->last_decision_time_ != M_impl->current_time_ )
     {
-        M_worldmodel.updateJustBeforeDecision( M_impl->current_time_ );
-
-        //
-        // handle action start event
-        //
-        handleActionStart();
-
         actionImpl();
-        M_impl->sendCLang();
-        M_impl->sendFreeformMessage();
         M_impl->last_decision_time_ = M_impl->current_time_;
     }
 
@@ -964,24 +877,8 @@ CoachAgent::action()
         M_impl->think_received_ = false;
     }
 
-    dlog.addText( Logger::SYSTEM,
-                  __FILE__" (action) elapsed %lf [ms]",
-                  timer.elapsedReal() );
 
-    //
-    // handle action end event
-    //
-    handleActionEnd();
-
-    //
-    // debugger output
-    //
     M_impl->printDebug();
-
-    //
-    // delete all messages
-    //
-    M_impl->freeform_messages_.clear();
 }
 
 /*-------------------------------------------------------------------*/
@@ -1072,7 +969,9 @@ CoachAgent::Impl::analyzeInit( const char * msg )
 {
     // "(init l ok)" | "(init r ok)"
 
-    char side = '?';
+    const CoachConfig & c = agent_.config();
+
+    char side;
 
     if ( std::sscanf( msg, "(init %c ok)", &side ) != 1 )
     {
@@ -1082,7 +981,7 @@ CoachAgent::Impl::analyzeInit( const char * msg )
 
     if ( side != 'l' && side != 'r' )
     {
-        std::cerr << agent_.config().teamName()
+        std::cerr << c.teamName()
                   << " coach: "
                   << agent_.world().time()
                   << " received unexpected init message. " << msg
@@ -1095,27 +994,33 @@ CoachAgent::Impl::analyzeInit( const char * msg )
     SideID side_id = ( side == 'l'
                        ? LEFT
                        : RIGHT );
-    agent_.M_worldmodel.init( agent_.config().teamName(), side_id, agent_.config().version() );
+    agent_.M_worldmodel.init( side_id, c.version() );
 
-    if ( agent_.config().hearSay() )
+    // send specific settings
+    // if we intend to advise to the team,
+    // set visual sensory
+    if ( c.useEye() )
     {
-        audio_.setTeamName( agent_.config().teamName() );
+        agent_.doEye( true );
     }
+
+    if ( c.hearSay() )
+    {
+        audio_.setTeamName( c.teamName() );
+    }
+
 
     //
     // initialize debug resources
     //
+
     initDebug();
 
     //
     // send client setting commands
     //
-    sendSettingCommands();
 
-    //
-    // call init message event handler
-    //
-    agent_.handleInitMessage();
+    sendSettingCommands();
 }
 
 /*-------------------------------------------------------------------*/
@@ -1124,7 +1029,7 @@ CoachAgent::Impl::analyzeInit( const char * msg )
 */
 bool
 CoachAgent::Impl::analyzeCycle( const char * msg,
-                                const bool by_see_global )
+                          const bool by_see_global )
 {
     char id[16];
     long cycle = 0;
@@ -1151,15 +1056,10 @@ CoachAgent::Impl::analyzeCycle( const char * msg,
 void
 CoachAgent::Impl::analyzeSeeGlobal( const char * msg )
 {
-    see_time_stamp_.setNow();
-
     if ( ! analyzeCycle( msg, true ) )
     {
         return;
     }
-
-    dlog.addText( Logger::SENSOR,
-                  __FILE__": (analyzeSeeGlobal)" );
 
     // analyze message
     visual_.parse( msg,
@@ -1222,7 +1122,7 @@ void
 CoachAgent::Impl::analyzeHearReferee( const char * msg )
 {
     const CoachConfig & c = agent_.config();
-    const CoachWorldModel & wm = agent_.world();
+    const GlobalWorldModel & wm = agent_.world();
 
     long cycle;
     char mode[512];
@@ -1252,9 +1152,12 @@ CoachAgent::Impl::analyzeHearReferee( const char * msg )
                           << std::endl;
             }
 
-            agent_.M_worldmodel.setCard( ( side == 'l' ? LEFT : side == 'r' ? RIGHT : NEUTRAL ),
-                                         unum,
-                                         YELLOW );
+            agent_.M_worldmodel.setYellowCard( ( side == 'l'
+                                                 ? LEFT
+                                                 : side == 'r'
+                                                 ? RIGHT
+                                                 : NEUTRAL ),
+                                               unum );
         }
         else if ( ! std::strncmp( mode, "red_card", std::strlen( "red_card" ) ) )
         {
@@ -1269,9 +1172,12 @@ CoachAgent::Impl::analyzeHearReferee( const char * msg )
                           << std::endl;
             }
 
-            agent_.M_worldmodel.setCard( ( side == 'l' ? LEFT : side == 'r' ? RIGHT : NEUTRAL ),
-                                         unum,
-                                         RED );
+            agent_.M_worldmodel.setRedCard( ( side == 'l'
+                                              ? LEFT
+                                              : side == 'r'
+                                              ? RIGHT
+                                              : NEUTRAL ),
+                                            unum );
         }
         else if ( ! std::strncmp( mode, "training", std::strlen( "training" ) ) )
         {
@@ -1339,17 +1245,17 @@ CoachAgent::Impl::analyzeChangePlayerType( const char * msg )
                            &unum, &type ) == 2 )
     {
         // teammate
-        agent_.M_worldmodel.changePlayerType( agent_.world().ourSide(),
-                                              unum,
-                                              type );
+        agent_.M_worldmodel.setPlayerType( agent_.world().ourSide(),
+                                           unum,
+                                           type );
     }
     else if ( std::sscanf( msg, " ( change_player_type %d ) ",
                            &unum ) == 1 )
     {
         // opponent
-        agent_.M_worldmodel.changePlayerType( agent_.world().theirSide(),
-                                              unum,
-                                              Hetero_Unknown );
+        agent_.M_worldmodel.setPlayerType( agent_.world().theirSide(),
+                                           unum,
+                                           Hetero_Unknown );
     }
     else
     {
@@ -1526,7 +1432,7 @@ CoachAgent::Impl::analyzeOKTeamGraphic( const char * msg )
         return;
     }
 
-    team_graphic_ok_set_.insert( TeamGraphic::Index( x, y ) );
+    agent_.M_team_graphic_ok_set.insert( TeamGraphic::Index( x, y ) );
 }
 
 /*-------------------------------------------------------------------*/
@@ -1616,16 +1522,14 @@ bool
 CoachAgent::sendCommand( const CoachCommand & com )
 {
     std::ostringstream os;
-    com.toCommandString( os );
+    com.toStr( os );
 
     std::string str = os.str();
-    if ( str.empty() )
+    if ( str.length() == 0 )
     {
         return false;
     }
 
-    dlog.addText( Logger::SYSTEM,
-                  "---- send[%s]", str.c_str() );
     return ( M_client->sendMessage( str.c_str() ) > 0 );
 }
 
@@ -1676,128 +1580,22 @@ CoachAgent::Impl::sendInitCommand()
 void
 CoachAgent::Impl::sendSettingCommands()
 {
-    if ( agent_.config().useEye() )
-    {
-        agent_.doEye( true );
-    }
+    std::ostringstream ostr;
 
+    // set compression level
     if ( 0 < agent_.config().compression()
          && agent_.config().compression() <= 9 )
     {
         CoachCompressionCommand com( agent_.config().compression() );
-        agent_.sendCommand( com );
-    }
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
- */
-void
-CoachAgent::Impl::sendCLang()
-{
-    if ( ! clang_message_ )
-    {
-        return;
+        com.toStr( ostr );
     }
 
-    if ( ! agent_.world().canSendCLang( clang_message_->type() ) )
-    {
-        std::cerr << agent_.config().teamName()
-                  << " coach: " << agent_.world().time()
-                  << " ***WARNING*** cannot send clang now. "
-                  << std::endl;
-        clang_message_.reset();
-        return;
-    }
-
-    std::ostringstream ostr;
-    ostr << "(say " << *clang_message_ << ')';
-
-    if ( agent_.M_client->sendMessage( ostr.str().c_str() ) > 0 )
+    if ( ! ostr.str().empty() )
     {
         dlog.addText( Logger::SYSTEM,
-                      "---- send clang [%s]", clang_message_->typeName() );
-        agent_.M_worldmodel.decCLangCapacity( clang_message_->type() );
-    }
-
-    //std::cerr << "send clang: [" << ostr.str() << ']' << std::endl;
-    clang_message_.reset();
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
- */
-void
-CoachAgent::Impl::sendFreeformMessage()
-{
-    if ( freeform_messages_.empty() )
-    {
-        return;
-    }
-
-    if ( ! agent_.world().canSendFreeform() )
-    {
-        std::cerr << agent_.config().teamName()
-                  << " coach: "
-                  << agent_.world().time()
-                  << " ***WARNING*** cannot send freeform now. "
-                  << std::endl;
-        freeform_messages_.clear();
-        return;
-    }
-
-    // send clang format message
-    // (say (freeform "<message>"))
-
-    std::string msg;
-    msg.reserve( ServerParam::i().coachSayMsgSize() );
-    buildFreeformMessage( msg );
-
-    if ( msg.empty() )
-    {
-        std::cerr << agent_.config().teamName()
-                  << " coach: "
-                  << agent_.world().time()
-                  << " ***WARNING*** could not build freeform message. "
-                  << std::endl;
-        freeform_messages_.clear();
-        return;
-    }
-
-    CoachFreeformCommand com( agent_.config().version(), msg );
-
-    if ( agent_.sendCommand( com ) )
-    {
-        agent_.M_worldmodel.incFreeformSendCount();
-    }
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
- */
-void
-CoachAgent::Impl::buildFreeformMessage( std::string & to )
-{
-    int len = to.length();
-
-    for ( const FreeformMessage::Ptr & msg : freeform_messages_ )
-    {
-        int new_len = len + msg->length();
-        if ( new_len > ServerParam::i().coachSayMsgSize() )
-        {
-            std::cerr << agent_.config().teamName()
-                      << " coach: "
-                      << agent_.world().time()
-                      << " ***WARNING*** over the max freeform message length. "
-                      << new_len
-                      << std::endl;
-            break;
-        }
-
-        msg->append( to );
+                      "---- send[%s]",
+                      ostr.str().c_str() );
+        agent_.M_client->sendMessage( ostr.str().c_str() );
     }
 }
 
@@ -1930,15 +1728,16 @@ CoachAgent::doChangePlayerTypes( const std::vector< std::pair< int, int > > & ty
     //return sendCommand( com );
 
     bool result = true;
-    for ( const std::pair< int, int > & v : types )
+    for ( std::vector< std::pair< int, int > >::const_iterator it = types.begin();
+          it != types.end();
+          ++it )
     {
-        result = doChangePlayerType( v.first, v.second );
+        result = doChangePlayerType( it->first, it->second );
     }
 
     return result;
 }
 
-#if 0
 /*-------------------------------------------------------------------*/
 /*!
 
@@ -2010,83 +1809,6 @@ CoachAgent::doSayFreeform( const std::string & msg )
 
     return ( M_client->sendMessage( freeform_msg.c_str() ) > 0 );
 }
-#endif
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-void
-CoachAgent::addFreeformMessage( FreeformMessage::Ptr new_message )
-{
-    if ( ! new_message )
-    {
-        std::cerr << config().teamName()
-                  << " coach: "
-                  << " ***WARNING*** NULL freeform message object. "
-                  << std::endl;
-        dlog.addText( Logger::ACTION,
-                      __FILE__": (addFreeformMessage) NULL message." );
-        return;
-    }
-
-    for ( const FreeformMessage::Ptr & msg : M_impl->freeform_messages_ )
-    {
-        if ( msg->type() == new_message->type() )
-        {
-            std::cerr << config().teamName()
-                      << " coach: "
-                      << " ***WARNING*** freeform message type=[" << new_message->type()
-                      << "] has already been registered." << std::endl;
-            dlog.addText( Logger::ACTION,
-                          __FILE__": (addFreeformMessage) duplicated type [%s]",
-                          new_message->type().c_str() );
-            return;
-        }
-    }
-
-    M_impl->freeform_messages_.push_back( new_message );
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-CoachAgent::removeFreeformMessage( const std::string & type )
-{
-    bool removed = false;
-
-    std::vector< FreeformMessage::Ptr >::iterator it = M_impl->freeform_messages_.begin();
-
-    while ( it != M_impl->freeform_messages_.end() )
-    {
-        if ( (*it)->type() == type )
-        {
-            it = M_impl->freeform_messages_.erase( it );
-            removed = true;
-            dlog.addText( Logger::ACTION,
-                          __FILE__" (removeFreeformMessage) removed %s", type.c_str() );
-        }
-        else
-        {
-            ++it;
-        }
-    }
-
-
-    return removed;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-void
-CoachAgent::doSendCLang( const CLangMessage * msg )
-{
-    M_impl->clang_message_ = CLangMessage::ConstPtr( msg );
-}
 
 /*-------------------------------------------------------------------*/
 /*!
@@ -2130,7 +1852,7 @@ CoachAgent::doTeamGraphic( const int x,
     std::ostringstream ostr;
 
     ostr << "(team_graphic (" << x << ' ' << y << ' ';
-    tile->second->print( ostr, ' ' );
+    tile->second->print( ostr );
     ostr << "))";
 
     return ( M_client->sendMessage( ostr.str().c_str() ) > 0 );

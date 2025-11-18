@@ -35,7 +35,7 @@
 
 #include "soccer_agent.h"
 
-#include "abstract_client.h"
+#include "basic_client.h"
 
 #include <rcsc/param/cmd_line_parser.h>
 #include <rcsc/version.h>
@@ -50,7 +50,7 @@ namespace rcsc {
 
 */
 SoccerAgent::SoccerAgent()
-    : M_client()
+    : M_client( static_cast< BasicClient * >( 0 ) )
 {
 
 }
@@ -69,31 +69,27 @@ SoccerAgent::~SoccerAgent()
 
 */
 bool
-SoccerAgent::init( CmdLineParser & cmd_parser )
+SoccerAgent::init( BasicClient * client,
+                   const int argc,
+                   const char * const * argv )
 {
    /*
       Do NOT remove the following copyright notice!
      */
     std::cout << copyright() << std::flush;
 
+    assert( client );
+
+    M_client = client;
+
+    CmdLineParser cmd_parser( argc, argv );
     if ( ! initImpl( cmd_parser ) )
     {
+        M_client->setServerAlive( false );
         return false;
     }
 
     return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-void
-SoccerAgent::setClient( std::shared_ptr< AbstractClient > client )
-{
-    assert( client );
-
-    M_client = client;
 }
 
 }

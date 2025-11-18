@@ -47,7 +47,7 @@ namespace rcsc {
 /////////////////////////////////////////////////////////////////////
 
 //! the implementation of file stream buffer
-struct gzfilebuf::Impl {
+struct gzfilebuf_impl {
 
     //! file open mode flag
     std::ios_base::openmode open_mode_;
@@ -58,10 +58,10 @@ struct gzfilebuf::Impl {
 #endif
 
     //! constructor
-    Impl()
+    gzfilebuf_impl()
         : open_mode_( static_cast< std::ios_base::openmode >( 0 ) )
 #ifdef HAVE_LIBZ
-        , file_( nullptr )
+        , file_( NULL )
 #endif
       { }
 };
@@ -73,10 +73,10 @@ struct gzfilebuf::Impl {
 
 */
 gzfilebuf::gzfilebuf()
-    : M_impl( new Impl() ),
-      M_buf_size( 8192 ),
-      M_buf( nullptr ),
-      M_remained_size( 0 )
+    : M_impl( new gzfilebuf_impl )
+    , M_buf_size( 8192 )
+    , M_buf( NULL )
+    , M_remained_size( 0 )
 {
     //std::cerr << "create gzfilebuf" << std::endl;
 }
@@ -109,7 +109,7 @@ gzfilebuf::is_open()
 {
 #ifdef HAVE_LIBZ
     if ( M_impl
-         && M_impl->file_ != nullptr  )
+         && M_impl->file_ != NULL  )
     {
         //std::cerr << "gzfilebuf is open" << std::endl;
         return true;
@@ -127,7 +127,7 @@ gzfilebuf::open( const char * path,
                  std::ios_base::openmode mode,
                  int level, int strategy )
 {
-    gzfilebuf * ret = nullptr;
+    gzfilebuf * ret = NULL;
 #ifdef HAVE_LIBZ
     if ( ! M_impl )
     {
@@ -157,7 +157,7 @@ gzfilebuf::open( const char * path,
         //std::cerr << "gzfilebuf::open call gzopen" << std::endl;
         M_impl->file_ = gzopen( path, mode_str.c_str() );
 
-        if ( M_impl->file_ == nullptr )
+        if ( M_impl->file_ == NULL )
         {
             return ret;
         }
@@ -209,23 +209,23 @@ gzfilebuf::close() throw()
         if ( ! M_impl )
         {
             //std::cerr << "impl is null" << std::endl;
-            return nullptr;
+            return NULL;
         }
         //std::cerr << "impl exist" << std::endl;
-        if ( M_impl->file_ == nullptr )
+        if ( M_impl->file_ == NULL )
         {
             //std::cerr << "file pointer is null" << std::endl;
-            return nullptr;
+            return NULL;
         }
         //std::cerr << "file pointer exist" << std::endl;
         // TODO: checking close status...
         gzclose( M_impl->file_ );
-        M_impl->file_ = nullptr;
+        M_impl->file_ = NULL;
         M_impl->open_mode_ = static_cast< std::ios_base::openmode >( 0 );
         //std::cerr << "finish close gzip file" << std::endl;
     }
 #endif
-    return nullptr;
+    return NULL;
 }
 
 /*-------------------------------------------------------------------*/
@@ -350,10 +350,10 @@ gzfilebuf::destroyInternalBuffer() throw()
     {
         //std::cerr << "gzfilebuf destroy buffer" << std::endl;
         delete [] M_buf;
-        M_buf = nullptr;
+        M_buf = NULL;
         M_remained_size = 0;
-        this->setg( nullptr, nullptr, nullptr );
-        this->setp( nullptr, nullptr );
+        this->setg( NULL, NULL, NULL );
+        this->setp( NULL, NULL );
     }
 }
 
@@ -681,8 +681,8 @@ gzfilebuf::xsputn( gzfilebuf::char_type * s,
 
 */
 gzifstream::gzifstream()
-    : std::istream( nullptr ),
-      M_file_buf()
+    : std::istream( static_cast< std::streambuf * >( 0 ) )
+    , M_file_buf()
 {
     this->init( &M_file_buf );
 }
@@ -692,8 +692,8 @@ gzifstream::gzifstream()
 
 */
 gzifstream::gzifstream( const char * path )
-    : std::istream( nullptr ),
-      M_file_buf()
+    : std::istream( static_cast< std::streambuf * >( 0 ) )
+    , M_file_buf()
 {
     this->init( &M_file_buf );
     this->open( path );
@@ -736,8 +736,8 @@ gzifstream::close()
 
 */
 gzofstream::gzofstream()
-    : std::ostream( nullptr ),
-      M_file_buf()
+    : std::ostream( static_cast< std::streambuf * >( 0 ) )
+    , M_file_buf()
 {
     this->init( &M_file_buf );
 }
@@ -749,8 +749,8 @@ gzofstream::gzofstream()
 gzofstream::gzofstream( const char * path,
                         int level,
                         int strategy )
-    : std::ostream( nullptr ),
-      M_file_buf()
+    : std::ostream( static_cast< std::streambuf * >( 0 ) )
+    , M_file_buf()
 {
     this->init( &M_file_buf );
     this->open( path, level, strategy );

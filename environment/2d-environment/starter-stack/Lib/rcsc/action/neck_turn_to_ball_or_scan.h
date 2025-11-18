@@ -56,8 +56,7 @@ public:
       look the ball. if this value is negative, agent always try to
       look the ball.
      */
-    explicit
-    Neck_TurnToBallOrScan( const int count_thr )
+    Neck_TurnToBallOrScan( const int count_thr = 0 )
         : M_count_thr( count_thr )
       { }
 
@@ -74,7 +73,7 @@ public:
      */
     NeckAction * clone() const
       {
-          return new Neck_TurnToBallOrScan( M_count_thr );
+          return new Neck_TurnToBallOrScan;
       }
 };
 

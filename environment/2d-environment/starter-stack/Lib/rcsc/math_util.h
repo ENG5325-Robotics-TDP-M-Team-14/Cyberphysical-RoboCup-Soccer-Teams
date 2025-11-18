@@ -38,7 +38,7 @@
 namespace rcsc {
 
 //! epsilon value
-constexpr double EPS = 1.0e-10;
+static const double EPS = 1.0e-10;
 
 /*-------------------------------------------------------------------*/
 /*!

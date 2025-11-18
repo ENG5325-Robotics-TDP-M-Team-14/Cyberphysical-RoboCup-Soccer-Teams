@@ -42,45 +42,45 @@ namespace rcsc {
  */
 class GameTime {
 private:
-    //! normal simulation time
+    //! server normal counting cycle
     long M_cycle;
-    //! stoppage time
+    //! server stopped cycle
     long M_stopped;
 
 public:
-    /*!
-      \brief default constructor. the values are set to 0.
-    */
+    //! default constructor
     GameTime()
-        : M_cycle( 0 ),
-          M_stopped( 0 )
+        : M_cycle( 0 )
+        , M_stopped( 0 )
       { }
 
     /*!
-      \brief construct with the specified values.
+      \brief constroctor
       \param c normal cycle count
       \param s stopped cycle count
      */
-    GameTime( const long c,
-              const long s )
-        : M_cycle( c ),
-          M_stopped( s )
+    GameTime( const long & c,
+              const long & s )
+        : M_cycle( c )
+        , M_stopped( s )
       { }
 
     /*!
-      \brief get normal time value
+      \brief get normal cycle value
       \return const reference to the normal cycle value
      */
-    long cycle() const
+    const
+    long & cycle() const
       {
           return M_cycle;
       }
 
     /*!
-      \brief get stoppage time value
+      \brief get stopped cycle value
       \return const reference to the stopped cycle value
      */
-    long stopped() const
+    const
+    long & stopped() const
       {
           return M_stopped;
       }
@@ -91,8 +91,8 @@ public:
       \param s new stopped cycle value
       \return const reference to itself
      */
-    const GameTime & assign( const long c,
-                             const long s )
+    const
+    GameTime & assign( const long & c, const long & s )
       {
           M_cycle = c;
           M_stopped = s;
@@ -104,7 +104,8 @@ public:
       \param c new normal cycle value
       \return const reference to itself
      */
-    const GameTime & setCycle( const long c )
+    const
+    GameTime & setCycle( const long & c )
       {
           M_cycle = c;
           return *this;
@@ -115,7 +116,8 @@ public:
       \param s new stopped cycle value
       \return const reference to itself
      */
-    const GameTime & setStopped( const long s )
+    const
+    GameTime & setStopped( const long & s )
       {
           M_stopped = s;
           return *this;
@@ -126,7 +128,8 @@ public:
       \param t added value
       \return const reference to itself
      */
-    const GameTime & addCycle( const long t )
+    const
+    GameTime & addCycle( const long & t )
       {
           M_cycle += t;
           return *this;
@@ -137,41 +140,12 @@ public:
       \param t added value
       \return const reference to itself
      */
-    const GameTime & addStopped( const long t )
+    const
+    GameTime & addStopped( const long & t )
       {
           M_stopped += t;
           return *this;
       }
-
-    /*!
-      \struct Less
-      \brief compare function
-     */
-    struct Less {
-        bool operator()( const GameTime & lhs,
-                         const GameTime & rhs ) const
-          {
-              return ( lhs.cycle() < rhs.cycle()
-                       || ( lhs.cycle() == rhs.cycle()
-                            && lhs.stopped() < rhs.stopped() )
-                       );
-          }
-    };
-
-    /*!
-      \struct Greater
-      \brief compare function
-     */
-    struct Greater {
-        bool operator()( const GameTime & lhs,
-                         const GameTime & rhs ) const
-          {
-              return ( lhs.cycle() > rhs.cycle()
-                       || ( lhs.cycle() == rhs.cycle()
-                            && lhs.stopped() > rhs.stopped() )
-                       );
-          }
-    };
 };
 
 } // end namespace

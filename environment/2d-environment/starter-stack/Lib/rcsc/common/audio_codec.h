@@ -34,11 +34,12 @@
 
 #include <rcsc/geom/vector_2d.h>
 
-#include <unordered_map>
+#include <boost/cstdint.hpp>
+
+#include <map>
 #include <vector>
 #include <string>
 #include <cmath>
-#include <cstdint>
 
 namespace rcsc {
 
@@ -48,15 +49,64 @@ namespace rcsc {
 */
 class AudioCodec {
 public:
-    typedef std::unordered_map< char, int > CharToIntCont; //!< map from char to int
+    typedef std::map< char, int > CharToIntCont; //!< map from char to int
     typedef std::vector< char > IntToCharCont; //!< map from int to char
 
     //! constant error value (= std::numeric_limits< double >::max())
     static const double ERROR_VALUE;
 
-private:
+    //! x normalize factor (field length) to limit inputed x
+    static const double X_NORM_FACTOR;
+    //! y normalze factor (field width) to limit inputed y
+    static const double Y_NORM_FACTOR;
+    //! speed normalize factor to limit inputed speed range
+    static const double SPEED_NORM_FACTOR;
 
-    std::string M_char_set;
+    //! used by encodeCoordToStr2/decodeStr2ToCoord
+    static const double COORD_STEP_L2;
+    //! used by encodeSpeedToChar/decodeCharToSpeed
+    static const double SPEED_STEP_L1;
+
+    /*!
+      \enum BitMask
+      \brief bit mask enumeration for convenience
+     */
+    enum BitMask {
+        MASK_1 = 0x00000001,
+        MASK_2 = 0x00000003,
+        MASK_3 = 0x00000007,
+        MASK_4 = 0x0000000F,
+        MASK_5 = 0x0000001F,
+        MASK_6 = 0x0000003F,
+        MASK_7 = 0x0000007F,
+        MASK_8 = 0x000000FF,
+        MASK_9 = 0x000001FF,
+        MASK_10 = 0x000003FF,
+        MASK_11 = 0x000007FF,
+        MASK_12 = 0x00000FFF,
+        MASK_13 = 0x00001FFF,
+        MASK_14 = 0x00003FFF,
+        MASK_15 = 0x00007FFF,
+        MASK_16 = 0x0000FFFF,
+        MASK_17 = 0x0001FFFF,
+        MASK_18 = 0x0003FFFF,
+        MASK_19 = 0x0007FFFF,
+        MASK_20 = 0x000FFFFF,
+        MASK_21 = 0x001FFFFF,
+        MASK_22 = 0x003FFFFF,
+        MASK_23 = 0x007FFFFF,
+        MASK_24 = 0x00FFFFFF,
+        MASK_25 = 0x01FFFFFF,
+        MASK_26 = 0x03FFFFFF,
+        MASK_27 = 0x07FFFFFF,
+        MASK_28 = 0x0FFFFFFF,
+        MASK_29 = 0x1FFFFFFF,
+        MASK_30 = 0x3FFFFFFF,
+        MASK_31 = 0x7FFFFFFF,
+        MASK_32 = 0xFFFFFFFF,
+    };
+
+private:
 
     //! map to cnvert character to integer. key: char, value int
     CharToIntCont M_char_to_int_map;
@@ -64,6 +114,12 @@ private:
     //! map to cnvert integer to character. vector of char
     IntToCharCont M_int_to_char_map;
 
+public:
+
+    static const std::string CHAR_SET; //!< available character set
+    static const int CHAR_SIZE; //!< size of CHAR_SET
+
+private:
     /*!
       \brief private for singleton. create convert map.
     */
@@ -73,17 +129,11 @@ public:
 
     /*!
       \brief singleton interface
-      \return reference to the singleton instance
-     */
-    static AudioCodec & instance();
-
-    /*!
-      \brief singleton interface
       \return const reference to the singleton instance
      */
-    static const AudioCodec & i();
-
-    void createMap( const int shift );
+    static
+    const
+    AudioCodec & i();
 
 private:
 
@@ -92,14 +142,14 @@ private:
       \param pos position to be converted
       \return converted integer
     */
-    std::int32_t posToBit18( const Vector2D & pos ) const;
+    boost::int32_t posToBit18( const Vector2D & pos ) const;
 
     /*!
       \brief decode 18 bits info to position and velocity
       \param val 32bits integer value to be analyzed
       \param pos variable pointer to store the converted position
     */
-    void bit18ToPos( const std::int32_t & val,
+    void bit18ToPos( const boost::int32_t & val,
                      Vector2D * pos ) const;
 
     /*!
@@ -107,14 +157,14 @@ private:
       \param pos position to be converted
       \return converted integer
     */
-    std::int32_t posToBit19( const Vector2D & pos ) const;
+    boost::int32_t posToBit19( const Vector2D & pos ) const;
 
     /*!
       \brief decode 19 bits info to position and velocity
       \param val 32bits integer value to be analyzed
       \param pos variable pointer to store the converted position
     */
-    void bit19ToPos( const std::int32_t & val,
+    void bit19ToPos( const boost::int32_t & val,
                      Vector2D * pos ) const;
 
     /*!
@@ -123,7 +173,7 @@ private:
       \param vel velocity to be converted
       \return converted integer
     */
-    std::int32_t posVelToBit31( const Vector2D & pos,
+    boost::int32_t posVelToBit31( const Vector2D & pos,
                                   const Vector2D & vel ) const;
 
     /*!
@@ -132,7 +182,7 @@ private:
       \param pos variable pointer to store the converted position
       \param vel variable pointer to store the converted velocity
     */
-    void bit31ToPosVel( const std::int32_t & val,
+    void bit31ToPosVel( const boost::int32_t & val,
                         Vector2D * pos,
                         Vector2D * vel ) const;
 
@@ -142,7 +192,8 @@ public:
       \brief get character to interger map object
       \return const reference to the map object
     */
-    const CharToIntCont & charToIntMap() const
+    const
+    CharToIntCont & charToIntMap() const
       {
           return M_char_to_int_map;
       }
@@ -151,7 +202,8 @@ public:
       \brief get integer to character map object
       \return const reference to the map object
     */
-    const IntToCharCont & intToCharMap() const
+    const
+    IntToCharCont & intToCharMap() const
       {
           return M_int_to_char_map;
       }
@@ -163,7 +215,7 @@ public:
       \param to reference to the result instance
       \return encode status
      */
-    bool encodeInt64ToStr( const std::int64_t & ival,
+    bool encodeInt64ToStr( const boost::int64_t & ival,
                            const int len,
                            std::string & to ) const;
 
@@ -174,7 +226,7 @@ public:
       \return decode status
      */
     bool decodeStrToInt64( const std::string & from,
-                           std::int64_t * to ) const;
+                           boost::int64_t * to ) const;
 
 
     /*!

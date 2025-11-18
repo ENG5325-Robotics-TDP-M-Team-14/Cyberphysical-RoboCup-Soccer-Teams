@@ -45,7 +45,7 @@
 
 #include <iostream>
 
-// #define DEBUG_PRINT
+#define DEBUG_PRINT
 
 namespace rcsc {
 
@@ -53,33 +53,33 @@ int BallObject::S_pos_count_thr = 10;
 int BallObject::S_rpos_count_thr = 5;
 int BallObject::S_vel_count_thr = 10;
 
+const std::size_t BallObject::MAX_RECORD = 30;
+
 /*-------------------------------------------------------------------*/
 /*!
 
- */
-BallObject::BallObject()
-    : M_pos( 0.0, 0.0 ),
-      M_pos_error( 0.0, 0.0 ),
-      M_pos_count( 1000 ),
-      M_rpos( Vector2D::INVALIDATED ),
-      M_rpos_error( 0.0, 0.0 ),
-      M_rpos_count( 1000 ),
-      M_seen_pos( 0.0, 0.0 ),
-      M_seen_rpos( Vector2D::INVALIDATED ),
-      M_seen_pos_count( 1000 ),
-      M_heard_pos( 0.0, 0.0 ),
-      M_heard_pos_count( 1000 ),
-      M_vel( 0.0, 0.0 ),
-      M_vel_error( 0.0, 0.0 ),
-      M_vel_count( 1000 ),
-      M_seen_vel( 0.0, 0.0 ),
-      M_seen_vel_count( 1000 ),
-      M_heard_vel( 0.0, 0.0 ),
-      M_heard_vel_count( 1000 ),
-      M_lost_count( 0 ),
-      M_ghost_count( 0 ),
-      M_dist_from_self( 1000.0 ),
-      M_angle_from_self( 0.0 )
+*/
+BallObject::State::State()
+  : pos_( 0.0, 0.0 )
+  , pos_error_( 0.0, 0.0 )
+  , pos_count_( 1000 )
+  , rpos_( Vector2D::INVALIDATED )
+  , rpos_error_( 0.0, 0.0 )
+  , rpos_count_( 1000 )
+  , seen_pos_( 0.0, 0.0 )
+  , seen_rpos_( Vector2D::INVALIDATED )
+  , seen_pos_count_( 1000 )
+  , heard_pos_( 0.0, 0.0 )
+  , heard_pos_count_( 1000 )
+  , vel_( 0.0, 0.0 )
+  , vel_error_( 0.0, 0.0 )
+  , vel_count_( 1000 )
+  , seen_vel_( 0.0, 0.0 )
+  , seen_vel_count_( 1000 )
+  , heard_vel_( 0.0, 0.0 )
+  , heard_vel_count_( 1000 )
+  , lost_count_( 0 )
+  , ghost_count_( 0 )
 {
 
 }
@@ -87,7 +87,21 @@ BallObject::BallObject()
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
+BallObject::BallObject()
+    : M_state()
+    , M_state_record( MAX_RECORD, State() )
+    , M_dist_from_self( 1000.0 )
+    , M_angle_from_self( 0.0 )
+    , M_rpos_prev( Vector2D::INVALIDATED )
+{
+
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
 void
 BallObject::set_count_thr( const int pos_thr,
                            const int rpos_thr,
@@ -101,39 +115,34 @@ BallObject::set_count_thr( const int pos_thr,
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 void
-BallObject::setGhost()
+BallObject::setGhost( const GameTime & )
 {
-    if ( M_ghost_count > 0 )
+    if ( M_state.ghost_count_ > 0 )
     {
-        M_pos_count = 1000;
-        M_rpos_count = 1000;
-        M_lost_count = 0;
-        M_ghost_count += 1;
+        M_state.pos_count_ = 1000;
+        M_state.rpos_count_ = 1000;
+        M_state.lost_count_ = 0;
+        M_state.ghost_count_ += 1;
 
         M_dist_from_self = 1000.0;
     }
     else
     {
-        M_ghost_count = 1;
+        M_state.ghost_count_ = 1;
     }
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 void
 BallObject::update( const ActionEffector & act,
-                    const GameMode & game_mode )
+                    const GameMode & game_mode,
+                    const GameTime & )
 {
-    M_pos_history.push_front( M_pos );
-    if ( M_pos_history.size() > 100 )
-    {
-        M_pos_history.pop_back();
-    }
-
     Vector2D new_vel( 0.0, 0.0 );
 
     ////////////////////////////////////////////////////////////////////////
@@ -180,10 +189,10 @@ BallObject::update( const ActionEffector & act,
 
         // add move noise.
         // ball speed max is not considerd, therefore value of tmp is not changed.
-        M_vel_error.add( tmp * ServerParam::i().ballRand(),
-                         tmp * ServerParam::i().ballRand() );
+        M_state.vel_error_.add( tmp * ServerParam::i().ballRand(),
+                                tmp * ServerParam::i().ballRand() );
         // add kick noise
-        M_vel_error += accel_err;
+        M_state.vel_error_ += accel_err;
     }
 
     ////////////////////////////////////////////////////////////////////////
@@ -200,17 +209,30 @@ BallObject::update( const ActionEffector & act,
          || pmode == GameMode::PenaltyTaken_ )
     {
         // ball position may change.
-        M_pos_count = std::min( 1000, M_pos_count + 1 );
+        M_state.pos_count_ = std::min( 1000, M_state.pos_count_ + 1 );
     }
     else
     {
         // if setplay playmode, ball does not move until playmode change to playon.
-        // if the agent didin't see the ball in this setplay playmode,
-        // the agent has to check the ball first.
-        if ( posCount() >= 5
-             || ( rposCount() >= 2
-                  && distFromSelf() * 1.05 < ServerParam::i().visibleDistance() )
-             )
+
+        if ( pmode == GameMode::BeforeKickOff
+             || pmode == GameMode::KickOff_ )
+        {
+            M_state.pos_.assign( 0.0, 0.0 );
+            M_state.pos_count_ = 0;
+            M_state.seen_pos_.assign( 0.0, 0.0 );
+
+#ifdef DEBUG_PRINT
+            dlog.addText( Logger::WORLD,
+                          __FILE__" (update) before_kick_off. set to center." );
+#endif
+        }
+        // if I didin't see the ball in this setplay playmode,
+        // we must check the ball first.
+        else if ( posCount() > 1
+                  || ( rposCount() > 0
+                       && distFromSelf() < ServerParam::i().visibleDistance() )
+                  )
         {
             // NOT seen at last cycle, but internal info means ball visible.
             // !!! IMPORTANT to check the ghost
@@ -220,7 +242,7 @@ BallObject::update( const ActionEffector & act,
                           " rposCount=%d. distFromSelf=%.3f",
                           posCount(), rposCount(), distFromSelf() );
 #endif
-            M_pos_count = 1000;
+            M_state.pos_count_ = 1000;
         }
         else
         {
@@ -230,40 +252,43 @@ BallObject::update( const ActionEffector & act,
                           " rposCount=%d distFromSelf=%.3f",
                           posCount(), rposCount(), distFromSelf() );
 #endif
-            M_pos_count = 1;
+            M_state.pos_count_ = 1;
         }
 
         // in SetPlay mode, ball velocity must be Zero.
         new_vel.assign( 0.0, 0.0 );
 
-        M_vel_error.assign( 0.0, 0.0 );
-        M_vel_count = 0;
-        M_seen_vel.assign( 0.0, 0.0 );
-        M_seen_vel_count = 0;
+        M_state.vel_error_.assign( 0.0, 0.0 );
+        M_state.vel_count_ = 0;
+        M_state.seen_vel_.assign( 0.0, 0.0 );
+        M_state.seen_vel_count_ = 0;
     }
 
     // update position with velocity
     if ( posValid() )
     {
-        M_pos += new_vel;
-        M_pos_error += M_vel_error;
+        M_state.pos_ += new_vel;
+        M_state.pos_error_ += M_state.vel_error_;
     }
 
     // vel decay
-    M_vel = new_vel;
-    M_vel *= ServerParam::i().ballDecay();
-    M_vel_error *= ServerParam::i().ballDecay();
+    M_state.vel_ = new_vel;
+    M_state.vel_ *= ServerParam::i().ballDecay();
+    M_state.vel_error_ *= ServerParam::i().ballDecay();
 
     // update accuracy counter
-    M_rpos_count = std::min( 1000, M_rpos_count + 1 );
-    M_seen_pos_count = std::min( 1000, M_seen_pos_count + 1 );
-    M_heard_pos_count = std::min( 1000, M_heard_pos_count + 1 );
-    M_vel_count = std::min( 1000, M_vel_count + 1 );
-    M_seen_vel_count = std::min( 1000, M_seen_vel_count + 1 );
-    M_heard_vel_count = std::min( 1000, M_heard_vel_count + 1 );
-    M_lost_count = std::min( 1000, M_lost_count + 1 );
+    M_state.rpos_count_ = std::min( 1000, M_state.rpos_count_ + 1 );
+    M_state.seen_pos_count_ = std::min( 1000, M_state.seen_pos_count_ + 1 );
+    M_state.heard_pos_count_ = std::min( 1000, M_state.heard_pos_count_ + 1 );
+    M_state.vel_count_ = std::min( 1000, M_state.vel_count_ + 1 );
+    M_state.seen_vel_count_ = std::min( 1000, M_state.seen_vel_count_ + 1 );
+    M_state.heard_vel_count_ = std::min( 1000, M_state.heard_vel_count_ + 1 );
+    M_state.lost_count_ = std::min( 1000, M_state.lost_count_ + 1 );
 
-    // M_ghost_count = 0;
+    // M_state.ghost_count_ = 0;
+
+    // set previous rpos
+    M_rpos_prev = rpos();
 
     // M_rpos is updated using visual info or self info
 }
@@ -271,40 +296,40 @@ BallObject::update( const ActionEffector & act,
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 void
 BallObject::updateByFullstate( const Vector2D & pos,
                                const Vector2D & vel,
                                const Vector2D & self_pos )
 {
-    M_pos = pos;
-    M_pos_error.assign( 0.0, 0.0 );
-    M_pos_count = 0;
+    M_state.pos_ = pos;
+    M_state.pos_error_.assign( 0.0, 0.0 );
+    M_state.pos_count_ = 0;
 
-    M_rpos = pos - self_pos;
-    M_rpos_error.assign( 0.0, 0.0 );
-    M_rpos_count = 0;
+    M_state.rpos_ = pos - self_pos;
+    M_state.rpos_error_.assign( 0.0, 0.0 );
+    M_state.rpos_count_ = 0;
 
-    M_seen_pos = pos;
-    M_seen_rpos = M_rpos;
-    M_seen_pos_count = 0;
+    M_state.seen_pos_ = pos;
+    M_state.seen_rpos_ = M_state.rpos_;
+    M_state.seen_pos_count_ = 0;
 
-    M_vel = vel;
-    M_vel_error.assign( 0.0, 0.0 );
-    M_vel_count = 0;
+    M_state.vel_ = vel;
+    M_state.vel_error_.assign( 0.0, 0.0 );
+    M_state.vel_count_ = 0;
 
-    M_seen_vel = vel;
-    M_seen_vel_count = 0;
+    M_state.seen_vel_ = vel;
+    M_state.seen_vel_count_ = 0;
 
-    M_lost_count = 0;
+    M_state.lost_count_ = 0;
 
-    M_ghost_count = 0;
+    M_state.ghost_count_ = 0;
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 void
 BallObject::updateWindEffect()
 {
@@ -322,13 +347,13 @@ BallObject::updateWindEffect()
 
             Vector2D wind_effect( speed * wind_vector.x / (weight * WIND_WEIGHT),
                                   speed * wind_vector.y / (weight * WIND_WEIGHT) );
-            M_vel += wind_effect;
+            M_state.vel_ += wind_effect;
 
             Vector2D wind_error( speed * wind_vector.x * ServerParam::i().windRand()
                                  / (ServerParam::i().playerWeight() * WIND_WEIGHT),
                                  speed * wind_vector.y * ServerParam::i().windRand()
                                  / (ServerParam::i().playerWeight() * WIND_WEIGHT) );
-            M_vel_error.add( wind_error, wind_error );
+            M_state.vel_error_.add( wind_error, wind_error );
         }
         else
         {
@@ -342,7 +367,7 @@ BallObject::updateWindEffect()
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 void
 BallObject::updateByCollision( const Vector2D & pos,
                                const int pos_count,
@@ -359,99 +384,18 @@ BallObject::updateByCollision( const Vector2D & pos,
                   rpos.x, rpos.y, rpos_count,
                   vel.x, vel.y, vel_count );
 #endif
-    M_pos = pos;
-    M_pos_count = pos_count;
-    M_rpos = rpos;
-    M_rpos_count = rpos_count;
-    M_vel = vel;
-    M_vel_count = vel_count;
+    M_state.pos_ = pos;
+    M_state.pos_count_ = pos_count;
+    M_state.rpos_ = rpos;
+    M_state.rpos_count_ = rpos_count;
+    M_state.vel_ = vel;
+    M_state.vel_count_ = vel_count;
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
- */
-void
-BallObject::updateByGameMode( const GameMode & mode )
-{
-    const GameMode::Type type = mode.type();
-
-    if ( type == GameMode::PlayOn
-         || type == GameMode::GoalKick_
-         //|| type == GameMode::GoalieCatch_
-         || type == GameMode::PenaltyTaken_ )
-    {
-        return;
-    }
-
-    M_vel.assign( 0.0, 0.0 );
-    M_vel_error.assign( 0.0, 0.0 );
-    M_vel_count = 0;
-    M_seen_vel.assign( 0.0, 0.0 );
-    M_seen_vel_count = 0;
-
-    if ( type == GameMode::GoalieCatch_ )
-    {
-        // reset only the velocity
-        return;
-    }
-
-    if ( type == GameMode::CornerKick_ )
-    {
-        if ( posCount() <= 1
-             && M_rpos.r2() > std::pow( 3.0, 2 ) )
-        {
-            M_pos.x = ( M_pos.x > 0.0
-                        ? +ServerParam::i().pitchHalfLength() - ServerParam::i().cornerKickMargin()
-                        : -ServerParam::i().pitchHalfLength() + ServerParam::i().cornerKickMargin() );
-            M_pos.y = ( M_pos.y > 0.0
-                        ? +ServerParam::i().pitchHalfWidth() - ServerParam::i().cornerKickMargin()
-                        : -ServerParam::i().pitchHalfWidth() + ServerParam::i().cornerKickMargin() );
-#ifdef DEBUG_PRINT
-            dlog.addText( Logger::WORLD,
-                          __FILE__" (updateByGameMode) corner_kick. set to corner." );
-#endif
-        }
-        return;
-    }
-
-    if ( type == GameMode::KickIn_ )
-    {
-        if ( posCount() <= 1
-             && M_rpos.r2() > std::pow( 3.0, 2 ) )
-        {
-            M_pos.y = ( M_pos.y > 0.0
-                        ? +ServerParam::i().pitchHalfWidth()
-                        : -ServerParam::i().pitchHalfWidth() );
-#ifdef DEBUG_PRINT
-            dlog.addText( Logger::WORLD,
-                          __FILE__" (updateByGameMode) kick_in. set on the side line." );
-#endif
-        }
-        return;
-    }
-
-    if ( type == GameMode::BeforeKickOff
-         || type == GameMode::KickOff_ )
-    {
-        M_pos.assign( 0.0, 0.0 );
-        M_pos_count = 0;
-        M_seen_pos.assign( 0.0, 0.0 );
-        M_lost_count = 0;
-
-#ifdef DEBUG_PRINT
-        dlog.addText( Logger::WORLD,
-                      __FILE__" (updateByGameMode) before_kick_off. set to center." );
-#endif
-        return;
-    }
-
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
- */
+*/
 void
 BallObject::updateOnlyRelativePos( const Vector2D & rpos,
                                    const Vector2D & rpos_err )
@@ -463,17 +407,17 @@ BallObject::updateOnlyRelativePos( const Vector2D & rpos,
                   rpos.x, rpos.y,
                   rpos_err.x, rpos_err.y );
 #endif
-    M_rpos = rpos;
-    M_rpos_error = rpos_err;
-    M_rpos_count = 0;
+    M_state.rpos_ = rpos;
+    M_state.rpos_error_ = rpos_err;
+    M_state.rpos_count_ = 0;
 
-    M_seen_rpos = rpos;
+    M_state.seen_rpos_ = rpos;
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 void
 BallObject::updateOnlyVel( const Vector2D & vel,
                            const Vector2D & vel_err,
@@ -487,35 +431,36 @@ BallObject::updateOnlyVel( const Vector2D & vel,
                   vel_err.x, vel_err.y,
                   vel_count );
 #endif
-    M_vel = vel;
-    M_vel_error = vel_err;
-    M_vel_count = vel_count;
+    M_state.vel_ = vel;
+    M_state.vel_error_ = vel_err;
+    M_state.vel_count_ = vel_count;
 
-    M_seen_vel = vel;
-    M_seen_vel_count = vel_count;
+    M_state.seen_vel_ = vel;
+    M_state.seen_vel_count_ = vel_count;
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 void
-BallObject::setPlayerKickable()
+BallObject::setOpponentControlEffect()
 {
 #ifdef DEBUG_PRINT
     dlog.addText( Logger::WORLD,
-                  __FILE__" (setPlayerKickable) velocity is set to Zero." );
+                  __FILE__" (setOpponentControlEffect)"
+                  " velocity is set to Zero." );
 #endif
-    M_vel_error += vel();
-    M_vel_count += 1;
+    M_state.vel_error_ += vel();
+    M_state.vel_count_ += 1;
 
-    M_vel.assign( 0.0, 0.0 );
+    M_state.vel_.assign( 0.0, 0.0 );
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 void
 BallObject::updatePos( const Vector2D & pos,
                        const Vector2D & pos_err,
@@ -526,26 +471,26 @@ BallObject::updatePos( const Vector2D & pos,
 #ifdef DEBUG_PRINT
     dlog.addText( Logger::WORLD,
                   __FILE__" (updatePos)"
-                  " pos(%.1f %.1f) count=%d",
+                  " pos(%.2f %.2f) count=%d",
                   pos.x, pos.y, pos_count );
 #endif
 
-    M_pos = pos;
-    M_pos_error = pos_err;
-    M_pos_count = pos_count;
-    M_seen_pos = pos;
-    M_seen_pos_count = 0;
+    M_state.pos_ = pos;
+    M_state.pos_error_ = pos_err;
+    M_state.pos_count_ = pos_count;
+    M_state.seen_pos_ = pos;
+    M_state.seen_pos_count_ = 0;
 
     updateOnlyRelativePos( rpos, rpos_err );
 
-    M_lost_count = 0;
-    M_ghost_count = 0;
+    M_state.lost_count_ = 0;
+    M_state.ghost_count_ = 0;
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 void
 BallObject::updateAll( const Vector2D & pos,
                        const Vector2D & pos_err,
@@ -567,18 +512,17 @@ BallObject::updateAll( const Vector2D & pos,
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 void
 BallObject::updateByHear( const ActionEffector & act,
                           const double & sender_to_ball_dist,
                           const Vector2D & heard_pos,
-                          const Vector2D & heard_vel,
-                          const bool pass )
+                          const Vector2D & heard_vel )
 {
-    // double heard_speed = 0.0;
+    double heard_speed = 0.0;
     if ( heard_vel.isValid() )
     {
-        // heard_speed = heard_vel.r();
+        heard_speed = heard_vel.r();
 #ifdef DEBUG_PRINT
         dlog.addText( Logger::WORLD,
                       __FILE__" (updateByHear)"
@@ -598,10 +542,10 @@ BallObject::updateByHear( const ActionEffector & act,
     }
 #endif
 
-    M_heard_pos = heard_pos;
-    M_heard_pos_count = 0;
-    M_heard_vel = heard_vel;
-    M_heard_vel_count = 0;
+    M_state.heard_pos_ = heard_pos;
+    M_state.heard_pos_count_ = 0;
+    M_state.heard_vel_ = heard_vel;
+    M_state.heard_vel_count_ = 0;
 
     if ( act.lastBodyCommandType() == PlayerCommand::KICK )
     {
@@ -612,101 +556,120 @@ BallObject::updateByHear( const ActionEffector & act,
         return;
     }
 
-    const double dist_diff = heard_pos.dist( pos() );
-
-    if ( pass
-         && heard_vel.isValid()
-         && seenVelCount() > 0 )
+    if ( M_state.ghost_count_ > 0 )
     {
-#ifdef DEBUG_PRINT
-        dlog.addText( Logger::WORLD,
-                      __FILE__" (updateByHear) update by pass." );
-#endif
-        if ( seenPosCount() > 0 )
-        {
-            M_pos = heard_pos;
-            M_pos_count = 1;
-        }
-        M_vel = heard_vel;
-        M_vel_count = 1;
-        return;
-    }
-
-    if ( M_ghost_count > 0 )
-    {
-        if ( ( M_ghost_count == 1
-               && posCount() == 1
-               && dist_diff < 3.0 )
-             || M_ghost_count > 1 )
+        if ( heard_pos.dist( pos() ) < 3.0 )
         {
 #ifdef DEBUG_PRINT
             dlog.addText( Logger::WORLD,
                           __FILE__" (updateByHear) ghost detected." );
 #endif
-            M_pos = heard_pos;
-            M_pos_count = 1;
-            if ( heard_vel.isValid() )
+            M_state.pos_ = heard_pos;
+            M_state.pos_count_ = 1;
+            if ( heard_vel.isValid()
+                 && heard_speed > 0.001 )
             {
-                M_vel = heard_vel;
-                M_vel_count = 1;
+                M_state.vel_ = heard_vel;
+                M_state.vel_count_ = 1;
             }
             return;
         }
     }
 
-    if ( posCount() >= 5
-         // || ( posCount() >= 1
-         //      && velCount() >= 2
-         //      && heard_vel.isValid()
-         //      && ( dist_diff > sender_to_ball_dist * 0.05 + 1.0
-         //           || sender_to_ball_dist < M_dist_from_self * 0.95 ) ) )
-         || ( posCount() >= 2
-              && ( dist_diff > sender_to_ball_dist * 0.05 + 1.0
-                   || sender_to_ball_dist < M_dist_from_self * 0.95 ) ) )
+    if ( posCount() >= 1
+         && ( heard_pos.dist2( pos() ) > std::pow( 2.0, 2 )
+              || std::fabs( heard_vel.x - vel().x ) > 1.0
+              || std::fabs( heard_vel.y - vel().y ) > 1.0 )
+         )
     {
 #ifdef DEBUG_PRINT
         dlog.addText( Logger::WORLD,
                       __FILE__" (updateByHear) big difference from last internal state." );
 #endif
-        M_pos = heard_pos;
-        M_pos_count = 1;
-        if ( heard_vel.isValid() )
+        M_state.pos_ = heard_pos;
+        M_state.pos_count_ = 1;
+        if ( heard_vel.isValid()
+             && heard_speed > 0.001 )
         {
-            M_vel = heard_vel;
-            M_vel_count = 1;
+            M_state.vel_ = heard_vel;
+            M_state.vel_count_ = 1;
         }
         return;
     }
 
-#if 1
-    // 2017-07-18
-    if ( posCount() > 0
-         && distFromSelf() > ServerParam::i().visibleDistance() // NOTE: previous cycle info
-         && sender_to_ball_dist < ServerParam::i().visibleDistance() - 1.0 )
+    const double prev_dist = ( M_rpos_prev.isValid()
+                               ? M_rpos_prev.r()
+                               : 1000.0 );
+
+    if ( sender_to_ball_dist < 5.0
+         && posCount() >= 1 )
     {
 #ifdef DEBUG_PRINT
         dlog.addText( Logger::WORLD,
-                      __FILE__" (updateByHear) teammate near to the ball." );
+                      __FILE__" (updateByHear) sent from the player near to the ball." );
 #endif
-        M_pos = heard_pos;
-        M_pos_count = 1;
-        if ( heard_vel.isValid() )
+        M_state.pos_ = heard_pos;
+        M_state.pos_count_ = 1;
+        if ( heard_vel.isValid()
+             && heard_speed > 0.001 )
         {
-            M_vel = heard_vel;
-            M_vel_count = 1;
+            M_state.vel_ = heard_vel;
+            M_state.vel_count_ = 1;
         }
-        return;
     }
+    else if ( sender_to_ball_dist < 20.0
+              && posCount() >= 2 )
+    {
+#ifdef DEBUG_PRINT
+        dlog.addText( Logger::WORLD,
+                      __FILE__" (updateByHear) low accuracy." );
 #endif
+        M_state.pos_ = heard_pos;
+        M_state.pos_count_ = 1;
+        if ( heard_vel.isValid()
+             && heard_speed > 0.001 )
+        {
+            M_state.vel_ = heard_vel;
+            M_state.vel_count_ = 1;
+        }
+    }
+    else if ( heard_vel.isValid()
+              && heard_speed > 0.001
+              && ( velCount() >= 4
+                   || ( velCount() >= 3
+                        && prev_dist > 1.4
+                        && sender_to_ball_dist < 10.0 )
+                   || ( velCount() >= 2
+                        && prev_dist > 1.4
+                        && sender_to_ball_dist < 10.0 )
+                   )
+              )
+    {
+#ifdef DEBUG_PRINT
+        dlog.addText( Logger::WORLD,
+                      __FILE__" (updateByHear) low vel accuracy."
+                      " velCount=%d"
+                      " sender_ball_dist=%.3f prev_my_dist=%.3f",
+                      velCount(),
+                      sender_to_ball_dist, prev_dist );
+#endif
+        M_state.pos_ = heard_pos;
+        M_state.pos_count_ = 1;
+        if ( heard_vel.isValid()
+             && heard_speed > 0.001 )
+        {
+            M_state.vel_ = heard_vel;
+            M_state.vel_count_ = 1;
+        }
+    }
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 void
-BallObject::updateSelfRelated( const SelfObject & self,
-                               const BallObject & prev )
+BallObject::updateSelfRelated( const SelfObject & self )
 {
     // seen
     if ( rposCount() == 0 )
@@ -719,7 +682,7 @@ BallObject::updateSelfRelated( const SelfObject & self,
     else
     {
         // update rpos
-        if ( prev.rpos().isValid()
+        if ( M_rpos_prev.isValid()
              && self.lastMove().isValid() )
         {
 #ifdef DEBUG_PRINT
@@ -727,12 +690,13 @@ BallObject::updateSelfRelated( const SelfObject & self,
                           __FILE__" (updateSelfRelated) update rpos using self move(%.2f %.2f)",
                           self.lastMove().x, self.lastMove().y );
 #endif
-            M_rpos
-                = prev.rpos()
+            // M_rpos_prev is updated in update()
+            M_state.rpos_
+                = M_rpos_prev
                 + ( vel() / ServerParam::i().ballDecay() )
                 - self.lastMove();
-            M_rpos_error += velError();
-            M_rpos_error += ( self.velError() / self.playerType().playerDecay() );
+            M_state.rpos_error_ += velError();
+            M_state.rpos_error_ += ( self.velError() / self.playerType().playerDecay() );
         }
         // it is not necessary to consider other case.
 
@@ -747,20 +711,19 @@ BallObject::updateSelfRelated( const SelfObject & self,
                           __FILE__" (updateSelfRelated) set pos by rpos(%.2f %.2f)",
                           rpos().x, rpos().y );
 #endif
-            M_pos = self.pos() + this->rpos();
-            M_pos_error = self.posError() + this->rposError();
+            M_state.pos_ = self.pos() + this->rpos();
+            M_state.pos_error_ = self.posError() + this->rposError();
             M_dist_from_self = rpos().r();
             M_angle_from_self = rpos().th();
         }
-        else if ( posValid()
-                  && self.posValid() )
+        else if ( posValid() )
         {
 #ifdef DEBUG_PRINT
             dlog.addText( Logger::WORLD,
-                          __FILE__" (updateSelfRelated) set rpos by global pos" );
+                          __FILE__" (updateSelfRelated) set rpos by pos" );
 #endif
-            M_rpos = pos() - self.pos();
-            M_rpos_error = posError() + self.posError();
+            M_state.rpos_ = pos() - self.pos();
+            M_state.rpos_error_ = posError() + self.posError();
             M_dist_from_self = rpos().r();
             M_angle_from_self = rpos().th();
         }
@@ -774,6 +737,83 @@ BallObject::updateSelfRelated( const SelfObject & self,
             M_angle_from_self = 0.0;
         }
     }
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+BallObject::updateRecord()
+{
+    M_state_record.pop_back();
+    M_state_record.push_front( M_state );
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+const
+BallObject::State *
+BallObject::getState( const size_t history_index ) const
+{
+    if ( history_index >= M_state_record.size() )
+    {
+        return static_cast< State * >( 0 );
+    }
+
+    return &M_state_record[ history_index ];
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+Vector2D
+BallObject::inertiaTravel( const int cycle ) const
+{
+    return inertia_n_step_travel( vel(),
+                                  cycle,
+                                  ServerParam::i().ballDecay() );
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+Vector2D
+BallObject::inertiaPoint( const int cycle ) const
+{
+    return inertia_n_step_point( pos(),
+                                 vel(),
+                                 cycle,
+                                 ServerParam::i().ballDecay() );
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+Vector2D
+BallObject::inertiaFinalPoint() const
+{
+    return inertia_final_point( pos(),
+                                vel(),
+                                ServerParam::i().ballDecay() );
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+double
+BallObject::calc_travel_step( const double & distance,
+                              const double & first_speed )
+{
+    return calc_length_geom_series( first_speed,
+                                    distance,
+                                    ServerParam::i().ballDecay() );
 }
 
 }

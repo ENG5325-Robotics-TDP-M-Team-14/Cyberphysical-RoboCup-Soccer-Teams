@@ -55,7 +55,6 @@ AudioMemory::AudioMemory()
       M_offside_line_time( -1, 0 ),
       M_defense_line_time( -1, 0 ),
       M_wait_request_time( -1, 0 ),
-      M_setplay_time( -1, 0 ),
       M_pass_request_time( -1, 0 ),
       M_run_request_time( -1, 0 ),
       M_stamina_time( -1, 0 ),
@@ -87,7 +86,7 @@ AudioMemory::setBall( const int sender,
         M_ball.clear();
     }
 
-    M_ball.emplace_back( sender, pos, vel );
+    M_ball.push_back(  Ball( sender, pos, vel ) );
     M_ball_time = current;
 
     M_time = current;
@@ -115,7 +114,7 @@ AudioMemory::setPass( const int sender,
         M_pass.clear();
     }
 
-    M_pass.emplace_back( sender, receiver, pos );
+    M_pass.push_back( Pass( sender, receiver, pos ) );;
     M_pass_time = current;
 
     M_time = current;
@@ -145,7 +144,9 @@ AudioMemory::setIntercept( const int sender,
         }
 
         // -1 because the heard value was estimated in the previous cycle
-        M_our_intercept.emplace_back( sender, interceptor, std::max( 0, cycle - 1 ) );
+        M_our_intercept.push_back( OurIntercept( sender,
+                                                 interceptor,
+                                                 std::max( 0, cycle - 1 ) ) );
         M_our_intercept_time = current;
     }
     else
@@ -162,7 +163,9 @@ AudioMemory::setIntercept( const int sender,
         }
 
         // -1 because the heard value was estimated in the previous cycle
-        M_opp_intercept.emplace_back( sender, interceptor - MAX_PLAYER, std::max( 0, cycle - 1 ) );
+        M_opp_intercept.push_back( OppIntercept( sender,
+                                                 interceptor - MAX_PLAYER,
+                                                 std::max( 0, cycle - 1 ) ) );
         M_opp_intercept_time = current;
     }
 
@@ -190,7 +193,7 @@ AudioMemory::setOpponentGoalie( const int sender,
         M_goalie.clear();
     }
 
-    M_goalie.emplace_back( sender, pos, body );
+    M_goalie.push_back( Goalie( sender, pos, body ) );
     M_goalie_time = current;
 
     M_time = current;
@@ -216,7 +219,7 @@ AudioMemory::setPlayer( const int sender,
         M_player.clear();
     }
 
-    M_player.emplace_back( sender, unum, pos );
+    M_player.push_back( Player( sender, unum, pos ) );
     M_player_time = current;
 
     M_time = current;
@@ -250,7 +253,7 @@ AudioMemory::setPlayer( const int sender,
         M_player.clear();
     }
 
-    M_player.emplace_back( sender, unum, pos, body, stamina );
+    M_player.push_back( Player( sender, unum, pos, body, stamina ) );
     M_player_time = current;
 
     M_time = current;
@@ -281,7 +284,7 @@ AudioMemory::setOffsideLine( const int sender,
         M_offside_line.clear();
     }
 
-    M_offside_line.emplace_back( sender, offside_line_x );
+    M_offside_line.push_back( OffsideLine( sender, offside_line_x ) );
     M_offside_line_time = current;
 
     M_time = current;
@@ -305,7 +308,7 @@ AudioMemory::setDefenseLine( const int sender,
         M_defense_line.clear();
     }
 
-    M_defense_line.emplace_back( sender, defense_line_x );
+    M_defense_line.push_back( DefenseLine( sender, defense_line_x ) );
     M_defense_line_time = current;
 
     M_time = current;
@@ -328,34 +331,8 @@ AudioMemory::setWaitRequest( const int sender,
         M_wait_request.clear();
     }
 
-    M_wait_request.emplace_back( sender );
+    M_wait_request.push_back( WaitRequest( sender ) );
     M_wait_request_time = current;
-
-    M_time = current;
-}
-
-
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-void
-AudioMemory::setSetplay( const int sender,
-                         const int wait_step,
-                         const GameTime & current )
-{
-    dlog.addText( Logger::WORLD,
-                  __FILE__": set heard setplay. sender=%d wait_step=%d",
-                  sender, wait_step );
-
-    if ( M_setplay_time != current )
-    {
-        M_setplay.clear();
-    }
-
-    M_setplay.emplace_back( sender, wait_step );
-    M_setplay_time = current;
 
     M_time = current;
 }
@@ -378,7 +355,7 @@ AudioMemory::setPassRequest( const int sender,
         M_pass_request.clear();
     }
 
-    M_pass_request.emplace_back( sender, request_pos );
+    M_pass_request.push_back( PassRequest( sender, request_pos ) );
     M_pass_request_time = current;
 
     M_time = current;
@@ -404,7 +381,7 @@ AudioMemory::setRunRequest( const int sender,
         M_run_request.clear();
     }
 
-    M_run_request.emplace_back( sender, runner, request_pos );
+    M_run_request.push_back( RunRequest( sender, runner, request_pos ) );
     M_run_request_time = current;
 
     M_time = current;
@@ -428,7 +405,7 @@ AudioMemory::setStamina( const int sender,
         M_stamina.clear();
     }
 
-    M_stamina.emplace_back( sender, rate );
+    M_stamina.push_back( Stamina( sender, rate ) );
     M_stamina_time = current;
 
     M_time = current;
@@ -452,32 +429,8 @@ AudioMemory::setRecovery( const int sender,
         M_recovery.clear();
     }
 
-    M_recovery.emplace_back( sender, rate );
+    M_recovery.push_back( Recovery( sender, rate ) );
     M_recovery_time = current;
-
-    M_time = current;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-void
-AudioMemory::setStaminaCapacity( const int sender,
-                                 const double & rate,
-                                 const GameTime & current )
-{
-    dlog.addText( Logger::WORLD,
-                  __FILE__": set heard stamina capacity. sender=%d rate=%.3f",
-                  sender, rate );
-
-    if ( M_stamina_capacity_time != current )
-    {
-        M_stamina_capacity.clear();
-    }
-
-    M_stamina_capacity.emplace_back( sender, rate );
-    M_stamina_capacity_time = current;
 
     M_time = current;
 }
@@ -504,7 +457,7 @@ AudioMemory::setDribbleTarget( const int sender,
         M_dribble.clear();
     }
 
-    M_dribble.emplace_back( sender, pos, queue_count );
+    M_dribble.push_back( Dribble( sender, pos, queue_count ) );
     M_dribble_time = current;
 
     M_time = current;
@@ -532,7 +485,7 @@ AudioMemory::setFreeMessage( const int sender,
         M_free_message.clear();
     }
 
-    M_free_message.emplace_back( sender, msg );
+    M_free_message.push_back( FreeMessage( sender, msg ) );
     M_free_message_time = current;
 
     M_time = current;
@@ -551,56 +504,68 @@ AudioMemory::printDebug( std::ostream & os ) const
 
     if ( time() == ballTime() )
     {
-        for ( const Ball & b : ball() )
+        for ( std::vector< Ball >::const_iterator it = ball().begin();
+              it != ball().end();
+              ++it )
         {
-            os << '(' << b.sender_ << " \"Ball\")";
+            os << '(' << it->sender_ << " \"Ball\")";
         }
     }
 
     if ( time() == passTime() )
     {
-        for ( const Pass & p : pass() )
+        for ( std::vector< Pass >::const_iterator it = pass().begin();
+              it != pass().end();
+              ++it )
         {
-            os << '(' << p.sender_ << " \"Pass\")";
+            os << '(' << it->sender_ << " \"Pass\")";
         }
     }
 
     if ( time() == ourInterceptTime() )
     {
-        for ( const OurIntercept & i : ourIntercept() )
+        for ( std::vector< OurIntercept >::const_iterator it = ourIntercept().begin();
+              it != ourIntercept().end();
+              ++it )
         {
-            os << '(' << i.sender_ << " \"OurIntercept:" << i.interceptor_ << "\")";
+            os << '(' << it->sender_ << " \"OurIntercept:" << it->interceptor_ << "\")";
         }
     }
 
     if ( time() == oppInterceptTime() )
     {
-        for ( const OppIntercept & i : oppIntercept() )
+        for ( std::vector< OppIntercept >::const_iterator it = oppIntercept().begin();
+              it != oppIntercept().end();
+              ++it )
         {
-            os << '(' << i.sender_ << " \"OppIntercept:" << i.interceptor_ << "\")";
+            os << '(' << it->sender_ << " \"OppIntercept:" << it->interceptor_ << "\")";
         }
     }
 
     if ( time() == goalieTime() )
     {
-        for ( const Goalie & g : goalie() )
+        for ( std::vector< Goalie >::const_iterator it = goalie().begin();
+              it != goalie().end();
+              ++it )
         {
-            os << '(' << g.sender_ << " \"Goalie\")";
+            os << '(' << it->sender_ << " \"Goalie\")";
         }
     }
 
     if ( time() == playerTime() )
     {
-        for ( const Player & p : player() )
+        for ( std::vector< Player >::const_iterator it = player().begin();
+              it != player().end();
+              ++it )
         {
-            os << '(' << p.sender_;
-            if ( p.unum_ <= 11 )
+            os << '(' << it->sender_;
+            if ( it->unum_ <= 11 )
             {
-                os << " \"T_" << p.unum_;
+                os << " \"T_" << it->unum_;
             }
             else
             {
-                os << " \"O_" << p.unum_ - 11;
+                os << " \"O_" << it->unum_ - 11;
             }
             os << "\")";
         }
@@ -608,73 +573,91 @@ AudioMemory::printDebug( std::ostream & os ) const
 
     if ( time() == offsideLineTime() )
     {
-        for ( const OffsideLine & v : offsideLine() )
+        for ( std::vector< OffsideLine >::const_iterator it = offsideLine().begin();
+              it != offsideLine().end();
+              ++it )
         {
-            os << '(' << v.sender_ << " \"OffsideLine\")";
+            os << '(' << it->sender_ << " \"OffsideLine\")";
         }
     }
 
     if ( time() == defenseLineTime() )
     {
-        for ( const DefenseLine & v : defenseLine() )
+        for ( std::vector< DefenseLine >::const_iterator it = defenseLine().begin();
+              it != defenseLine().end();
+              ++it )
         {
-            os << '(' << v.sender_ << " \"DefenseLine\")";
+            os << '(' << it->sender_ << " \"DefenseLine\")";
         }
     }
 
     if ( time() == waitRequestTime() )
     {
-        for ( const WaitRequest & v : waitRequest() )
+        for ( std::vector< WaitRequest >::const_iterator it = waitRequest().begin();
+              it != waitRequest().end();
+              ++it )
         {
-            os << '(' << v.sender_ << " \"Wait\")";
+            os << '(' << it->sender_ << " \"Wait\")";
         }
     }
 
     if ( time() == passRequestTime() )
     {
-        for ( const PassRequest & v : passRequest() )
+        for ( std::vector< PassRequest >::const_iterator it = passRequest().begin();
+              it != passRequest().end();
+              ++it )
         {
-            os << '(' << v.sender_ << " \"PassRequest\")";
+            os << '(' << it->sender_ << " \"PassRequest\")";
         }
     }
 
     if ( time() == runRequestTime() )
     {
-        for ( const RunRequest & v : runRequest() )
+        for ( std::vector< RunRequest >::const_iterator it = runRequest().begin();
+              it != runRequest().end();
+              ++it )
         {
-            os << '(' << v.sender_ << " \"RunRequest\")";
+            os << '(' << it->sender_ << " \"RunRequest\")";
         }
     }
 
     if ( time() == staminaTime() )
     {
-        for ( const Stamina &v : stamina() )
+        for ( std::vector< Stamina >::const_iterator it = stamina().begin();
+              it != stamina().end();
+              ++it )
         {
-            os << '(' << v.sender_ << " \"Stamina\")";
+            os << '(' << it->sender_ << " \"Stamina\")";
         }
     }
 
     if ( time() == recoveryTime() )
     {
-        for ( const Recovery & v : recovery() )
+        for ( std::vector< Recovery >::const_iterator it = recovery().begin();
+              it != recovery().end();
+              ++it )
         {
-            os << '(' << v.sender_ << " \"Recovery\")";
+            os << '(' << it->sender_ << " \"Recovery\")";
         }
     }
 
     if ( time() == dribbleTime() )
     {
-        for ( const Dribble & v : dribble() )
+        for ( std::vector< Dribble >::const_iterator it = dribble().begin();
+              it != dribble().end();
+              ++it )
         {
-            os << '(' << v.sender_ << " \"Dribble\")";
+            os << '(' << it->sender_ << " \"Dribble\")";
         }
     }
 
     if ( time() == freeMessageTime() )
     {
-        for ( const FreeMessage & v : freeMessage() )
+        for ( std::vector< FreeMessage >::const_iterator it = freeMessage().begin();
+              it != freeMessage().end();
+              ++it )
         {
-            os << '(' << v.sender_ << " \"FreeMessage\")";
+            os << '(' << it->sender_ << " \"FreeMessage\")";
         }
     }
 

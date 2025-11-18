@@ -60,7 +60,7 @@ namespace rcsc {
 bool
 Body_Intercept2009::execute( PlayerAgent * agent )
 {
-    dlog.addText( Logger::INTERCEPT,
+    dlog.addText( Logger::TEAM,
                   __FILE__": Body_Intercept2009" );
 
     const WorldModel & wm = agent->world();
@@ -100,7 +100,7 @@ Body_Intercept2009::execute( PlayerAgent * agent )
                   table->selfCache().size(),
                   best_intercept.reachCycle(),
                   best_intercept.turnCycle(), best_intercept.dashCycle(),
-                  best_intercept.dashPower(), best_intercept.dashDir() );
+                  best_intercept.dashPower(), best_intercept.dashAngle().degree() );
 
     Vector2D target_point = wm.ball().inertiaPoint( best_intercept.reachCycle() );
     agent->debugClient().setTarget( target_point );
@@ -188,7 +188,7 @@ Body_Intercept2009::doKickableOpponentCheck( PlayerAgent * agent )
 {
     const WorldModel & wm = agent->world();
     if ( wm.ball().distFromSelf() < 2.0
-         && wm.kickableOpponent() )
+         && wm.existKickableOpponent() )
     {
         const PlayerObject * opp = wm.opponentsFromBall().front();
         if ( opp )
@@ -253,23 +253,23 @@ Body_Intercept2009::getBestIntercept( const WorldModel & wm,
     const int mate_min = table->teammateReachCycle();
     //const PlayerObject * fastest_opponent = table->fastestOpponent();
 
-    const InterceptInfo * attacker_best = nullptr;
+    const InterceptInfo * attacker_best = static_cast< InterceptInfo * >( 0 );
     double attacker_score = 0.0;
 
-    const InterceptInfo * forward_best = nullptr;
+    const InterceptInfo * forward_best = static_cast< InterceptInfo * >( 0 );
     double forward_score = 0.0;
 
-    const InterceptInfo * noturn_best = nullptr;
+    const InterceptInfo * noturn_best = static_cast< InterceptInfo * >( 0 );
     double noturn_score = 10000.0;
 
-    const InterceptInfo * nearest_best = nullptr;
+    const InterceptInfo * nearest_best = static_cast< InterceptInfo * >( 0 );
     double nearest_score = 10000.0;
 
 #ifdef USE_GOALIE_MODE
-    const InterceptInfo * goalie_best = nullptr;
+    const InterceptInfo * goalie_best = static_cast< InterceptInfo * >( 0 );
     double goalie_score = -10000.0;
 
-    const InterceptInfo * goalie_aggressive_best = nullptr;
+    const InterceptInfo * goalie_aggressive_best = static_cast< InterceptInfo * >( 0 );
     double goalie_aggressive_score = -10000.0;
 #endif
 
@@ -277,7 +277,7 @@ Body_Intercept2009::getBestIntercept( const WorldModel & wm,
     for ( std::size_t i = 0; i < MAX; ++i )
     {
         if ( M_save_recovery
-             && cache[i].staminaType() != InterceptInfo::NORMAL )
+             && cache[i].mode() != InterceptInfo::NORMAL )
         {
             continue;
         }
@@ -729,7 +729,7 @@ Body_Intercept2009::getBestIntercept( const WorldModel & wm,
          && wm.ball().vel().th().abs() < 100.0
          && cache[0].reachCycle() > 1 )
     {
-        const InterceptInfo * chance_best = nullptr;
+        const InterceptInfo * chance_best = static_cast< InterceptInfo * >( 0 );
         for ( std::size_t i = 0; i < MAX; ++i )
         {
             if ( cache[i].reachCycle() <= cache[0].reachCycle() + 3
@@ -939,8 +939,8 @@ Body_Intercept2009::doInertiaDash( PlayerAgent * agent,
     if ( info.reachCycle() == 1 )
     {
         agent->debugClient().addMessage( "Intercept1Dash%.0f|%.0f",
-                                         info.dashPower(), info.dashDir() );
-        agent->doDash( info.dashPower(), info.dashDir() );
+                                         info.dashPower(), info.dashAngle().degree() );
+        agent->doDash( info.dashPower(), info.dashAngle() );
 #ifdef DEBUG_PRINT
         if ( info.dashAngle().abs() > 1.0 )
         {
@@ -1011,7 +1011,7 @@ Body_Intercept2009::doInertiaDash( PlayerAgent * agent,
 
     if ( wm.ball().seenPosCount() <= 2
          && wm.ball().vel().r() * std::pow( ServerParam::i().ballDecay(), info.reachCycle() ) < ptype.kickableArea() * 1.5
-         && std::fabs( info.dashDir() ) < 5.0
+         && info.dashAngle().abs() < 5.0
          && target_rel.absX() < ( ptype.kickableArea()
                                   + ptype.dashRate( wm.self().effort() )
                                   * ServerParam::i().maxDashPower()
@@ -1028,7 +1028,7 @@ Body_Intercept2009::doInertiaDash( PlayerAgent * agent,
         Vector2D rel_vel = wm.self().vel().rotatedVector( - wm.self().body() );
         double required_accel = first_speed - rel_vel.x;
         used_power = required_accel / wm.self().dashRate();
-        used_power /= ServerParam::i().dashDirRate( info.dashDir() );
+        used_power /= ServerParam::i().dashDirRate( info.dashAngle().degree() );
 
         //if ( info.dashPower() < 0.0 ) used_power = -used_power;
 
@@ -1039,7 +1039,7 @@ Body_Intercept2009::doInertiaDash( PlayerAgent * agent,
         }
 
         agent->debugClient().addMessage( "InterceptInertiaDash%d:%.0f|%.0f",
-                                         info.reachCycle(), used_power, info.dashDir() );
+                                         info.reachCycle(), used_power, info.dashAngle().degree() );
         dlog.addText( Logger::INTERCEPT,
                       __FILE__": doInertiaDash. x_diff=%.2f first_speed=%.2f"
                       " accel=%.2f power=%.1f",
@@ -1049,7 +1049,7 @@ Body_Intercept2009::doInertiaDash( PlayerAgent * agent,
     else
     {
         agent->debugClient().addMessage( "InterceptDash%d:%.0f|%.0f",
-                                         info.reachCycle(), used_power, info.dashDir() );
+                                         info.reachCycle(), used_power, info.dashAngle().degree() );
         dlog.addText( Logger::INTERCEPT,
                       __FILE__": doInertiaDash. normal dash. x_diff=%.2f ",
                       target_rel.x );
@@ -1101,7 +1101,7 @@ Body_Intercept2009::doInertiaDash( PlayerAgent * agent,
         return true;
     }
 
-    agent->doDash( used_power, info.dashDir() );
+    agent->doDash( used_power, info.dashAngle() );
 #ifdef DEBUG_PRINT
         if ( info.dashAngle().abs() > 1.0 )
         {

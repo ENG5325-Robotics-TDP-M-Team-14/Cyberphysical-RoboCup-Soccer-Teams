@@ -56,7 +56,7 @@ bool
 Neck_TurnToLowConfTeammate::execute( PlayerAgent * agent )
 {
     const WorldModel & wm = agent->world();
-    const PlayerObject::Cont & teammates = wm.teammatesFromSelf();
+    const PlayerPtrCont & teammates = wm.teammatesFromSelf();
 
     if ( teammates.empty() )
     {
@@ -76,30 +76,33 @@ Neck_TurnToLowConfTeammate::execute( PlayerAgent * agent )
 
     const double max_dist = 40.0;
 
-    for ( const PlayerObject * t : teammates )
+    const PlayerPtrCont::const_iterator t_end = teammates.end();
+    for ( PlayerPtrCont::const_iterator it = teammates.begin();
+          it != t_end;
+          ++it )
     {
-        if ( t->isGhost() )
+        if ( (*it)->isGhost() )
         {
             continue;
         }
 
-        if ( t->distFromSelf() > max_dist )
+        if ( (*it)->distFromSelf() > max_dist )
         {
             break;
         }
 
-        if ( t->posCount() >= pos_count
-             && candidate_point.x < t->pos().x )
+        if ( (*it)->posCount() >= pos_count
+             && candidate_point.x < (*it)->pos().x )
         {
-            Vector2D pos = t->pos() + t->vel();
+            Vector2D pos = (*it)->pos() + (*it)->vel();
             AngleDeg angle = ( pos - next_self_pos ).th();
 
             if ( ( angle - next_self_body ).abs() < next_neck_half_range - 5.0 )
             {
                 // can face
-                candidate_unum = t->unum();
+                candidate_unum = (*it)->unum();
                 candidate_point = pos;
-                pos_count = t->posCount();
+                pos_count = (*it)->posCount();
             }
         }
     }
@@ -109,7 +112,7 @@ Neck_TurnToLowConfTeammate::execute( PlayerAgent * agent )
         dlog.addText( Logger::ACTION,
                       __FILE__": no candidate. pos_count=%d",
                       pos_count );
-        return Neck_TurnToBallOrScan( 0 ).execute( agent );
+        return Neck_TurnToBallOrScan().execute( agent );
     }
 
     dlog.addText( Logger::ACTION,
@@ -154,6 +157,7 @@ Neck_TurnToLowConfTeammate::execute( PlayerAgent * agent )
 
     if ( wm.opponentsFromSelf().size() >= 11 )
     {
+        const AbstractPlayerCont::const_iterator end = wm.allPlayers().end();
         for ( double dir = 0.0; dir < angle_range + 0.001; dir += neck_step )
         {
             AngleDeg target_angle = left_max_angle + dir;
@@ -163,11 +167,13 @@ Neck_TurnToLowConfTeammate::execute( PlayerAgent * agent )
             double score = 0.0;
             double angle_diff = 180.0;
 
-            for ( const AbstractPlayerObject * p : wm.allPlayers() )
+            for ( AbstractPlayerCont::const_iterator p = wm.allPlayers().begin();
+                  p != end;
+                  ++p )
             {
-                if ( p->isSelf() ) continue;
-                //if ( p->isGhost() ) continue;
-                Vector2D pos = p->pos() + p->vel();
+                if ( (*p)->isSelf() ) continue;
+                //if ( (*p)->isGhost() ) continue;
+                Vector2D pos = (*p)->pos() + (*p)->vel();
                 if ( pos.dist( next_self_pos ) > 35.0 ) continue; // XXX magic number XXX
 
                 AngleDeg angle = ( pos - next_self_pos ).th();
@@ -176,29 +182,29 @@ Neck_TurnToLowConfTeammate::execute( PlayerAgent * agent )
                 {
 #if 1
 
-                    int pos_count = p->seenPosCount();
-                    if ( p->isGhost() ) pos_count = std::min( 2, pos_count );
+                    int pos_count = (*p)->seenPosCount();
+                    if ( (*p)->isGhost() ) pos_count = std::min( 2, pos_count );
 
                     double base_val = ( pos_count + 1 ) * 2.0;
-                    //double rate = std::exp( - std::pow( p->distFromBall(), 2 )
-                    double rate = std::exp( - std::pow( p->distFromSelf(), 2 )
+                    //double rate = std::exp( - std::pow( (*p)->distFromBall(), 2 )
+                    double rate = std::exp( - std::pow( (*p)->distFromSelf(), 2 )
                                             / ( 2.0 * std::pow( 40.0, 2 ) ) ); // Magic Number: variance = 40.0
                     score += base_val * rate;
 
 
 #else
-                    if ( p->goalie()
+                    if ( (*p)->goalie()
                          && next_self_pos.x > 33.0 )
                     {
-                        score += p->posCount() * 2 + 20;
+                        score += (*p)->posCount() * 2 + 20;
                     }
                     else if ( pos.x > next_self_pos.x - 5.0 )
                     {
-                        score += p->posCount() * 2 + 1;
+                        score += (*p)->posCount() * 2 + 1;
                     }
                     else
                     {
-                        score += p->posCount();
+                        score += (*p)->posCount();
                     }
 #endif
 

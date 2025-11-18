@@ -49,7 +49,7 @@ namespace rcsc {
 
 */
 bool
-BallMessage::appendTo( std::string & to ) const
+BallMessage::toStr( std::string & to ) const
 {
     if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
     {
@@ -72,7 +72,7 @@ BallMessage::appendTo( std::string & to ) const
                   << std::endl;
         dlog.addText( Logger::SENSOR,
                       "BallMessage. error!"
-                      " pos=(%f %f) vel=(%f %f)",
+                      " pos=(%.1f %.1f) vel=(%.1f %.1f)",
                       M_ball_pos.x, M_ball_pos.y,
                       M_ball_vel.x, M_ball_vel.y );
         return false;
@@ -80,7 +80,7 @@ BallMessage::appendTo( std::string & to ) const
 
     dlog.addText( Logger::SENSOR,
                   "BallMessage. success!"
-                  " pos=(%f %f) vel=(%f %f) -> [%s]",
+                  " pos=(%.1f %.1f) vel=(%.1f %.1f) -> [%s]",
                   M_ball_pos.x, M_ball_pos.y,
                   M_ball_vel.x, M_ball_vel.y,
                   msg.c_str() );
@@ -110,7 +110,7 @@ BallMessage::printDebug( std::ostream & os ) const
 
 */
 bool
-PassMessage::appendTo( std::string & to ) const
+PassMessage::toStr( std::string & to ) const
 {
     if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
     {
@@ -132,7 +132,7 @@ PassMessage::appendTo( std::string & to ) const
                   << std::endl;
 
         dlog.addText( Logger::SENSOR,
-                      "PassMessage. error! receiver=%d pos=(%f %f)",
+                      "PassMessage. error! receiver=%d pos=(%.1f %.1f)",
                       M_receiver_unum,
                       M_receive_point.x, M_receive_point.y );
         return false;
@@ -147,7 +147,7 @@ PassMessage::appendTo( std::string & to ) const
                   << std::endl;
         dlog.addText( Logger::SENSOR,
                       "PassMessage. error!"
-                      " ball_pos=(%f %f) vel=(%f %f)",
+                      " ball_pos=(%.1f %.1f) vel=(%.1f %.1f)",
                       M_ball_pos.x, M_ball_pos.y,
                       M_ball_vel.x, M_ball_vel.y );
         return false;
@@ -167,8 +167,8 @@ PassMessage::appendTo( std::string & to ) const
 
     dlog.addText( Logger::SENSOR,
                   "PassMessage. success!"
-                  " receiver=%d recv_pos=(%f %f)"
-                  " bpos(%f %f) bvel(%f %f) -> [%s]",
+                  " receiver=%d recv_pos=(%.1f %.1f)"
+                  " bpos(%.1f %.1f) bvel(%.1f %.1f) -> [%s]",
                   M_receiver_unum,
                   M_receive_point.x, M_receive_point.y,
                   M_ball_pos.x, M_ball_pos.y,
@@ -201,7 +201,7 @@ PassMessage::printDebug( std::ostream & os ) const
 
 */
 bool
-GoalieMessage::appendTo( std::string & to ) const
+GoalieMessage::toStr( std::string & to ) const
 {
     if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
     {
@@ -223,25 +223,25 @@ GoalieMessage::appendTo( std::string & to ) const
 //                   << M_goalie_pos
 //                   << std::endl;
         dlog.addText( Logger::SENSOR,
-                      "GoalieMessage. over the position range : (%f %f)",
+                      "GoalieMessage. over the position range : (%.1f %.1f)",
                       M_goalie_pos.x, M_goalie_pos.y );
         return false;
     }
 
-    std::int64_t ival = 0;
+    boost::int64_t ival = 0;
 
     double x = min_max( 53.0 - 16.0, M_goalie_pos.x, 52.9 ) - ( 53.0 - 16.0 );
     double y = min_max( -19.9, M_goalie_pos.y, 19.9 ) + 20.0;
     double body = M_goalie_body.degree() + 180.0;
 
     // ival *= 160
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( x / 0.1 ), 159.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( x / 0.1 ), 159.0 ) );
 
     ival *= 400;
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( y / 0.1 ), 399.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( y / 0.1 ), 399.0 ) );
 
     ival *= 360;
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( body ), 359.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( body ), 359.0 ) );
 
     std::string msg;
     msg.reserve( slength() - 1 );
@@ -254,14 +254,14 @@ GoalieMessage::appendTo( std::string & to ) const
                   << std::endl;
 
         dlog.addText( Logger::SENSOR,
-                      "GoalieMessage. error! unum=%d pos=(%f %f) body=%f",
+                      "GoalieMessage. error! unum=%d pos=(%.1f %.1f) body=%.1f",
                       M_goalie_unum, M_goalie_pos.x, M_goalie_pos.y,
                       M_goalie_body.degree() );
         return false;
     }
 
     dlog.addText( Logger::SENSOR,
-                  "GoalieMessage. success! unum=%d pos=(%f %f) x=%f y=%f -> [%s]",
+                  "GoalieMessage. success! unum=%d pos=(%.1f %.1f) x=%f y=%f -> [%s]",
                   M_goalie_unum, M_goalie_pos.x, M_goalie_pos.y,
                   x, y,
                   msg.c_str() );
@@ -292,7 +292,7 @@ GoalieMessage::printDebug( std::ostream & os ) const
 
 */
 bool
-GoalieAndPlayerMessage::appendTo( std::string & to ) const
+GoalieAndPlayerMessage::toStr( std::string & to ) const
 {
     if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
     {
@@ -307,7 +307,7 @@ GoalieAndPlayerMessage::appendTo( std::string & to ) const
          || M_goalie_pos.absY() > 19.9 )
     {
         dlog.addText( Logger::SENSOR,
-                      "GoalieAndPlayerMessage. over the position range : (%f %f)",
+                      "GoalieAndPlayerMessage. over the position range : (%.1f %.1f)",
                       M_goalie_pos.x, M_goalie_pos.y );
         return false;
     }
@@ -319,20 +319,20 @@ GoalieAndPlayerMessage::appendTo( std::string & to ) const
                       M_player_number );
     }
 
-    std::int64_t ival = 0;
+    boost::int64_t ival = 0;
 
     double goalie_x = bound( 53.0 - 16.0, M_goalie_pos.x, 52.9 ) - ( 53.0 - 16.0 );
     double goalie_y = bound( -19.9, M_goalie_pos.y, 19.9 ) + 20.0;
     double goalie_body = M_goalie_body.degree() + 180.0;
 
     // ival *= 160
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( goalie_x / 0.1 ), 159.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( goalie_x / 0.1 ), 159.0 ) );
 
     ival *= 400;
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( goalie_y / 0.1 ), 399.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( goalie_y / 0.1 ), 399.0 ) );
 
     ival *= 360;
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( goalie_body ), 359.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( goalie_body ), 359.0 ) );
 
     double player_x = bound( -52.49, M_player_pos.x, 52.49 ) + 52.5;
     double player_y = bound( -33.99, M_player_pos.y, 33.99 ) + 34.0;
@@ -341,10 +341,10 @@ GoalieAndPlayerMessage::appendTo( std::string & to ) const
     ival += M_player_number - 1;
 
     ival *= 191;
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( player_x / 0.555 ), 190.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( player_x / 0.555 ), 190.0 ) );
 
     ival *= 124;
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( player_y / 0.555 ), 123.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( player_y / 0.555 ), 123.0 ) );
 
 
     std::string msg;
@@ -358,7 +358,7 @@ GoalieAndPlayerMessage::appendTo( std::string & to ) const
                   << std::endl;
 
         dlog.addText( Logger::SENSOR,
-                      "GoalieAndPlayerMessage. error! goalie unum=%d (%.2f %.2f) body=%f"
+                      "GoalieAndPlayerMessage. error! goalie unum=%d (%.2f %.2f) body=%.1f"
                       " player=%d (%.2f %.2f)",
                       M_goalie_unum, M_goalie_pos.x, M_goalie_pos.y,
                       M_goalie_body.degree(),
@@ -399,7 +399,7 @@ GoalieAndPlayerMessage::printDebug( std::ostream & os ) const
 
 */
 bool
-OffsideLineMessage::appendTo( std::string & to ) const
+OffsideLineMessage::toStr( std::string & to ) const
 {
     if ( M_offside_line_x < 10.0 )
     {
@@ -426,13 +426,13 @@ OffsideLineMessage::appendTo( std::string & to ) const
                   << M_offside_line_x
                   << std::endl;
         dlog.addText( Logger::SENSOR,
-                      "OffsideLineMessage. error! real_x=%f, rate=%f",
+                      "OffsideLineMessage. error! real_x=%.1f, rate=%.3f",
                       M_offside_line_x, rate );
         return false;
     }
 
     dlog.addText( Logger::SENSOR,
-                  "OffsideLineMessage. success! x=%f rate=%f [%c]",
+                  "OffsideLineMessage. success! x=%.1f rate=%.3f [%c]",
                   M_offside_line_x, rate, ch );
 
     to += header();
@@ -457,7 +457,7 @@ OffsideLineMessage::printDebug( std::ostream & os ) const
 
 */
 bool
-DefenseLineMessage::appendTo( std::string & to ) const
+DefenseLineMessage::toStr( std::string & to ) const
 {
     if ( M_defense_line_x > -10.0 )
     {
@@ -483,13 +483,13 @@ DefenseLineMessage::appendTo( std::string & to ) const
                   << " ***ERROR*** DefenseLineMessage. value = " << M_defense_line_x
                   << std::endl;
         dlog.addText( Logger::SENSOR,
-                      "DefenseLineMessage. error! x=%f, rate=%f",
+                      "DefenseLineMessage. error! x=%.1f, rate=%.3f",
                       M_defense_line_x, rate );
         return false;
     }
 
     dlog.addText( Logger::SENSOR,
-                  "DefenseLineMessage. success! x=%f rate=%f -> [%c]",
+                  "DefenseLineMessage. success! x=%.1f rate=%.3f -> [%c]",
                   M_defense_line_x, rate, ch );
 
     to += header();
@@ -514,7 +514,7 @@ DefenseLineMessage::printDebug( std::ostream & os ) const
 
 */
 bool
-WaitRequestMessage::appendTo( std::string & to ) const
+WaitRequestMessage::toStr( std::string & to ) const
 {
     if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
     {
@@ -548,55 +548,7 @@ WaitRequestMessage::printDebug( std::ostream & os ) const
 
 */
 bool
-SetplayMessage::appendTo( std::string & to ) const
-{
-    if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
-    {
-        dlog.addText( Logger::SENSOR,
-                      "SetplayMessage. over the message size : buf = %d, this = %d",
-                      to.length(), slength() );
-        return false;
-    }
-
-    char ch;
-    try
-    {
-        ch = AudioCodec::i().intToCharMap().at( M_wait_step );
-    }
-    catch ( std::exception & e )
-    {
-        std::cerr << __FILE__ << ":" << __LINE__
-                  << " ***ERROR*** SetplayMessage. cannot encode wait_step = " << M_wait_step
-                  << std::endl;
-        return false;
-    }
-
-    dlog.addText( Logger::SENSOR,
-                  "SetplayMessage. success! step=%d -> [F%c]", M_wait_step, ch );
-
-    to += header();
-    to += ch;
-
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-std::ostream &
-SetplayMessage::printDebug( std::ostream & os ) const
-{
-    os << "[Setplay:" << M_wait_step << ']';
-    return os;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-InterceptMessage::appendTo( std::string & to ) const
+InterceptMessage::toStr( std::string & to ) const
 {
     if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
     {
@@ -657,7 +609,7 @@ InterceptMessage::printDebug( std::ostream & os ) const
 
 */
 bool
-PassRequestMessage::appendTo( std::string & to ) const
+PassRequestMessage::toStr( std::string & to ) const
 {
     if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
     {
@@ -679,13 +631,13 @@ PassRequestMessage::appendTo( std::string & to ) const
                   << M_target_point
                   << std::endl;
         dlog.addText( Logger::SENSOR,
-                      "PassRequestMessage. error!. dash_target=(%f %f)",
+                      "PassRequestMessage. error!. dash_target=(%.1f %.1f)",
                       M_target_point.x, M_target_point.y );
         return false;
     }
 
     dlog.addText( Logger::SENSOR,
-                  "PassRequestMessage. success!. dash_target=(%f %f) -> [%s]",
+                  "PassRequestMessage. success!. dash_target=(%.1f %.1f) -> [%s]",
                   M_target_point.x, M_target_point.y,
                   msg.c_str() );
 
@@ -712,7 +664,7 @@ PassRequestMessage::printDebug( std::ostream & os ) const
 
 */
 bool
-StaminaMessage::appendTo( std::string & to ) const
+StaminaMessage::toStr( std::string & to ) const
 {
     if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
     {
@@ -731,13 +683,13 @@ StaminaMessage::appendTo( std::string & to ) const
                   << " ***ERROR*** Say_Stamina. value = " << M_stamina
                   << std::endl;
         dlog.addText( Logger::SENSOR,
-                      "StaminaMessage. error! value= %f",
+                      "StaminaMessage. error! value= %.1f",
                       M_stamina );
         return false;
     }
 
     dlog.addText( Logger::SENSOR,
-                  "StaminaMessage. success! value= %f",
+                  "StaminaMessage. success! value= %.1f",
                   M_stamina );
 
     to += header();
@@ -763,7 +715,7 @@ StaminaMessage::printDebug( std::ostream & os ) const
 
 */
 bool
-RecoveryMessage::appendTo( std::string & to ) const
+RecoveryMessage::toStr( std::string & to ) const
 {
     if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
     {
@@ -785,13 +737,13 @@ RecoveryMessage::appendTo( std::string & to ) const
                   << " ***ERROR*** RecoveryMessage. value = " << M_recovery
                   << std::endl;
         dlog.addText( Logger::SENSOR,
-                      "RecoveryMessage: error!. value = %f. rate = %f",
+                      "RecoveryMessage: error!. value = %.1f. rate = %.3f",
                       M_recovery, rate );
         return false;
     }
 
     dlog.addText( Logger::SENSOR,
-                  "RecoveryMessage: success!. value = %f. rate = %f",
+                  "RecoveryMessage: success!. value = %.1f. rate = %.3f",
                   M_recovery, rate );
 
     to += header();
@@ -817,57 +769,7 @@ RecoveryMessage::printDebug( std::ostream & os ) const
 
 */
 bool
-StaminaCapacityMessage::appendTo( std::string & to ) const
-{
-    if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
-    {
-        dlog.addText( Logger::SENSOR,
-                      "StaminaCapacityMessage. over the message size : buf = %d, this = %d",
-                      to.length(), slength() );
-        return false;
-    }
-
-    double rate = M_stamina_capacity / ServerParam::i().staminaCapacity();
-    char ch = AudioCodec::i().encodePercentageToChar( rate );
-
-    if ( ch == '\0' )
-    {
-        std::cerr << __FILE__ << ":" << __LINE__
-                  << " ***ERROR*** StaminaCapacityMessage. value = " << M_stamina_capacity
-                  << std::endl;
-        dlog.addText( Logger::SENSOR,
-                      "StaminaCapacityMessage: error!. value = %f. rate = %f",
-                      M_stamina_capacity, rate );
-        return false;
-    }
-
-    dlog.addText( Logger::SENSOR,
-                  "RecoveryMessage: success!. capacity = %f. rate = %f",
-                  M_stamina_capacity, rate );
-
-    to += header();
-    to += ch;
-
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-std::ostream &
-StaminaCapacityMessage::printDebug( std::ostream & os ) const
-{
-    os << "[StaminaCapacity]";
-    return os;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-DribbleMessage::appendTo( std::string & to ) const
+DribbleMessage::toStr( std::string & to ) const
 {
     if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
     {
@@ -882,16 +784,16 @@ DribbleMessage::appendTo( std::string & to ) const
     // 10 * 105.0 * 68.0 / 74^3 < prec^2
     // prec > 0.419760459
 
-    std::int64_t ival = 0;
+    boost::int64_t ival = 0;
 
     double x = min_max( -52.5, M_target_point.x, 52.5 ) + 52.5;
     double y = min_max( -34.0, M_target_point.y, 34.0 ) + 34.0;
-    std::int64_t count = min_max( 1, M_queue_count, 10 );
+    boost::int64_t count = min_max( 1, M_queue_count, 10 );
 
-    ival += static_cast< std::int64_t >( rint( x / 0.5 ) );
+    ival += static_cast< boost::int64_t >( rint( x / 0.5 ) );
 
-    ival *= static_cast< std::int64_t >( std::ceil( 68.0 / 0.5 ) );
-    ival += static_cast< std::int64_t >( rint( y / 0.5 ) );
+    ival *= static_cast< boost::int64_t >( std::ceil( 68.0 / 0.5 ) );
+    ival += static_cast< boost::int64_t >( rint( y / 0.5 ) );
 
     ival *= 10;
     ival += count - 1;
@@ -906,7 +808,7 @@ DribbleMessage::appendTo( std::string & to ) const
                   << " ***ERROR*** DribbleMessage. target=" << M_target_point
                   << std::endl;
         dlog.addText( Logger::SENSOR,
-                      "DribbleMessage. error!. pos=(%f %f) count=%d,"
+                      "DribbleMessage. error!. pos=(%.1f %.1f) count=%d,"
                       " message_length=%d",
                       M_target_point.x, M_target_point.y,
                       M_queue_count, msg.length() );
@@ -914,7 +816,7 @@ DribbleMessage::appendTo( std::string & to ) const
     }
 
     dlog.addText( Logger::SENSOR,
-                  "DribbleMessage. success!. pos=(%f %f) count=%d -> [%s]",
+                  "DribbleMessage. success!. pos=(%.1f %.1f) count=%d -> [%s]",
                   M_target_point.x, M_target_point.y,
                   M_queue_count,
                   msg.c_str() );
@@ -944,7 +846,7 @@ DribbleMessage::printDebug( std::ostream & os ) const
 
 */
 bool
-BallGoalieMessage::appendTo( std::string & to ) const
+BallGoalieMessage::toStr( std::string & to ) const
 {
     if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
     {
@@ -962,7 +864,7 @@ BallGoalieMessage::appendTo( std::string & to ) const
                   << M_goalie_pos
                   << std::endl;
         dlog.addText( Logger::SENSOR,
-                      "BallGoalieMessage. over the position range : (%f %f)",
+                      "BallGoalieMessage. over the position range : (%.1f %.1f)",
                       M_goalie_pos.x, M_goalie_pos.y );
         return false;
     }
@@ -974,26 +876,26 @@ BallGoalieMessage::appendTo( std::string & to ) const
     const double max_speed = ServerParam::i().ballSpeedMax() * ServerParam::i().ballDecay();
     const double prec = max_speed * 2.0 / 63.0;
 
-    std::int64_t ival = 0;
+    boost::int64_t ival = 0;
     double dval = 0.0;
 
     dval = min_max( -52.5, M_ball_pos.x, 52.5 ) + 52.5;
     // ival *= 1050
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( dval / 0.1 ), 1049.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval / 0.1 ), 1049.0 ) );
 
     dval = min_max( -34.0, M_ball_pos.y, 34.0 ) + 34.0;
     ival *= 680;
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( dval / 0.1 ), 679.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval / 0.1 ), 679.0 ) );
 
     if ( M_ball_vel.isValid() )
     {
         dval = min_max( -max_speed, M_ball_vel.x, max_speed ) + max_speed;
         ival *= 63;
-        ival += static_cast< std::int64_t >( bound( 0.0, rint( dval / prec ), 62.0 ) );
+        ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval / prec ), 62.0 ) );
 
         dval = min_max( -max_speed, M_ball_vel.y, max_speed ) + max_speed;
         ival *= 63;
-        ival += static_cast< std::int64_t >( bound( 0.0, rint( dval / prec ), 62.0 ) );
+        ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval / prec ), 62.0 ) );
     }
     else
     {
@@ -1003,15 +905,15 @@ BallGoalieMessage::appendTo( std::string & to ) const
 
     dval = min_max( 52.5 - 16.0, M_goalie_pos.x, 52.5 ) - ( 52.5 - 16.0 );
     ival *= 160;
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( dval / 0.1 ), 159.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval / 0.1 ), 159.0 ) );
 
     dval = min_max( -20.0, M_goalie_pos.y, 20.0 ) + 20.0;
     ival *= 400;
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( dval / 0.1 ), 399.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval / 0.1 ), 399.0 ) );
 
     dval = M_goalie_body.degree() + 180.0;
     ival *= 360;
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( dval ), 359.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval ), 359.0 ) );
 
     std::string msg;
     msg.reserve( slength() - 1 );
@@ -1025,8 +927,8 @@ BallGoalieMessage::appendTo( std::string & to ) const
 
         dlog.addText( Logger::SENSOR,
                       "BallGoalieMessage. error!"
-                      " bpos(%f %f) bvel(%f %f)"
-                      " gpos=(%f %f) gbody=%f",
+                      " bpos(%.1f %.1f) bvel(%.1f %.1f)"
+                      " gpos=(%.1f %.1f) gbody=%.1f",
                       M_ball_pos.x, M_ball_pos.y,
                       M_ball_vel.x, M_ball_vel.y,
                       M_goalie_pos.x, M_goalie_pos.y,
@@ -1035,8 +937,8 @@ BallGoalieMessage::appendTo( std::string & to ) const
     }
 
     dlog.addText( Logger::SENSOR,
-                  "BallGoalieMessage. success!. bpos=(%f %f) bvel(%f %f)"
-                  " gpos(%f %f) gbody %f -> [%s]",
+                  "BallGoalieMessage. success!. bpos=(%.1f %.1f) bvel(%.1f %.1f)"
+                  " gpos(%.1f %.1f) gbody %.1f -> [%s]",
                   M_ball_pos.x, M_ball_pos.y,
                   M_ball_vel.x, M_ball_vel.y,
                   M_goalie_pos.x, M_goalie_pos.y,
@@ -1070,7 +972,7 @@ BallGoalieMessage::printDebug( std::ostream & os ) const
 
 */
 bool
-OnePlayerMessage::appendTo( std::string & to ) const
+OnePlayerMessage::toStr( std::string & to ) const
 {
     if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
     {
@@ -1092,7 +994,7 @@ OnePlayerMessage::appendTo( std::string & to ) const
         return false;
     }
 
-    std::int64_t ival = 0;
+    boost::int64_t ival = 0;
     double player_x = min_max( -52.49, M_player_pos.x, 52.49 ) + 52.5;
     double player_y = min_max( -33.99, M_player_pos.y, 33.99 ) + 34.0;
 
@@ -1100,10 +1002,10 @@ OnePlayerMessage::appendTo( std::string & to ) const
     ival += M_unum - 1;
 
     ival *= 168;
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( player_x / 0.63 ), 167.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( player_x / 0.63 ), 167.0 ) );
 
     ival *= 109;
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( player_y / 0.63 ), 108.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( player_y / 0.63 ), 108.0 ) );
 
     std::string msg;
     msg.reserve( slength() - 1 );
@@ -1117,14 +1019,14 @@ OnePlayerMessage::appendTo( std::string & to ) const
 
         dlog.addText( Logger::SENSOR,
                       "OnePlayerMessage. error!"
-                      " unum=%d pos=(%f %f)",
+                      " unum=%d pos=(%.1f %.1f)",
                       M_unum,
                       M_player_pos.x, M_player_pos.y );
         return false;
     }
 
     dlog.addText( Logger::SENSOR,
-                  "OnePlayerMessage. success!. unum = %d pos=(%f %f) -> [%s]",
+                  "OnePlayerMessage. success!. unum = %d pos=(%.1f %.1f) -> [%s]",
                   M_unum,
                   M_player_pos.x, M_player_pos.y,
                   msg.c_str() );
@@ -1173,7 +1075,7 @@ TwoPlayerMessage::TwoPlayerMessage( const int player0_unum,
 
 */
 bool
-TwoPlayerMessage::appendTo( std::string & to ) const
+TwoPlayerMessage::toStr( std::string & to ) const
 {
     if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
     {
@@ -1183,7 +1085,7 @@ TwoPlayerMessage::appendTo( std::string & to ) const
         return false;
     }
 
-    std::int64_t ival = 0;
+    boost::int64_t ival = 0;
     double dval = 0.0;
 
     for ( int i = 0; i < 2; ++i )
@@ -1205,11 +1107,11 @@ TwoPlayerMessage::appendTo( std::string & to ) const
 
         dval = min_max( -52.49, M_player_pos[i].x, 52.49 ) + 52.5;
         ival *= 168;
-        ival += static_cast< std::int64_t >( bound( 0.0, rint( dval / 0.63 ), 167.0 ) );
+        ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval / 0.63 ), 167.0 ) );
 
         dval = min_max( -33.99, M_player_pos[i].y, 33.99 ) + 34.0;
         ival *= 109;
-        ival += static_cast< std::int64_t >( bound( 0.0, rint( dval / 0.63 ), 108.0 ) );
+        ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval / 0.63 ), 108.0 ) );
     }
 
     std::string msg;
@@ -1225,7 +1127,7 @@ TwoPlayerMessage::appendTo( std::string & to ) const
         for ( int i = 0; i < 2; ++i )
         {
             dlog.addText( Logger::SENSOR,
-                          "TwoPlayerMessage. error! unum=%d pos=(%f %f)",
+                          "TwoPlayerMessage. error! unum=%d pos=(%.1f %.1f)",
                           M_player_unum[i],
                           M_player_pos[i].x, M_player_pos[i].y );
         }
@@ -1237,7 +1139,7 @@ TwoPlayerMessage::appendTo( std::string & to ) const
         for ( int i = 0; i < 2; ++i )
         {
             dlog.addText( Logger::SENSOR,
-                          "TwoPlayerMessage. success!. unum=%d pos=(%f %f)",
+                          "TwoPlayerMessage. success!. unum=%d pos=(%.1f %.1f)",
                           M_player_unum[i],
                           M_player_pos[i].x, M_player_pos[i].y );
         }
@@ -1299,7 +1201,7 @@ ThreePlayerMessage::ThreePlayerMessage( const int player0_unum,
 
 */
 bool
-ThreePlayerMessage::appendTo( std::string & to ) const
+ThreePlayerMessage::toStr( std::string & to ) const
 {
     if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
     {
@@ -1309,7 +1211,7 @@ ThreePlayerMessage::appendTo( std::string & to ) const
         return false;
     }
 
-    std::int64_t ival = 0;
+    boost::int64_t ival = 0;
     double dval = 0.0;
 
     for ( int i = 0; i < 3; ++i )
@@ -1331,11 +1233,11 @@ ThreePlayerMessage::appendTo( std::string & to ) const
 
         dval = min_max( -52.49, M_player_pos[i].x, 52.49 ) + 52.5;
         ival *= 168;
-        ival += static_cast< std::int64_t >( bound( 0.0, rint( dval / 0.63 ), 167.0 ) );
+        ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval / 0.63 ), 167.0 ) );
 
         dval = min_max( -33.99, M_player_pos[i].y, 33.99 ) + 34.0;
         ival *= 109;
-        ival += static_cast< std::int64_t >( bound( 0.0, rint( dval / 0.63 ), 108.0 ) );
+        ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval / 0.63 ), 108.0 ) );
     }
 
     std::string msg;
@@ -1409,7 +1311,7 @@ ThreePlayerMessage::printDebug( std::ostream & os ) const
 
 */
 bool
-SelfMessage::appendTo( std::string & to ) const
+SelfMessage::toStr( std::string & to ) const
 {
     if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
     {
@@ -1423,24 +1325,24 @@ SelfMessage::appendTo( std::string & to ) const
     // 264 * 171 * 60 * 11 = 29795040
 
 
-    std::int64_t ival = 0;
+    boost::int64_t ival = 0;
     double dval = 0.0;
 
     dval = min_max( -52.5, M_self_pos.x, 52.5 ) + 52.5;
     //ival *= 264; // 105.0/0.4=262.5
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( dval / 0.4 ), 263.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval / 0.4 ), 263.0 ) );
 
     dval = min_max( -34.0, M_self_pos.y, 34.0 ) + 34.0;
     ival *= 171; // = 68/0.4
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( dval / 0.4 ), 170.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval / 0.4 ), 170.0 ) );
 
     dval = M_self_body.degree() + 180.0;
     ival *= 60; // = 360/6
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( dval / 6.0 ), 59.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval / 6.0 ), 59.0 ) );
 
     dval = min_max( 0.0, M_self_stamina / ServerParam::i().staminaMax(), 1.0 );
     ival *= 11;
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( dval * 10.0 ), 10.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval * 10.0 ), 10.0 ) );
 
     std::string msg;
     msg.reserve( slength() - 1 );
@@ -1454,7 +1356,7 @@ SelfMessage::appendTo( std::string & to ) const
 
         dlog.addText( Logger::SENSOR,
                       "SelfMessage. error!"
-                      " pos=(%f %f) body=%f stamina=%f",
+                      " pos=(%.1f %.1f) body=%.1f stamina=%f",
                       M_self_pos.x, M_self_pos.y,
                       M_self_body.degree(),
                       M_self_stamina );
@@ -1463,8 +1365,8 @@ SelfMessage::appendTo( std::string & to ) const
 
     dlog.addText( Logger::SENSOR,
                   "SelfMessage. success!."
-                  " pos=(%f %f)"
-                  " body=%f stamina_rate=%f-> [%s]",
+                  " pos=(%.1f %.1f)"
+                  " body=%.1f stamina_rate=%f-> [%s]",
                   M_self_pos.x, M_self_pos.y,
                   M_self_body.degree(),
                   M_self_stamina,
@@ -1495,7 +1397,7 @@ SelfMessage::printDebug( std::ostream & os ) const
 
 */
 bool
-TeammateMessage::appendTo( std::string & to ) const
+TeammateMessage::toStr( std::string & to ) const
 {
     if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
     {
@@ -1517,22 +1419,22 @@ TeammateMessage::appendTo( std::string & to ) const
         return false;
     }
 
-    std::int64_t ival = 0;
+    boost::int64_t ival = 0;
     double dval = 0.0;
 
     ival += M_unum - 1;
 
     dval = bound( -52.49, M_player_pos.x, 52.49 ) + 52.5;
     ival *= 151;
-    ival += static_cast< std::int64_t >( rint( dval / 0.7 ) );
+    ival += static_cast< boost::int64_t >( rint( dval / 0.7 ) );
 
     dval = bound( -33.99, M_player_pos.y, 33.99 ) + 34.0;
     ival *= 98;
-    ival += static_cast< std::int64_t >( rint( dval / 0.7 ) );
+    ival += static_cast< boost::int64_t >( rint( dval / 0.7 ) );
 
     dval = bound( 0.0, M_player_body.degree() + 180.0, 358.9 );
     ival *= 180; // = 360/2
-    ival += static_cast< std::int64_t >( rint( dval / 2.0 ) );
+    ival += static_cast< boost::int64_t >( rint( dval / 2.0 ) );
 
     std::string msg;
     msg.reserve( slength() - 1 );
@@ -1546,7 +1448,7 @@ TeammateMessage::appendTo( std::string & to ) const
 
         dlog.addText( Logger::SENSOR,
                       "TeammateMessage. error!"
-                      " unum=%d pos=(%f %f) body=%f",
+                      " unum=%d pos=(%.1f %.1f) body=%.1f",
                       M_unum,
                       M_player_pos.x, M_player_pos.y,
                       M_player_body.degree() );
@@ -1554,8 +1456,8 @@ TeammateMessage::appendTo( std::string & to ) const
     }
 
     dlog.addText( Logger::SENSOR,
-                  "TeammateMessage. success!. unum = %d pos=(%f %f)"
-                  " body=%f -> [%s]",
+                  "TeammateMessage. success!. unum = %d pos=(%.1f %.1f)"
+                  " body=%.1f -> [%s]",
                   M_unum,
                   M_player_pos.x, M_player_pos.y,
                   M_player_body.degree(),
@@ -1587,7 +1489,7 @@ TeammateMessage::printDebug( std::ostream & os ) const
 
 */
 bool
-OpponentMessage::appendTo( std::string & to ) const
+OpponentMessage::toStr( std::string & to ) const
 {
     if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
     {
@@ -1609,22 +1511,22 @@ OpponentMessage::appendTo( std::string & to ) const
         return false;
     }
 
-    std::int64_t ival = 0;
+    boost::int64_t ival = 0;
     double dval = 0.0;
 
     ival += M_unum - 1;
 
     dval = bound( -52.49, M_player_pos.x, 52.49 ) + 52.5;
     ival *= 151;
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( dval / 0.7 ), 150.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval / 0.7 ), 150.0 ) );
 
     dval = bound( -33.99, M_player_pos.y, 33.99 ) + 34.0;
     ival *= 98;
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( dval / 0.7 ), 99.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval / 0.7 ), 99.0 ) );
 
     dval = bound( 0.0, M_player_body.degree() + 180.0, 358.9 );
     ival *= 180; // = 360/2
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( dval / 2.0 ), 179.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval / 2.0 ), 179.0 ) );
 
     std::string msg;
     msg.reserve( slength() - 1 );
@@ -1638,7 +1540,7 @@ OpponentMessage::appendTo( std::string & to ) const
 
         dlog.addText( Logger::SENSOR,
                       "OpponentMessage. error!"
-                      " unum=%d pos=(%f %f) body=%f",
+                      " unum=%d pos=(%.1f %.1f) body=%.1f",
                       M_unum,
                       M_player_pos.x, M_player_pos.y,
                       M_player_body.degree() );
@@ -1646,8 +1548,8 @@ OpponentMessage::appendTo( std::string & to ) const
     }
 
     dlog.addText( Logger::SENSOR,
-                  "OpponentMessage. success!. unum = %d pos=(%f %f)"
-                  " body=%f -> [%s]",
+                  "OpponentMessage. success!. unum = %d pos=(%.1f %.1f)"
+                  " body=%.1f -> [%s]",
                   M_unum,
                   M_player_pos.x, M_player_pos.y,
                   M_player_body.degree(),
@@ -1679,7 +1581,7 @@ OpponentMessage::printDebug( std::ostream & os ) const
 
 */
 bool
-BallPlayerMessage::appendTo( std::string & to ) const
+BallPlayerMessage::toStr( std::string & to ) const
 {
     if ( (int)to.length() + slength() > ServerParam::i().playerSayMsgSize() )
     {
@@ -1718,7 +1620,7 @@ BallPlayerMessage::appendTo( std::string & to ) const
                   << std::endl;
         dlog.addText( Logger::SENSOR,
                       "BallPlayerMessage. ball encode error!"
-                      " pos=(%f %f) vel=(%f %f)",
+                      " pos=(%.1f %.1f) vel=(%.1f %.1f)",
                       M_ball_pos.x, M_ball_pos.y,
                       M_ball_vel.x, M_ball_vel.y );
         return false;
@@ -1731,22 +1633,22 @@ BallPlayerMessage::appendTo( std::string & to ) const
     //   22 * 106 * 69 * 180 = 28963400
     //
 
-    std::int64_t ival = 0;
+    boost::int64_t ival = 0;
     double dval = 0.0;
 
     ival += M_unum - 1;
 
     dval = bound( -52.49, M_player_pos.x, 52.49 ) + 52.5;
     ival *= 106;
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( dval ), 105.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval ), 105.0 ) );
 
     dval = bound( -33.99, M_player_pos.y, 33.99 ) + 34.0;
     ival *= 69;
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( dval ), 68.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval ), 68.0 ) );
 
     dval = bound( 0.0, M_player_body.degree() + 180.0, 359.0 );
     ival *= 180; // = 360/2
-    ival += static_cast< std::int64_t >( bound( 0.0, rint( dval / 2.0 ), 179.0 ) );
+    ival += static_cast< boost::int64_t >( bound( 0.0, rint( dval / 2.0 ), 179.0 ) );
 
     if ( ! AudioCodec::i().encodeInt64ToStr( ival, 4, msg )
          || (int)msg.length() != slength() - 1 )
@@ -1757,7 +1659,7 @@ BallPlayerMessage::appendTo( std::string & to ) const
 
         dlog.addText( Logger::SENSOR,
                       "BallPlayerMessage. player encode error!"
-                      " unum=%d pos=(%f %f) body=%f",
+                      " unum=%d pos=(%.1f %.1f) body=%.1f",
                       M_unum,
                       M_player_pos.x, M_player_pos.y,
                       M_player_body.degree() );
@@ -1766,8 +1668,8 @@ BallPlayerMessage::appendTo( std::string & to ) const
 
     dlog.addText( Logger::SENSOR,
                   "BallPlayerMessage. success!."
-                  " bpos(%f %f) bvel(%f %f)"
-                  " unum=%d ppos(%f %f) pbody=%f"
+                  " bpos(%.1f %.1f) bvel(%.1f %.1f)"
+                  " unum=%d ppos(%.1f %.1f) pbody=%.1f"
                   " -> [%s]",
                   M_ball_pos.x, M_ball_pos.y,
                   M_ball_vel.x, M_ball_vel.y,

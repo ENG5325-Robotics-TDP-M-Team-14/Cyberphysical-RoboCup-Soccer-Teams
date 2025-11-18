@@ -62,7 +62,7 @@ int SelfObject::S_face_count_thr = 5;
 
 */
 SelfObject::SelfObject()
-    : AbstractPlayerObject( 0 ),
+    : AbstractPlayerObject(),
       M_time( -1, 0 ),
       M_sense_body_time( -1, 0 ),
       M_pos_error( 0.0, 0.0 ),
@@ -76,7 +76,6 @@ SelfObject::SelfObject()
       M_tackle_expires( 0 ),
       M_charged_expires( 0 ),
       M_arm_movable( 0 ),
-      M_arm_expires( 0 ),
       M_pointto_pos( Vector2D::INVALIDATED ),
       M_last_pointto_time( 0, 0 ),
       M_attentionto_side( NEUTRAL ),
@@ -94,6 +93,7 @@ SelfObject::SelfObject()
       M_foul_probability( 0.0 )
 {
     M_unum_count = 0;
+    M_type = Hetero_Default;
     M_player_type = PlayerTypeSet::i().get( Hetero_Default );
 
     M_dist_from_self = 0.0;
@@ -175,24 +175,6 @@ SelfObject::faceValid() const
 }
 
 /*-------------------------------------------------------------------*/
-Vector2D
-SelfObject::focusPoint() const
-{
-    if ( ! posValid()
-         || ! faceValid() )
-    {
-        return Vector2D::INVALIDATED;
-    }
-
-    Vector2D result = pos();
-    if ( focusDist() > 1.0e-10 )
-    {
-        result += Vector2D::from_polar( focusDist(), face() + focusDir() );
-    }
-    return result;
-}
-
-/*-------------------------------------------------------------------*/
 /*!
 
 */
@@ -207,13 +189,11 @@ SelfObject::update( const ActionEffector & act,
 
     M_time = current;
 
-    M_kicking = false;
+    M_kicked = false;
     M_pos_prev = M_pos;
 
     Vector2D accel( 0.0, 0.0 );
-    double dash_rotation = 0.0;
-    double left_dash_power = 0.0;
-    double right_dash_power = 0.0;
+    double dash_power = 0.0;
     double turn_moment = 0.0, turn_err = 0.0;
     double neck_moment = 0.0;
 
@@ -221,8 +201,7 @@ SelfObject::update( const ActionEffector & act,
     // base command
     switch ( act.lastBodyCommandType() ) {
     case PlayerCommand::DASH:
-        //act.getDashInfo( &accel, &dash_power );
-        act.getDashInfo( &accel, &dash_rotation, &left_dash_power, &right_dash_power );
+        act.getDashInfo( &accel, &dash_power );
         break;
     case PlayerCommand::TURN:
         act.getTurnInfo( &turn_moment, &turn_err );
@@ -232,7 +211,7 @@ SelfObject::update( const ActionEffector & act,
         {
             M_tackle_expires = ServerParam::i().tackleCycles();
         }
-        M_kicking = true;
+        M_kicked = true;
         break;
     case PlayerCommand::MOVE:
         M_pos = act.getMovePos();
@@ -240,18 +219,16 @@ SelfObject::update( const ActionEffector & act,
         //M_vel_error.assign( 0.0, 0.0 );
         break;
     case PlayerCommand::CATCH:
-        // M_last_catch_time = act.lastActionTime();
+        M_last_catch_time = act.lastActionTime();
         break;
     case PlayerCommand::KICK:
-        M_kicking = true;
+        M_kicked = true;
         break;
     default:
         //std::cerr << current << " self update : no command!!"
         //          << std::endl;
         break;
     }
-
-    M_last_catch_time = act.getCatchTime();
 
     /////////////////////////////////////////
     // support command
@@ -277,13 +254,9 @@ SelfObject::update( const ActionEffector & act,
     }
 
     // stamina
-    //M_stamina.simulateDash( playerType(), dash_power );
-    M_stamina.simulateDash( playerType(), left_dash_power, right_dash_power );
+    M_stamina.simulateDash( playerType(), dash_power );
 
 #ifdef DEBUG_PRINT
-    dlog.addText( Logger::WORLD,
-                  __FILE__" (update) estimated turn=%.1f dash_rot=%.1f",
-                  turn_moment, dash_rotation );
     dlog.addText( Logger::WORLD,
                   __FILE__" (update) estimated stamina=%.1f effort=%f recovery=%f capacity=%.1f",
                   M_stamina.stamina(),
@@ -295,7 +268,6 @@ SelfObject::update( const ActionEffector & act,
     /////////////////////////////////////////////////////////////////
     // turn
     M_body += turn_moment;
-    M_body += dash_rotation;
 
     /////////////////////////////////////////////////////////////////
     // face
@@ -315,12 +287,6 @@ SelfObject::update( const ActionEffector & act,
     {
         M_pos += M_vel;
     }
-
-#ifdef DEBUG_PRINT
-    dlog.addText( Logger::WORLD,
-                  __FILE__" (update) estimated body=%.1f neck=%.1f face=%.1f",
-                  M_body.degree(), M_neck.degree(), M_face.degree() );
-#endif
 
     // rcssserver/src/object.C
     // PVector MPObject::noise()
@@ -372,14 +338,10 @@ SelfObject::update( const ActionEffector & act,
     ++M_seen_vel_count;
     ++M_body_count;
     ++M_face_count;
-    M_pointto_count = std::min( 1000, M_pointto_count + 1 );
-
-    M_last_seen_move_accuracy = std::min( 1000, M_last_seen_move_accuracy + 1 );
 
     // update action effect count
     M_tackle_expires = std::max( 0, M_tackle_expires - 1 );
     M_arm_movable = std::max( 0, M_arm_movable - 1 );
-    M_arm_expires = std::max( 0, M_arm_expires - 1 );
 
     M_charged_expires = std::max( 0, M_charged_expires - 1 );
 
@@ -497,17 +459,17 @@ SelfObject::updateAfterSenseBody( const BodySensor & sense,
     // internal update
     update( act, current );
 
-    M_kicking = ( act.lastBodyCommandType() == PlayerCommand::KICK
-                  || act.lastBodyCommandType() == PlayerCommand::TACKLE );
+    M_kicked = ( act.lastBodyCommandType() == PlayerCommand::KICK
+                 || act.lastBodyCommandType() == PlayerCommand::TACKLE );
 
-    // if ( act.lastBodyCommandType() == PlayerCommand::CATCH )
-    // {
-    //     M_last_catch_time = current;
-    // }
-    // else if ( M_last_catch_time == current )
-    // {
-    //     M_last_catch_time.assign( 0, 0 );
-    // }
+    if ( act.lastBodyCommandType() == PlayerCommand::CATCH )
+    {
+        M_last_catch_time = current;
+    }
+    else if ( M_last_catch_time == current )
+    {
+        M_last_catch_time.assign( 0, 0 );
+    }
 
     // ------------------------------------------------
     // use sense_body
@@ -516,9 +478,6 @@ SelfObject::updateAfterSenseBody( const BodySensor & sense,
     // view mode
     M_view_width = sense.viewWidth();
     M_view_quality = sense.viewQuality();
-
-    M_focus_dist = sense.focusDist();
-    M_focus_dir = sense.focusDir();
 
     ////////////////////////////////////////////////////
     // stamina
@@ -684,7 +643,6 @@ SelfObject::updateAfterSenseBody( const BodySensor & sense,
         if ( sense.armExpires() == 0 )
         {
             M_pointto_pos.invalidate();
-            M_pointto_count = 1000;
         }
 
         ////////////////////////////////////////////////////
@@ -748,15 +706,10 @@ SelfObject::updateAfterSenseBody( const BodySensor & sense,
 #endif
 
     M_tackle_expires = sense.tackleExpires();
-
-    // arm
     M_arm_movable = sense.armMovable();
-    M_arm_expires = sense.armExpires();
 
-    // foul
     M_charged_expires = sense.chargedExpires();
 
-    // card
     M_card = sense.card();
 #ifdef DEBUG_PRINT
     dlog.addText( Logger::WORLD,
@@ -802,10 +755,10 @@ SelfObject::updateAfterFullstate( const FullstateSensor::PlayerT & my_state,
     M_face_error = 0.0;
     M_face_count = 0;
 
-    M_stamina.setValues( my_state.stamina_,
-                         my_state.effort_,
-                         my_state.recovery_,
-                         my_state.stamina_capacity_ );
+    M_stamina.updateByFullstate( my_state.stamina_,
+                                 my_state.effort_,
+                                 my_state.recovery_,
+                                 my_state.stamina_capacity_ );
 }
 
 
@@ -822,12 +775,6 @@ SelfObject::updatePosBySee( const Vector2D & pos,
 {
     // other param is updated in update or update_after_sense
     M_time = current;
-
-    if ( this->pos().isValid() )
-    {
-        M_last_seen_move = pos - this->pos();
-        M_last_seen_move_accuracy = this->posCount();
-    }
 
     // I saw my position in last cycle
     if ( M_pos_count == 1 )
@@ -1031,9 +978,7 @@ SelfObject::updateBallInfo( const BallObject & ball )
     M_tackle_probability = 0.0;
     M_foul_probability = 0.0;
 
-    if ( M_pos_count > 100
-         || ! ball.posValid() )
-
+    if ( ! ball.posValid() && ball.rposCount() != 0 )
     {
         return;
     }
@@ -1041,96 +986,88 @@ SelfObject::updateBallInfo( const BallObject & ball )
     M_dist_from_ball = ball.distFromSelf();
     M_angle_from_ball = ball.angleFromSelf() + AngleDeg( 180.0 );
 
-    if ( ball.ghostCount() > 0 )
-    {
-        return;
-    }
-
-    const ServerParam & SP = ServerParam::i();
-    const PlayerType & ptype = playerType();
-
-    //
+    //------------------------------------------------------
     // check kickable
-    //
 
     if ( ball.distFromSelf() <= playerType().kickableArea() )
     {
         double buf = 0.055;
-        if ( ball.seenPosCount() >= 1 ) buf = 0.155;
         if ( ball.seenPosCount() >= 2 ) buf = 0.255;
+        if ( ball.seenPosCount() >= 1 ) buf = 0.155;
 
         if ( ball.distFromSelf() <= playerType().kickableArea() - buf )
         {
             M_kickable = true;
         }
 
-        M_kick_rate = ptype.kickRate( ball.distFromSelf(),
-                                      ( ball.angleFromSelf() - body() ).degree() );
+        M_kick_rate
+            = kick_rate( ball.distFromSelf(),
+                         ( ball.angleFromSelf() - body() ).degree(),
+                         playerType().kickPowerRate(), //ServerParam::i().kickPowerRate(),
+                         ServerParam::i().ballSize(),
+                         playerType().playerSize(),
+                         playerType().kickableMargin() );
     }
 
-    //
-    // catch probability
-    //
-    if ( M_last_catch_time.cycle() + SP.catchBanCycle() <= M_time.cycle() )
+    const Vector2D player2ball = ( ball.pos() - pos() ).rotatedVector( - body() );
+    //------------------------------------------------------
+    // check catch
+    M_catch_probability = playerType().getCatchProbability( player2ball.r() );
+
+    //------------------------------------------------------
+    // check tackle
+
+    double tackle_dist;
+    if ( player2ball.x > 0.0 )
     {
-        M_catch_probability = playerType().getCatchProbability( pos(), body(), ball.pos(), 0.055, 0.5 );
-        //M_catch_probability = playerType().getCatchProbability( ball.distFromSelf() );
-        // if ( ball.distFromSelf() > ptype.reliableCatchableDist() - 0.055 )
-        // {
-        //     M_catch_probability *= 0.95; // XXX magic number
-        // }
+        tackle_dist = ServerParam::i().tackleDist();
     }
-
-    //
-    // tackle/foul probability
-    //
+    else
     {
-        const Vector2D player2ball = ( ball.pos() - pos() ).rotatedVector( - body() );
-
-        double tackle_dist = ( player2ball.x > 0.0
-                               ? ServerParam::i().tackleDist()
-                               : ServerParam::i().tackleBackDist() );
-
-        double tackle_fail_prob = 1.0;
-        double foul_fail_prob = 1.0;
-        if ( tackle_dist > 1.0e-5 )
-        {
-            tackle_fail_prob = ( std::pow( player2ball.absX() / tackle_dist,
-                                           ServerParam::i().tackleExponent() )
-                                 + std::pow( player2ball.absY() / ServerParam::i().tackleWidth(),
-                                             ServerParam::i().tackleExponent() ) );
-            foul_fail_prob = ( std::pow( player2ball.absX() / tackle_dist,
-                                         ServerParam::i().foulExponent() )
-                               + std::pow( player2ball.absY() / ServerParam::i().tackleWidth(),
-                                           ServerParam::i().foulExponent() ) );
-        }
-
-        if ( tackle_fail_prob < 1.0 )
-        {
-            // success_prob = 1.0 - fail_prob
-            // r = random(); <- [0,1]
-            // if (r <= success_prob) SUCCESS;
-            // else FAILURE;
-            M_tackle_probability = 1.0 - tackle_fail_prob;
-        }
-
-        if ( foul_fail_prob < 1.0 )
-        {
-            M_foul_probability = 1.0 - foul_fail_prob;
-        }
-
-        dlog.addText( Logger::WORLD,
-                      __FILE__" (updateBallInfo) kickable=%.3f ball_dist=%.3f rpos=(%.3f, %3f)",
-                      playerType().kickableArea(),
-                      ball.distFromSelf(),
-                      player2ball.x, player2ball.y );
-        dlog.addText( Logger::WORLD,
-                      __FILE__" (updateBallInfo) kick_power_rate=%f kick_rate=%f",
-                      playerType().kickPowerRate(), M_kick_rate );
-        dlog.addText( Logger::WORLD,
-                      __FILE__" (updateBallInfo) tackle_prob=%.3f foul_prob=%.3f",
-                      M_tackle_probability, M_foul_probability );
+        tackle_dist = ServerParam::i().tackleBackDist();
     }
+
+    double tackle_fail_prob = 1.0;
+    double foul_fail_prob = 1.0;
+    if ( tackle_dist > 1.0e-5 )
+    {
+        tackle_fail_prob = ( std::pow( player2ball.absX() / tackle_dist,
+                                       ServerParam::i().tackleExponent() )
+                             + std::pow( player2ball.absY() / ServerParam::i().tackleWidth(),
+                                         ServerParam::i().tackleExponent() ) );
+        foul_fail_prob = ( std::pow( player2ball.absX() / tackle_dist,
+                                     ServerParam::i().foulExponent() )
+                           + std::pow( player2ball.absY() / ServerParam::i().tackleWidth(),
+                                       ServerParam::i().foulExponent() ) );
+    }
+
+    if ( tackle_fail_prob < 1.0 )
+    {
+        // success_prob = 1.0 - fail_prob
+        // r = random(); <- [0,1]
+        // if (r <= success_prob) SUCCESS;
+        // else FAILURE;
+        M_tackle_probability = 1.0 - tackle_fail_prob;
+    }
+
+    if ( foul_fail_prob < 1.0 )
+    {
+        M_foul_probability = 1.0 - foul_fail_prob;
+    }
+
+    //#ifdef DEBUG_PRINT
+    dlog.addText( Logger::WORLD,
+                  __FILE__" (updateBallInfo) kickable=%.3f ball_dist=%.3f rpos=(%.3f, %3f)",
+                  playerType().kickableArea(),
+                  ball.distFromSelf(),
+                  player2ball.x, player2ball.y );
+    dlog.addText( Logger::WORLD,
+                  __FILE__" (updateBallInfo) kick_power_rate=%f kick_rate=%f",
+                  playerType().kickPowerRate(), M_kick_rate );
+    dlog.addText( Logger::WORLD,
+                  __FILE__" (updateBallInfo) tackle_prob=%.3f foul_prob=%.3f",
+                  M_tackle_probability, M_foul_probability );
+    //#endif
 }
 
 /*-------------------------------------------------------------------*/

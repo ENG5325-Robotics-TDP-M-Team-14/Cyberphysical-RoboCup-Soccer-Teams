@@ -35,10 +35,10 @@
 namespace rcsc {
 
 //! max player number in one team
-constexpr int MAX_PLAYER = 11;
+const int MAX_PLAYER = 11;
 
 //! uniform number that represents the unknown player
-constexpr int Unum_Unknown = -1;
+const int Unum_Unknown = -1;
 
 /*!
   \enum SideID
@@ -49,28 +49,6 @@ enum SideID {
     NEUTRAL = 0,
     RIGHT = -1,
 };
-
-/*!
-  \breif get side information character
-  \return 'l', 'r' or 'n'
- */
-inline
-char
-side_char( SideID s )
-{
-    return ( s == LEFT ? 'l' : s == RIGHT ? 'r' : 'n' );
-}
-
-/*!
-  \breif get side information string
-  \return "left", "right" or "neutral"
- */
-inline
-const char *
-side_str( SideID s )
-{
-    return ( s == LEFT ? "left" : s == RIGHT ? "right" : "neutral" );
-}
 
 /*!
   \enum MarkerID
@@ -119,9 +97,9 @@ enum LineID {
 };
 
 //! Id of the unknown player type
-constexpr int Hetero_Unknown = -1;
+const int Hetero_Unknown = -1;
 //! Id of the default player type
-constexpr int Hetero_Default = 0;
+const int Hetero_Default = 0;
 
 /*!
   \enum PlayMode
@@ -179,9 +157,9 @@ enum PlayMode {
     PM_PenaltyMiss_Right,
     PM_PenaltyScore_Left,
     PM_PenaltyScore_Right,
-    PM_Illegal_Defense_Left, // after rcssserver-16.0.0
-    PM_Illegal_Defense_Right,
-    PM_MAX
+    PM_MAX,
+    PM_IllegalDefense_Left,
+    PM_IllegalDefense_Right,
 };
 
 //! playmode string table defined in rcssserver.
@@ -235,8 +213,9 @@ enum PlayMode {
       "penalty_miss_r", \
       "penalty_score_l", \
       "penalty_score_r", \
-      "illegal_defense_l", \
       "illegal_defense_r", \
+      "illegal_defense_l", \
+      "", \
       "", \
       "" \
 }

@@ -64,12 +64,12 @@ public:
       \brief create an identity matrix
     */
     Matrix2D()
-        : M_11( 1.0 ),
-          M_12( 0.0 ),
-          M_21( 0.0 ),
-          M_22( 1.0 ),
-          M_dx( 0.0 ),
-          M_dy( 0.0 )
+        : M_11( 1.0 )
+        , M_12( 0.0 )
+        , M_21( 0.0 )
+        , M_22( 1.0 )
+        , M_dx( 0.0 )
+        , M_dy( 0.0 )
       { }
 
     /*!
@@ -81,19 +81,20 @@ public:
       \param dx the horizontal translation factor.
       \param dy the vertical translation factor.
     */
-    Matrix2D( const double m11, const double m12,
-              const double m21, const double m22,
-              const double dx, const double dy )
-        : M_11( m11 ), M_12( m12 ),
-          M_21( m21 ), M_22( m22 ),
-          M_dx( dx ),  M_dy( dy )
+    Matrix2D( const double & m11, const double & m12,
+              const double & m21, const double & m22,
+              const double & dx, const double & dy )
+        : M_11( m11 ), M_12( m12 )
+        , M_21( m21 ), M_22( m22 )
+        , M_dx( dx ),  M_dy( dy )
       { }
 
     /*!
       \brief reset to the identity matrix
       \return const reference to itself
      */
-    const Matrix2D & reset()
+    const
+    Matrix2D & reset()
       {
           M_11 = M_22 = 1.0;
           M_12 = M_21 = M_dx = M_dy = 0.0;
@@ -110,9 +111,10 @@ public:
       \param dy the vertical translation factor.
       \return const reference to itself
     */
-    const Matrix2D & assign( const double m11, const double m12,
-                             const double m21, const double m22,
-                             const double dx, const double dy )
+    const
+    Matrix2D & assign( const double & m11, const double & m12,
+                       const double & m21, const double & m22,
+                       const double & dx, const double & dy )
       {
           M_11 = m11; M_12 = m12;
           M_21 = m21; M_22 = m22;
@@ -127,8 +129,8 @@ public:
       \return new matrix object
      */
     static
-    Matrix2D make_translation( const double dx,
-                               const double dy )
+    Matrix2D make_translation( const double & dx,
+                               const double & dy )
       {
           return Matrix2D( 1.0, 0.0,
                            0.0, 1.0,
@@ -142,8 +144,8 @@ public:
       \return new matrix object
      */
     static
-    Matrix2D make_scaling( const double sx,
-                           const double sy )
+    Matrix2D make_scaling( const double & sx,
+                           const double & sy )
       {
           return Matrix2D( sx, 0.0,
                            0.0, sy,
@@ -169,7 +171,8 @@ public:
       \brief get the horizontal scaling factor.
       \return the horizontal scaling factor value.
     */
-    double m11() const
+    const
+    double & m11() const
       {
           return M_11;
       }
@@ -178,7 +181,8 @@ public:
       \brief get the vertical shearing factor.
       \return the vertical shearing factor value.
     */
-    double m12() const
+    const
+    double & m12() const
       {
           return M_12;
       }
@@ -187,7 +191,8 @@ public:
       \brief get the horizontal shearing factor.
       \return  the horizontal shearing factor value.
     */
-    double m21() const
+    const
+    double & m21() const
       {
           return M_21;
       }
@@ -196,7 +201,8 @@ public:
       \brief get the vertical scaling factor.
       \return the vertical scaling factor value.
     */
-    double m22() const
+    const
+    double & m22() const
       {
           return M_22;
       }
@@ -205,7 +211,8 @@ public:
       \brief get the horizontal translation factor.
       \return the horizontal translation factor value.
     */
-    double dx() const
+    const
+    double & dx() const
       {
           return M_dx;
       }
@@ -214,7 +221,8 @@ public:
       \brief get the vertical translation factor.
       \return the vertical translation factor value.
     */
-    double dy() const
+    const
+    double & dy() const
       {
           return M_dy;
       }
@@ -252,8 +260,8 @@ public:
       same as:
         this = make_translation(dx,dy) * this
      */
-    Matrix2D & translate( const double dx,
-                          const double dy )
+    Matrix2D & translate( const double & dx,
+                          const double & dy )
       {
           // translation matrix
           // T = ( 1, 0, dx )
@@ -283,8 +291,8 @@ public:
       same as:
         this = make_scaling(sx,sy) * this
      */
-    Matrix2D & scale( const double sx,
-                      const double sy )
+    Matrix2D & scale( const double & sx,
+                      const double & sy )
       {
           // scaling matrixa
           // S = ( Sx,  0, 0 )
@@ -307,8 +315,8 @@ public:
       }
 
     /*
-    Matrix2D & shear( const double sh,
-                      const double sv )
+    Matrix2D & shear( const double & sh,
+                      const double & sv )
       {
           double tm11 = sv * M_21;
           double tm12 = sv * M_22;
@@ -335,7 +343,8 @@ public:
       \param m left hand side matrix
       \return const reference to itself
      */
-    const Matrix2D & operator*=( const Matrix2D & m )
+    const
+    Matrix2D & operator*=( const Matrix2D & m )
       {
           double tm11 = M_11*m.M_11 + M_12*m.M_21;
           double tm12 = M_11*m.M_12 + M_12*m.M_22;
@@ -368,8 +377,8 @@ public:
       \param y input y-coordinates value
       \return mapped vector object
      */
-    Vector2D transform( const double x,
-                        const double y ) const
+    Vector2D transform( const double & x,
+                        const double & y ) const
       {
           return Vector2D( M_11*x + M_12*y + M_dx,
                            M_21*x + M_22*y + M_dy );

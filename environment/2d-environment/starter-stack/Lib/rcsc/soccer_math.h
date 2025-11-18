@@ -37,7 +37,7 @@
 namespace rcsc {
 
 //! epsilon value
-constexpr double SERVER_EPS = 1.0e-10;
+const double SERVER_EPS = 1.0e-10;
 
 ///////////////////////////////////////////////////////////////////////
 // kick command related

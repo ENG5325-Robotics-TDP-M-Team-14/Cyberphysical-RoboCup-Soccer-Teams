@@ -61,11 +61,6 @@ get_version( std::istream & is )
         return -1;
     }
 
-    if ( header[0] == '[' )
-    {
-        return rcsc::rcg::REC_VERSION_JSON;
-    }
-
     if ( header[0] == 'U'
          && header[1] == 'L'
          && header[2] == 'G' )
@@ -137,10 +132,7 @@ main( int argc, char ** argv )
 
         fin.close();
 
-        std::string verstr = std::to_string( ver );
-        if ( ver == -1 ) verstr = "json";
-
-        std::cout << "file=" << argv[i] << ", version=" << verstr
+        std::cout << "file=" << argv[i] << ", version=" << ver
                   << std::endl;
     }
 

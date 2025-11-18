@@ -44,60 +44,27 @@
 #include <algorithm>
 #include <limits>
 
-namespace {
-
-const double X_NORM_FACTOR = 57.5; //!< x normalize factor (field length) to limit inputed x
-const double Y_NORM_FACTOR = 39.0; //!< y normalze factor (field width) to limit inputed y
-const double SPEED_NORM_FACTOR = 3.0; //!< speed normalize factor to limit inputed speed range
-
-const double COORD_STEP_L2 = 0.1; //!< used by encodeCoordToStr2/decodeStr2ToCoord
-const double SPEED_STEP_L1 = 0.1; //!< used by encodeSpeedToChar/decodeCharToSpeed
-
-
-/*!
-  \brief bit mask enumeration
-*/
-enum {
-    MASK_1 = 0x00000001,
-    MASK_2 = 0x00000003,
-    MASK_3 = 0x00000007,
-    MASK_4 = 0x0000000F,
-    MASK_5 = 0x0000001F,
-    MASK_6 = 0x0000003F,
-    MASK_7 = 0x0000007F,
-    MASK_8 = 0x000000FF,
-    MASK_9 = 0x000001FF,
-    MASK_10 = 0x000003FF,
-    MASK_11 = 0x000007FF,
-    MASK_12 = 0x00000FFF,
-    MASK_13 = 0x00001FFF,
-    MASK_14 = 0x00003FFF,
-    MASK_15 = 0x00007FFF,
-    MASK_16 = 0x0000FFFF,
-    MASK_17 = 0x0001FFFF,
-    MASK_18 = 0x0003FFFF,
-    MASK_19 = 0x0007FFFF,
-    MASK_20 = 0x000FFFFF,
-    MASK_21 = 0x001FFFFF,
-    MASK_22 = 0x003FFFFF,
-    MASK_23 = 0x007FFFFF,
-    MASK_24 = 0x00FFFFFF,
-    MASK_25 = 0x01FFFFFF,
-    MASK_26 = 0x03FFFFFF,
-    MASK_27 = 0x07FFFFFF,
-    MASK_28 = 0x0FFFFFFF,
-    MASK_29 = 0x1FFFFFFF,
-    MASK_30 = 0x3FFFFFFF,
-    MASK_31 = 0x7FFFFFFF,
-    MASK_32 = 0xFFFFFFFF,
-};
-
-}
-
-
 namespace rcsc {
 
 const double AudioCodec::ERROR_VALUE = std::numeric_limits< double >::max();
+
+const double AudioCodec::X_NORM_FACTOR = 57.5;
+const double AudioCodec::Y_NORM_FACTOR = 39.0;
+const double AudioCodec::SPEED_NORM_FACTOR = 3.0;
+
+const double AudioCodec::COORD_STEP_L2 = 0.1;
+const double AudioCodec::SPEED_STEP_L1 = 0.1;
+
+
+//[-0-9a-zA-Z ().+*/?<>_]
+const std::string AudioCodec::CHAR_SET =
+"0123456789"
+"abcdefghijklmnopqrstuvwxyz"
+"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+" ().+-*/?<>_";
+
+const int AudioCodec::CHAR_SIZE = static_cast< int >( CHAR_SET.length() );
+
 
 /*-------------------------------------------------------------------*/
 /*!
@@ -105,19 +72,13 @@ const double AudioCodec::ERROR_VALUE = std::numeric_limits< double >::max();
 */
 AudioCodec::AudioCodec()
 {
-    createMap( 0 );
-}
+    // create int <-> char map
 
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-AudioCodec &
-AudioCodec::instance()
-{
-    static AudioCodec s_instance;
-
-    return s_instance;
+    for ( int i = 0; i < CHAR_SIZE; ++i )
+    {
+        M_char_to_int_map.insert( std::make_pair( CHAR_SET[i], i ) );
+        M_int_to_char_map.push_back( CHAR_SET[i] );
+    }
 }
 
 /*-------------------------------------------------------------------*/
@@ -128,38 +89,9 @@ const
 AudioCodec &
 AudioCodec::i()
 {
-    return instance();
-}
+    static AudioCodec s_instance;
 
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-void
-AudioCodec::createMap( const int shift )
-{
-    //[-0-9a-zA-Z ().+*/?<>_]
-    M_char_set =
-        "abcdefghijklmnopqrstuvwxyz"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        " ().+-*/?<>_"
-        "0123456789";
-
-    const int char_size = static_cast< int >( M_char_set.size() );
-    M_int_to_char_map.resize( char_size, '0' );
-
-    int shift_val = shift;
-    if ( shift_val < 0 ) shift_val = -shift_val;
-
-    for ( int i = 0; i < char_size; ++i )
-    {
-        int ch_i = ( i + shift_val ) % char_size;
-        char ch = M_char_set[ch_i];
-
-        //M_char_to_int_map.insert( std::make_pair( M_char_set[ch_i], i ) );
-        M_char_to_int_map[ ch ] = i;
-        M_int_to_char_map[i] = ch;
-    }
+    return s_instance;
 }
 
 /*-------------------------------------------------------------------*/
@@ -167,24 +99,22 @@ AudioCodec::createMap( const int shift )
 
 */
 bool
-AudioCodec::encodeInt64ToStr( const std::int64_t & ival,
+AudioCodec::encodeInt64ToStr( const boost::int64_t & ival,
                               const int len,
                               std::string & to ) const
 {
     std::vector< int > remainder_values;
     remainder_values.reserve( len );
 
-    std::int64_t divided = ival;
-
-    const int char_size = static_cast< int >( M_char_set.size() );
+    boost::int64_t divided = ival;
 
     for ( int i = 0; i < len - 1; ++i )
     {
-        remainder_values.push_back( divided % char_size );
-        divided /= char_size;
+        remainder_values.push_back( divided % CHAR_SIZE );
+        divided /= CHAR_SIZE;
     }
 
-    if ( divided >= char_size )
+    if ( divided >= CHAR_SIZE )
     {
         std::cerr << __FILE__ << ':' << __LINE__
                   << " ***ERROR*** AudioCodec::encodeInt64ToStr."
@@ -197,7 +127,8 @@ AudioCodec::encodeInt64ToStr( const std::int64_t & ival,
 
     try
     {
-        for ( std::vector< int >::reverse_iterator it = remainder_values.rbegin(), end = remainder_values.rend();
+        const std::vector< int >::reverse_iterator end = remainder_values.rend();
+        for ( std::vector< int >::reverse_iterator it = remainder_values.rbegin();
               it != end;
               ++it )
         {
@@ -222,19 +153,18 @@ AudioCodec::encodeInt64ToStr( const std::int64_t & ival,
 */
 bool
 AudioCodec::decodeStrToInt64( const std::string & from,
-                              std::int64_t * to ) const
+                              boost::int64_t * to ) const
 {
     if ( from.empty() )
     {
         return false;
     }
 
-    std::int64_t rval = 0;
+    boost::int64_t rval = 0;
     int digit_count = from.length() - 1;
 
-    const int char_size = static_cast< int >( M_char_set.length() );
-
-    for ( std::string::const_iterator ch = from.begin(), end = from.end();
+    const std::string::const_iterator end = from.end();
+    for ( std::string::const_iterator ch = from.begin();
           ch != end;
           ++ch, --digit_count )
     {
@@ -250,9 +180,9 @@ AudioCodec::decodeStrToInt64( const std::string & from,
         }
 
         rval
-            += static_cast< std::int64_t >( it->second )
-            * static_cast< std::int64_t >
-            ( std::pow( static_cast< double >( char_size ), digit_count ) );
+            += static_cast< boost::int64_t >( it->second )
+            * static_cast< boost::int64_t >
+            ( std::pow( static_cast< double >( CHAR_SIZE ), digit_count ) );
     }
 
     if ( to )
@@ -278,11 +208,9 @@ AudioCodec::encodePercentageToChar( const double & value ) const
         return '\0';
     }
 
-    const int char_size = static_cast< int >( M_char_set.length() );
-
-    int ival = static_cast< int >( rint( value * ( char_size - 1 ) ) * 10000.0 );
+    int ival = static_cast< int >( rint( value * ( CHAR_SIZE - 1 ) ) * 10000.0 );
     ival /= 10000;
-    if ( ival >= char_size )
+    if ( ival >= CHAR_SIZE )
     {
         std::cerr << __FILE__ << ':' << __LINE__
                   << " ***ERROR*** generated illegal index = "
@@ -321,27 +249,25 @@ AudioCodec::decodeCharToPercentage( const char ch ) const
         return ERROR_VALUE;
     }
 
-    const int char_size = static_cast< int >( M_char_set.length() );
-
     return ( static_cast< double >( it->second )
-             / static_cast< double >( char_size - 1 ) );
+             / static_cast< double >( CHAR_SIZE - 1) );
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
 */
-std::int32_t
+boost::int32_t
 AudioCodec::posToBit18( const Vector2D & pos ) const
 {
-    std::int32_t rval = 0;
+    boost::int32_t rval = 0;
 
     // pos.x value -> 9 bits (=[0,511])
     {
         double x = min_max( -52.0, pos.x, 52.0 );
         x += 52.0;
         x *= ( 511.0 / 104.0 ); // x /= (104.0/511.0);
-        rval |= static_cast< std::int32_t >( rint( x ) );
+        rval |= static_cast< boost::int32_t >( rint( x ) );
     }
 
     rval <<= 9; // 9 bits shift for next info
@@ -351,7 +277,7 @@ AudioCodec::posToBit18( const Vector2D & pos ) const
         double y = min_max( -34.0, pos.y, 34.0 );
         y += 34.0;
         y *= ( 511.0 / 68.0 ); // y /= (68.0/511.0);
-        rval |= static_cast< std::int32_t >( rint( y ) );
+        rval |= static_cast< boost::int32_t >( rint( y ) );
     }
 
     return rval;
@@ -362,18 +288,18 @@ AudioCodec::posToBit18( const Vector2D & pos ) const
 
 */
 void
-AudioCodec::bit18ToPos( const std::int32_t & val,
+AudioCodec::bit18ToPos( const boost::int32_t & val,
                         Vector2D * pos ) const
 {
     // pos.x
     {
-        std::int32_t ix = ( val >> 9 ) & MASK_9;
+        boost::int32_t ix = ( val >> 9 ) & MASK_9;
         pos->x = ix * ( 104.0 / 511.0 ) - 52.0;
     }
 
     // pos.y
     {
-        std::int32_t iy = val & MASK_9;
+        boost::int32_t iy = val & MASK_9;
         pos->y = iy * ( 68.0 / 511.0 ) - 34.0;
     }
 }
@@ -383,17 +309,17 @@ AudioCodec::bit18ToPos( const std::int32_t & val,
 /*!
 
 */
-std::int32_t
+boost::int32_t
 AudioCodec::posToBit19( const Vector2D & pos ) const
 {
-    std::int32_t rval = 0;
+    boost::int32_t rval = 0;
 
     // pos.x value -> 10 bits (=[0,1023])
     {
         double x = min_max( -52.5, pos.x, 52.5 );
         x += 52.5;
         x *= ( 1023.0 / 105.0 ); // x /= (105.0/1023.0);
-        rval |= static_cast< std::int32_t >( rint( x ) );
+        rval |= static_cast< boost::int32_t >( rint( x ) );
     }
 
     rval <<= 9; // 9 bits shift for next info
@@ -403,7 +329,7 @@ AudioCodec::posToBit19( const Vector2D & pos ) const
         double y = min_max( -34.0, pos.y, 34.0 );
         y += 34.0;
         y *= ( 511.0 / 68.0 ); // y /= (68.0/511.0);
-        rval |= static_cast< std::int32_t >( rint( y ) );
+        rval |= static_cast< boost::int32_t >( rint( y ) );
     }
 
     return rval;
@@ -414,18 +340,18 @@ AudioCodec::posToBit19( const Vector2D & pos ) const
 
 */
 void
-AudioCodec::bit19ToPos( const std::int32_t & val,
+AudioCodec::bit19ToPos( const boost::int32_t & val,
                         Vector2D * pos ) const
 {
     // pos.x
     {
-        std::int32_t ix = ( val >> 9 ) & MASK_10;
+        boost::int32_t ix = ( val >> 9 ) & MASK_10;
         pos->x = ix * ( 105.0 / 1023.0 ) - 52.5;
     }
 
     // pos.y
     {
-        std::int32_t iy = val & MASK_9;
+        boost::int32_t iy = val & MASK_9;
         pos->y = iy * ( 68.0 / 511.0 ) - 34.0;
     }
 }
@@ -434,52 +360,39 @@ AudioCodec::bit19ToPos( const std::int32_t & val,
 /*!
 
 */
-std::int32_t
+boost::int32_t
 AudioCodec::posVelToBit31( const Vector2D & pos,
                            const Vector2D & vel ) const
 {
     const double max_speed = ServerParam::i().ballSpeedMax();
 
-    std::int32_t rval = posToBit19( pos );
+    boost::int32_t rval = posToBit19( pos );
 
-#if 1
-    {
-        rval <<= 1;
-        if ( vel.x < 0.0 ) rval |= 1;
-        rval <<= 5;
-        double vx = std::min( vel.absX(), max_speed );
-        vx *= ( 31.0 / max_speed );
-        rval |= static_cast< std::int32_t >( rint( vx ) );
-    }
-    {
-        rval <<= 1;
-        if ( vel.y < 0.0 ) rval |= 1;
-        rval <<= 5;
-        double vy = std::min( vel.absY(), max_speed );
-        vy *= ( 31.0 / max_speed );
-        rval |= static_cast< std::int32_t >( rint( vy ) );
-    }
-#else
     rval <<= 6; // 6 bits shift for next info
 
     // vel.x value -> 6 bits (=[0,63])
     {
+        //double vx = min_max( -2.7, vel.x, 2.7 );
+        //vx += 2.7;
+        //vx *= ( 63.0 / 5.4 ); // vx /= (5.4/63.0);
         double vx = min_max( -max_speed, vel.x, max_speed );
         vx += max_speed;
         vx *= ( 63.0 / ( max_speed*2.0 ) );
-        rval |= static_cast< std::int32_t >( rint( vx ) );
+        rval |= static_cast< boost::int32_t >( rint( vx ) );
     }
 
     rval <<= 6; // 6 bits shift for next info
 
     // vel.y value -> 6 bits (=[0,63])
     {
+        //double vy = min_max( -2.7, vel.y, 2.7 );
+        //vy += 2.7;
+        //vy *= ( 63.0 / 5.4 ); // vy /= (5.4/63.0);
         double vy = min_max( -max_speed, vel.y, max_speed );
         vy += max_speed;
         vy *= ( 63.0 / ( max_speed*2.0 ) );
-        rval |= static_cast< std::int32_t >( rint( vy ) );
+        rval |= static_cast< boost::int32_t >( rint( vy ) );
     }
-#endif
 
     return rval;
 }
@@ -489,7 +402,7 @@ AudioCodec::posVelToBit31( const Vector2D & pos,
 
 */
 void
-AudioCodec::bit31ToPosVel( const std::int32_t & val,
+AudioCodec::bit31ToPosVel( const boost::int32_t & val,
                            Vector2D * pos,
                            Vector2D * vel ) const
 {
@@ -497,36 +410,17 @@ AudioCodec::bit31ToPosVel( const std::int32_t & val,
 
     bit19ToPos( val >> 12, pos );
 
-#if 1
-    {
-        std::int32_t ivx = ( val >> 6 ) & MASK_5;
-        vel->x = ivx * ( max_speed / 31.0 );
-        if ( ( val >> 11 ) & MASK_1 )
-        {
-            vel->x *= -1.0;
-        }
-    }
-    {
-        std::int32_t ivy = val & MASK_5;
-        vel->y = ivy * ( max_speed / 31.0 );
-        if ( ( val >> 5 ) & MASK_1 )
-        {
-            vel->y *= -1.0;
-        }
-    }
-#else
     // vel.x
     {
-        std::int32_t ivx = ( val >> 6 ) & MASK_6;
+        boost::int32_t ivx = ( val >> 6 ) & MASK_6;
         vel->x = ivx * ( ( max_speed*2.0 ) / 63.0 ) - max_speed;
     }
 
     // vel.y
     {
-        std::int32_t ivy = val & MASK_6;
+        boost::int32_t ivy = val & MASK_6;
         vel->y = ivy * ( ( max_speed*2.0 ) / 63.0 ) - max_speed;
     }
-#endif
 }
 
 /*-------------------------------------------------------------------*/
@@ -538,7 +432,7 @@ AudioCodec::encodePosVelToStr5( const Vector2D & pos,
                                 const Vector2D & vel,
                                 std::string & to ) const
 {
-    std::int64_t ival = posVelToBit31( pos, vel );
+    boost::int64_t ival = posVelToBit31( pos, vel );
 
     //std::cout << " ival dec = "<< std::dec << ival << std::endl;
     //std::cout << " ival hex = "<< std::hex << ival << std::endl;
@@ -560,14 +454,14 @@ AudioCodec::decodeStr5ToPosVel( const std::string & from,
         return false;
     }
 
-    std::int64_t read_val = 0;
+    boost::int64_t read_val = 0;
 
     if ( ! decodeStrToInt64( from, &read_val ) )
     {
         return false;
     }
 
-    bit31ToPosVel( static_cast< std::int32_t >( read_val ),
+    bit31ToPosVel( static_cast< boost::int32_t >( read_val ),
                    pos, vel );
 
     return true;
@@ -581,9 +475,9 @@ bool
 AudioCodec::encodePosToStr3( const Vector2D & pos,
                              std::string & to ) const
 {
-    std::int32_t ival = posToBit18( pos );
+    boost::int32_t ival = posToBit18( pos );
 
-    return encodeInt64ToStr( static_cast< std::int64_t >( ival ),
+    return encodeInt64ToStr( static_cast< boost::int64_t >( ival ),
                              3, to );
 }
 
@@ -600,7 +494,7 @@ AudioCodec::decodeStr3ToPos( const std::string & from,
         return false;
     }
 
-    std::int64_t read_val = 0;
+    boost::int64_t read_val = 0;
 
     if ( ! decodeStrToInt64( from, &read_val ) )
     {
@@ -609,7 +503,7 @@ AudioCodec::decodeStr3ToPos( const std::string & from,
 
     if ( pos )
     {
-        bit18ToPos( static_cast< std::int32_t >( read_val ), pos );
+        bit18ToPos( static_cast< boost::int32_t >( read_val ), pos );
     }
 
     return true;
@@ -629,10 +523,10 @@ AudioCodec::encodeUnumPosToStr4( const int unum,
         return false;
     }
 
-    std::int64_t ival = posToBit19( pos );
+    boost::int64_t ival = posToBit19( pos );
 
     ival <<= 4;
-    ival |= static_cast< std::int64_t >( unum ); // 4 bits
+    ival |= static_cast< boost::int64_t >( unum ); // 4 bits
 
     return encodeInt64ToStr( ival, 4, to );
 }
@@ -651,14 +545,14 @@ AudioCodec::decodeStr4ToUnumPos( const std::string & from,
         return false;
     }
 
-    std::int64_t read_val = 0;
+    boost::int64_t read_val = 0;
 
     if ( ! decodeStrToInt64( from, &read_val ) )
     {
         return false;
     }
 
-    std::int32_t read_val32 = static_cast< std::int32_t >( read_val );
+    boost::int32_t read_val32 = static_cast< boost::int32_t >( read_val );
 
     if ( unum )
     {
@@ -681,8 +575,6 @@ std::string
 AudioCodec::encodeCoordToStr2( const double & xy,
                                const double & norm_factor ) const
 {
-    const int char_size = static_cast< int >( M_char_set.length() );
-
     // normalize value
     double tmp = min_max( -norm_factor, xy , norm_factor );
     tmp += norm_factor;
@@ -692,12 +584,12 @@ AudioCodec::encodeCoordToStr2( const double & xy,
 
     int ival = static_cast< int >( rint( tmp ) );
 
-    int i1 = ival % char_size;
-    ival /= char_size;
-    int i2 = ival % char_size;
+    int i1 = ival % CHAR_SIZE;
+    ival /= CHAR_SIZE;
+    int i2 = ival % CHAR_SIZE;
     //std::cout << " posx -> " << ix1 << " " << ix2 << std::endl;
 
-    if ( ival >= char_size )
+    if ( ival >= CHAR_SIZE )
     {
         std::cerr << __FILE__ << ": " << __LINE__
                   << " ***ERROR*** AudioCodec::encodeCoordToStr2."
@@ -760,11 +652,9 @@ AudioCodec::decodeStr2ToCoord( const char ch1,
     }
     int i2 = it->second;
 
-    const int char_size = static_cast< int >( M_char_set.length() );
-
     return
         (
-         static_cast< double >( i1 + i2 * char_size ) * COORD_STEP_L2
+         static_cast< double >( i1 + i2 * CHAR_SIZE ) * COORD_STEP_L2
          - norm_factor
          );
 }

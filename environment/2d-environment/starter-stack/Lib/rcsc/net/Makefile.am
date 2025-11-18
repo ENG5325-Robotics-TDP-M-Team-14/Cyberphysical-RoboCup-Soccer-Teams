@@ -1,11 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
-noinst_LTLIBRARIES = librcsc_net.la
-#lib_LTLIBRARIES = librcsc_net.la
+lib_LTLIBRARIES = librcsc_net.la
 
 librcsc_net_la_SOURCES = \
-	abstract_socket.cpp \
-	host_address.cpp \
+	basic_socket.cpp \
 	udp_socket.cpp \
 	tcp_socket.cpp
 
@@ -13,8 +11,7 @@ librcsc_netincludedir = $(includedir)/rcsc/net
 
 ##pkginclude_HEADERS
 librcsc_netinclude_HEADERS = \
-	abstract_socket.h \
-	host_address.h \
+	basic_socket.h \
 	udp_socket.h \
 	tcp_socket.h
 

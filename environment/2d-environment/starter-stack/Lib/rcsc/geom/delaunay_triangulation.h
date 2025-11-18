@@ -35,10 +35,11 @@
 #include <rcsc/geom/rect_2d.h>
 #include <rcsc/geom/vector_2d.h>
 
+#include <boost/array.hpp>
+
 #include <algorithm>
-#include <unordered_map>
+#include <map>
 #include <vector>
-#include <array>
 
 namespace rcsc {
 
@@ -115,8 +116,8 @@ public:
           \param y y-coordinates of kernel point
          */
         Vertex( const int id,
-                const double x,
-                const double y )
+                const double & x,
+                const double & y )
             : M_id( id )
             , M_pos( x, y )
           { }
@@ -141,8 +142,8 @@ public:
           \param y y-coordinates of kernel point
          */
         Vertex & assign( const int id,
-                         const double x,
-                         const double y )
+                         const double & x,
+                         const double & y )
           {
               M_id = id;
               M_pos.assign( x, y );
@@ -203,7 +204,7 @@ public:
               //          << std::endl;
               M_vertices[0] = v0;
               M_vertices[1] = v1;
-              std::fill_n( M_triangles, 2, nullptr );
+              std::fill_n( M_triangles, 2, static_cast< Triangle * >( 0 ) );
           }
 
         /*!
@@ -224,14 +225,14 @@ public:
                   //std::cout << "Edge::removeTriangle() edge_id_" << M_id
                   //          << " remove tri_0 " << tri->id() << " "
                   //          << tri << std::endl;
-                  M_triangles[0] = nullptr;
+                  M_triangles[0] = static_cast< Triangle * >( 0 );
               }
               if ( M_triangles[1] == tri )
               {
                   //std::cout << "Edge::removeTriangle() edge_id_" << M_id
                   //          << " remove tri_1 " << tri->id() << " "
                   //          << tri << std::endl;
-                  M_triangles[1] = nullptr;
+                  M_triangles[1] = static_cast< Triangle * >( 0 );
               }
           }
 
@@ -317,9 +318,9 @@ public:
         int M_id; //!< Id number of this triangle
 
         //! vertices of this triangle, but these are pointers to the vertex instance
-        std::array< const Vertex *, 3 > M_vertices;
+        boost::array< const Vertex *, 3 > M_vertices;
         //! edges of this triangle, but these are pointers to the vertex instance
-        std::array< EdgePtr, 3 > M_edges;
+        boost::array< EdgePtr, 3 > M_edges;
 
         Vector2D M_circumcenter; //!< coordinates of the circumcenter.
         double M_circumradius; //!< radius of the circumcircle.
@@ -327,7 +328,7 @@ public:
         Vector2D M_voronoi_vertex; //!< candidate of the voronoi vertex
 
         // not used
-        Triangle() = delete;
+        Triangle();
     public:
 
         /*!
@@ -403,7 +404,8 @@ public:
           \brief get the radius of the circumcircle of this triangle
           \return radius value
          */
-        double circumradius() const
+        const
+        double & circumradius() const
           {
               return M_circumradius;
           }
@@ -469,7 +471,7 @@ public:
                       return M_vertices[i];
                   }
               }
-              return nullptr;
+              return static_cast< const Vertex * >( 0 );
           }
 
         /*!
@@ -501,7 +503,7 @@ public:
                       return M_edges[i];
                   }
               }
-              return nullptr;
+              return static_cast< Edge * >( 0 );
           }
 
         /*!
@@ -518,7 +520,7 @@ public:
                       return M_edges[i];
                   }
               }
-              return nullptr;
+              return static_cast< Edge * >( 0 );
           }
 
     };
@@ -526,8 +528,8 @@ public:
     ////////////////////////////////////////////////////////////////
 
     typedef std::vector< Vertex > VertexCont; //!< vertex container type
-    typedef std::unordered_map< int, EdgePtr > EdgeCont; //!< edge pointer container type
-    typedef std::unordered_map< int, TrianglePtr > TriangleCont; //!< triangle pointer container type
+    typedef std::map< int, EdgePtr > EdgeCont; //!< edge pointer container type
+    typedef std::map< int, TrianglePtr > TriangleCont; //!< triangle pointer container type
 
 private:
 
@@ -552,14 +554,15 @@ private:
     TriangleCont M_triangles;
 
     // not used
-    DelaunayTriangulation & operator=( const DelaunayTriangulation & ) = delete;
+    DelaunayTriangulation & operator=( const DelaunayTriangulation & );
 
 public:
 
     /*!
       \brief nothing to do
     */
-    DelaunayTriangulation() = default;
+    DelaunayTriangulation()
+      { }
 
     /*!
       \brief construct with considerable rectangle region
@@ -636,8 +639,8 @@ public:
       \param y coordinate y
       \return assigned id value
      */
-    int addVertex( const double x,
-                   const double y );
+    int addVertex( const double & x,
+                   const double & y );
 
     /*!
       \brief add new vertex

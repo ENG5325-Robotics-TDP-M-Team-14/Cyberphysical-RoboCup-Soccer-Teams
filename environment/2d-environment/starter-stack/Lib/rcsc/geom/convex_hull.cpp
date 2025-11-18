@@ -1,8 +1,8 @@
 // -*-c++-*-
 
 /*!
-  \file convex_hull.cpp
-  \brief 2D convex hull Source File.
+  \file convex_hull.h
+  \brief 2D convex hull Header File.
 */
 
 /*
@@ -230,11 +230,11 @@ ConvexHull::computeDirectMethod()
 
                 if ( last_value < 0.0 )
                 {
-                    M_edges.emplace_back( p, q );
+                    M_edges.push_back( Segment2D( p, q ) );
                 }
                 else
                 {
-                    M_edges.emplace_back( q, p );
+                    M_edges.push_back( Segment2D( q, p ) );
                 }
             }
         }
@@ -247,13 +247,7 @@ ConvexHull::computeDirectMethod()
         std::sort( M_vertices.begin() + 1,
                    M_vertices.end(),
                    AngleSortPredicate( M_vertices.front() ) );
-        M_vertices.erase( std::unique( M_vertices.begin(), M_vertices.end(),
-                                       //Vector2D::Equal() ),
-                                       []( const Vector2D & lhs, const Vector2D & rhs )
-                                         {
-                                             return lhs.equals( rhs );
-                                         }
-                                       ),
+        M_vertices.erase( std::unique( M_vertices.begin(), M_vertices.end(), Vector2D::Equal() ),
                           M_vertices.end() );
     }
 }
@@ -348,7 +342,7 @@ ConvexHull::computeWrappingMethod()
     ++n;
     for ( ; n != M_vertices.end(); ++n )
     {
-        M_edges.emplace_back( *p, *n );
+        M_edges.push_back( Segment2D( *p, *n ) );
         p = n;
     }
     M_vertices.pop_back();
@@ -423,10 +417,10 @@ ConvexHull::computeGrahamScan()
     ++n;
     for ( ; n != M_vertices.end(); ++n )
     {
-        M_edges.emplace_back( *p, *n );
+        M_edges.push_back( Segment2D( *p, *n ) );
         p = n;
     }
-    M_edges.emplace_back( M_vertices.back(), M_vertices.front() );
+    M_edges.push_back( Segment2D( M_vertices.back(), M_vertices.front() ) );
 }
 
 /*-------------------------------------------------------------------*/
@@ -550,9 +544,11 @@ ConvexHull::printInputPoints( std::ostream & os ) const
     //os << "set yrange [0:3]\n;"
     //os << "plot \"-\" using 1:2 with points\n";
 
-    for ( const Vector2D & p : M_input_points )
+    for ( std::vector< Vector2D >::const_iterator p = M_input_points.begin();
+          p != M_input_points.end();
+          ++p )
     {
-        os << p.x << ' ' << p.y << '\n';
+        os << p->x << ' ' << p->y << '\n';
     }
 
     //os << "end\n";
@@ -569,9 +565,11 @@ std::ostream &
 ConvexHull::printVertices( std::ostream & os ) const
 {
 
-    for ( const Vector2D & v : vertices() )
+    for ( VertexCont::const_iterator v = vertices().begin();
+          v != vertices().end();
+          ++v )
     {
-        os << v.x << ' ' << v.y << '\n';
+        os << v->x << ' ' << v->y << '\n';
     }
 
     return os << std::flush;
@@ -586,10 +584,12 @@ ConvexHull::printEdges( std::ostream & os ) const
 {
     //os << "plot \"-\" using 1:2 with lines\n";
 
-    for ( const Segment2D & e : edges() )
+    for ( EdgeCont::const_iterator e = edges().begin();
+          e != edges().end();
+          ++e )
     {
-        os << e.origin().x << ' ' << e.origin().y << '\n'
-           << e.terminal().x << ' ' << e.terminal().y << '\n'
+        os << e->origin().x << ' ' << e->origin().y << '\n'
+           << e->terminal().x << ' ' << e->terminal().y << '\n'
            << '\n';
     }
 

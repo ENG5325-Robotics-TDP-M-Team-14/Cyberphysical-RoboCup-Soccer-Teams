@@ -507,15 +507,17 @@ TablePrinter::read()
 Team *
 TablePrinter::getTeam( const std::string & name )
 {
-    for ( Team & t : M_teams )
+    for ( std::list< Team >::iterator t = M_teams.begin();
+          t != M_teams.end();
+          ++t )
     {
-        if ( t.name_ == name )
+        if ( t->name_ == name )
         {
-            return &t;
+            return &(*t);
         }
     }
 
-    M_teams.emplace_back( name );
+    M_teams.push_back( Team( name ) );
 
     return &M_teams.back();
 }
@@ -607,9 +609,9 @@ TablePrinter::addMatch( const std::string & date,
     // addt to the match list
     //
 
-    M_match_list.emplace_back( date,
-                               name_l, score_l, pen_score_l,
-                               name_r, score_r, pen_score_r );
+    M_match_list.push_back( Match( date,
+                                   name_l, score_l, pen_score_l,
+                                   name_r, score_r, pen_score_r ) );
 
     //
     // insert to the match table
@@ -702,7 +704,7 @@ TablePrinter::sortCopyTieTeams( std::list< Team > & sorted_teams,
                   t2 != teams.end();
                   ++t2 )
             {
-                if ( &(*t1) == &(*t2) ) continue;
+                if ( t1 == t2 ) continue;
 
                 MatchTable::const_iterator m = M_match_table.find( Match::Key( t1->name_, t2->name_ ) );
                 if ( m == M_match_table.end() ) continue;
@@ -850,10 +852,12 @@ TablePrinter::sortCopyTieTeams( std::list< Team > & sorted_teams,
     {
         std::cerr << "exists same standing teams:\n";
         teams.sort( TeamNameCmp() );
-        for ( Team & t : teams )
+        for ( std::list< Team >::iterator t = teams.begin();
+              t != teams.end();
+              ++t )
         {
-            std::cerr << "  " << t.name_ << '\n';
-            t.tie_ = true;
+            std::cerr << "  " << t->name_ << '\n';
+            t->tie_ = true;
         }
         std::cerr << std::endl;
         sorted_teams.splice( sorted_teams.end(), teams );
@@ -867,20 +871,24 @@ TablePrinter::sortCopyTieTeams( std::list< Team > & sorted_teams,
 void
 TablePrinter::updateTiedGroupGoals( std::list< Team > & teams )
 {
-    for ( Team & t1 : teams )
+    for ( std::list< Team >::iterator t1 = teams.begin();
+          t1 != teams.end();
+          ++t1 )
     {
-        t1.tied_goal_scored_ = 0;
-        t1.tied_goal_conceded_ = 0;
+        t1->tied_goal_scored_ = 0;
+        t1->tied_goal_conceded_ = 0;
 
-        for ( Team & t2 : teams )
+        for ( std::list< Team >::iterator t2 = teams.begin();
+              t2 != teams.end();
+              ++t2 )
         {
-            if ( &t1 == &t2 ) continue;
+            if ( t1 == t2 ) continue;
 
-            MatchTable::const_iterator m = M_match_table.find( Match::Key( t1.name_, t2.name_ ) );
+            MatchTable::const_iterator m = M_match_table.find( Match::Key( t1->name_, t2->name_ ) );
             if ( m == M_match_table.end() ) continue;
 
-            t1.tied_goal_scored_ += m->second.score_l_;
-            t1.tied_goal_conceded_ += m->second.score_r_;
+            t1->tied_goal_scored_ += m->second.score_l_;
+            t1->tied_goal_conceded_ += m->second.score_r_;
         }
     }
 }
@@ -908,16 +916,16 @@ TablePrinter::printPukiWiki( std::ostream & os ) const
        << "| goal diff (avg) "
        << "| avg goal scored |h\n";
 
-    int rank_count = 0;
+    int rank_count = 1;
     bool last_tie = false;
-    for ( const Team & t1 : M_teams )
+    for ( std::list< Team >::const_iterator t1 = M_teams.begin();
+          t1 != M_teams.end();
+          ++t1, ++rank_count )
     {
-        ++rank_count;
-
         int rank = rank_count;
         if ( last_tie )
         {
-            if ( t1.tie_ )
+            if ( t1->tie_ )
             {
                 --rank;
             }
@@ -928,44 +936,44 @@ TablePrinter::printPukiWiki( std::ostream & os ) const
         }
         else
         {
-            last_tie = t1.tie_;
+            last_tie = t1->tie_;
         }
 
         os << "|    " << std::setw( 2 ) << std::right << rank;
-        os << " | " << t1.name_;
-        for ( size_t len = t1.name_.length(); len < 16; ++len )
+        os << " | " << t1->name_;
+        for ( size_t len = t1->name_.length(); len < 16; ++len )
         {
             os.put( ' ' );
         }
 
         // games (w,l,d)
-        os << " | " << std::setw( 5 ) << std::right << t1.games_;
-        os << " | " << std::setw( 3 ) << t1.win_
-           << " | " << std::setw( 4 ) << t1.lose_
-           << " | " << std::setw( 4 ) << t1.draw_;
+        os << " | " << std::setw( 5 ) << std::right << t1->games_;
+        os << " | " << std::setw( 3 ) << t1->win_
+           << " | " << std::setw( 4 ) << t1->lose_
+           << " | " << std::setw( 4 ) << t1->draw_;
         // points (avg)
-        os << " | " << std::setw( 3 ) << std::right << t1.points_
+        os << " | " << std::setw( 3 ) << std::right << t1->points_
            << " ("
            << std::setw( 5 ) << std::setprecision( 3 ) << std::right
-           << static_cast< double >( t1.points_ )
-            / static_cast< double >( t1.games_ )
+           << static_cast< double >( t1->points_ )
+            / static_cast< double >( t1->games_ )
            << ")";
         // goals
-        os << " | " << std::setw( 3 ) << std::right << t1.goal_scored_
-           << " - " << std::setw( 3 ) << std::right << t1.goal_conceded_;
+        os << " | " << std::setw( 3 ) << std::right << t1->goal_scored_
+           << " - " << std::setw( 3 ) << std::right << t1->goal_conceded_;
         // goal diff (avg)
         os << " |    "
-           << std::setw( 4 ) << std::right << t1.goal_scored_ - t1.goal_conceded_
+           << std::setw( 4 ) << std::right << t1->goal_scored_ - t1->goal_conceded_
            << " ("
            <<  std::setw( 5 ) << std::setprecision( 3 ) << std::right
-           << static_cast< double >( t1.goal_scored_ - t1.goal_conceded_ )
-            / static_cast< double >( t1.games_ )
+           << static_cast< double >( t1->goal_scored_ - t1->goal_conceded_ )
+            / static_cast< double >( t1->games_ )
            << ")";
         // avg goal scored
         os << " |           "
            <<  std::setw( 5 ) << std::setprecision( 3 ) << std::right
-           << static_cast< double >( t1.goal_scored_ )
-            / static_cast< double >( t1.games_ )
+           << static_cast< double >( t1->goal_scored_ )
+            / static_cast< double >( t1->games_ )
            << " |";
         os << '\n';
     }
@@ -977,17 +985,19 @@ TablePrinter::printPukiWiki( std::ostream & os ) const
     //
 
     os << "|                 ";
-    for ( const Team & t : M_teams )
+    for ( std::list< Team >::const_iterator t = M_teams.begin();
+          t != M_teams.end();
+          ++t )
     {
         os << " | ";
-        if ( t.name_.length() > 4 )
+        if ( t->name_.length() > 4 )
         {
-            os << t.name_.substr( 0, 3 ) << '.';
+            os << t->name_.substr( 0, 3 ) << '.';
         }
         else
         {
-            os << t.name_;
-            for ( size_t len = t.name_.length(); len < 4; ++len )
+            os << t->name_;
+            for ( size_t len = t->name_.length(); len < 4; ++len )
             {
                 os.put( ' ' );
             }
@@ -996,25 +1006,29 @@ TablePrinter::printPukiWiki( std::ostream & os ) const
     }
     os << " |h\n";
 
-    for ( const Team & t1 : M_teams )
+    for ( std::list< Team >::const_iterator t1 = M_teams.begin();
+          t1 != M_teams.end();
+          ++t1 )
     {
         //bool upper = false;
-        os << "| " << t1.name_;
-        for ( size_t len = t1.name_.length(); len < 16; ++len )
+        os << "| " << t1->name_;
+        for ( size_t len = t1->name_.length(); len < 16; ++len )
         {
             os.put( ' ' );
         }
 
-        for ( const Team & t2 : M_teams )
+        for ( std::list< Team >::const_iterator t2 = M_teams.begin();
+              t2 != M_teams.end();
+              ++t2 )
         {
-            if ( &t1 == &t2 )
+            if ( t1 == t2 )
             {
                 os << " |   x   ";
                 //upper = true;
             }
             else
             {
-                MatchTable::const_iterator m = M_match_table.find( Match::Key( t1.name_, t2.name_ ) );
+                MatchTable::const_iterator m = M_match_table.find( Match::Key( t1->name_, t2->name_ ) );
                 if ( m != M_match_table.end() )
                 {
                     char buf[64];
@@ -1044,27 +1058,28 @@ TablePrinter::printPukiWiki( std::ostream & os ) const
 
     os << "|   # | date         | left team        | goals   | right team       "
        << "|h\n";
-    int count = 0;
-    for ( const Match & m : M_match_list )
+    int count = 1;
+    for ( std::list< Match >::const_iterator m = M_match_list.begin();
+          m != M_match_list.end();
+          ++m, ++count )
     {
-        ++count;
         os << "| " << std::setw( 3 ) << count;
-        os << " | " << m.date_;
-        os << " | " << m.name_l_;
-        for ( size_t len = m.name_l_.length(); len < 16; ++len )
+        os << " | " << m->date_;
+        os << " | " << m->name_l_;
+        for ( size_t len = m->name_l_.length(); len < 16; ++len )
         {
             os.put( ' ' );
         }
 
-        os << " | " << std::setw( 2 ) << m.score_l_
-           << " - " << std::setw( 2 ) << m.score_r_;
-        if ( m.pen_score_l_ + m.pen_score_r_ > 0 )
+        os << " | " << std::setw( 2 ) << m->score_l_
+           << " - " << std::setw( 2 ) << m->score_r_;
+        if ( m->pen_score_l_ + m->pen_score_r_ > 0 )
         {
-            os << " &br; (" << m.pen_score_l_ << " - " << m.pen_score_r_ << ")";
+            os << " &br; (" << m->pen_score_l_ << " - " << m->pen_score_r_ << ")";
         }
 
-        os << " | " << m.name_r_;
-        for ( size_t len = m.name_r_.length(); len < 16; ++len )
+        os << " | " << m->name_r_;
+        for ( size_t len = m->name_r_.length(); len < 16; ++len )
         {
             os.put( ' ' );
         }
@@ -1124,15 +1139,16 @@ TablePrinter::printHtml( std::ostream & os ) const
        << "    <th>avg goals scored</th>\n"
        << "  </tr>\n";
 
-    int rank_count = 0;
+    int rank_count = 1;
     bool last_tie = false;
-    for ( const Team & t : M_teams )
+    for ( std::list< Team >::const_iterator t = M_teams.begin();
+          t != M_teams.end();
+          ++t, ++rank_count )
     {
-        ++rank_count;
         int rank = rank_count;
         if ( last_tie )
         {
-            if ( t.tie_ )
+            if ( t->tie_ )
             {
                 --rank;
             }
@@ -1143,7 +1159,7 @@ TablePrinter::printHtml( std::ostream & os ) const
         }
         else
         {
-            last_tie = t.tie_;
+            last_tie = t->tie_;
         }
 
         os << "  <tr class=\"";
@@ -1153,29 +1169,29 @@ TablePrinter::printHtml( std::ostream & os ) const
         os << "\">\n";
 
         os << "    <td>" << rank << "</td>\n";
-        os << "    <th>" << t.name_ << "</th>\n";
-        os << "    <td>" << t.games_ << "</td>\n";
-        os << "    <td>" << t.win_ << "</td>\n";
-        os << "    <td>" << t.lose_ << "</td>\n";
-        os << "    <td>" << t.draw_ << "</td>\n";
+        os << "    <th>" << t->name_ << "</th>\n";
+        os << "    <td>" << t->games_ << "</td>\n";
+        os << "    <td>" << t->win_ << "</td>\n";
+        os << "    <td>" << t->lose_ << "</td>\n";
+        os << "    <td>" << t->draw_ << "</td>\n";
         // points (avg)
-        os << "    <td>" << t.points_
+        os << "    <td>" << t->points_
            << " (" << std::setprecision( 3 )
-           << static_cast< double >( t.points_ )
-            / static_cast< double >( t.games_ )
+           << static_cast< double >( t->points_ )
+            / static_cast< double >( t->games_ )
            << ")</td>\n";
         // goals
-        os << "    <td>" << t.goal_scored_ << " - " << t.goal_conceded_ << "</td>\n";
+        os << "    <td>" << t->goal_scored_ << " - " << t->goal_conceded_ << "</td>\n";
         // goal diff (avg)
-        os << "    <td>" << t.goal_scored_ - t.goal_conceded_
+        os << "    <td>" << t->goal_scored_ - t->goal_conceded_
            << " (" << std::setprecision( 3 )
-           << static_cast< double >( t.goal_scored_ - t.goal_conceded_ )
-            / static_cast< double >( t.games_ )
+           << static_cast< double >( t->goal_scored_ - t->goal_conceded_ )
+            / static_cast< double >( t->games_ )
            << ")</td>\n";
         // avg goal scored
         os << "    <td>" << std::setprecision( 3 )
-           << static_cast< double >( t.goal_scored_ )
-            / static_cast< double >( t.games_ )
+           << static_cast< double >( t->goal_scored_ )
+            / static_cast< double >( t->games_ )
            << "</td>\n";
 
         os << "  </tr>\n"
@@ -1197,44 +1213,49 @@ TablePrinter::printHtml( std::ostream & os ) const
     os << "<table class=\"resultstable\">\n";
     os << "  <tr class=\"tableheader\">\n";
     os << "    <th>&nbsp;</th>\n";
-    for ( const Team & t : M_teams )
+    for ( std::list< Team >::const_iterator t = M_teams.begin();
+          t != M_teams.end();
+          ++t )
     {
         os << "    <th>";
-        if ( t.name_.length() > 4 )
+        if ( t->name_.length() > 4 )
         {
-            os << t.name_.substr( 0, 3 ) << '.';
+            os << t->name_.substr( 0, 3 ) << '.';
         }
         else
         {
-            os << t.name_;
+            os << t->name_;
         }
         os << "</th>\n";
     }
     os << "  </tr>\n";
 
-    int count = 0;
-    for ( const Team & t1 : M_teams )
+    int count = 1;
+    for ( std::list< Team >::const_iterator t1 = M_teams.begin();
+          t1 != M_teams.end();
+          ++t1, ++count )
     {
-        ++count;
         os << "  <tr class=\"";
         if ( count % 2 == 0 ) os << "even";
         else os << "odd";
         os << "\">\n";
 
         bool upper = false;
-        os << "    <th>" << t1.name_ << "</th>\n";
+        os << "    <th>" << t1->name_ << "</th>\n";
 
-        for ( const Team & t2 : M_teams )
+        for ( std::list< Team >::const_iterator t2 = M_teams.begin();
+              t2 != M_teams.end();
+              ++t2 )
         {
             os << "    <td>";
-            if ( &t1 == &t2 )
+            if ( t1 == t2 )
             {
                 os << " x ";
                 upper = true;
             }
             else
             {
-                MatchTable::const_iterator m = M_match_table.find( Match::Key( t1.name_, t2.name_ ) );
+                MatchTable::const_iterator m = M_match_table.find( Match::Key( t1->name_, t2->name_ ) );
                 if ( m != M_match_table.end() )
                 {
                     char basename[256];
@@ -1297,56 +1318,57 @@ TablePrinter::printHtml( std::ostream & os ) const
        << "    <th> rcg </th>\n"
        << "  </tr>\n";
 
-    count = 0;
-    for ( const Match & m : M_match_list )
+    count = 1;
+    for ( std::list< Match >::const_iterator m = M_match_list.begin();
+          m != M_match_list.end();
+          ++m, ++count )
     {
-        ++count;
         os << "  <tr class=\"";
         if ( count % 2 == 0 ) os << "even";
         else os << "odd";
         os << "\">\n";
 
-        int point_l = calcPoint( m.score_l_, m.pen_score_l_, m.score_r_, m.pen_score_r_ );
+        int point_l = calcPoint( m->score_l_, m->pen_score_l_, m->score_r_, m->pen_score_r_ );
         int point_r = point_l == 3 ? 0 : point_l == 0 ? 3 : 1;
 
         os << "    <td>" << count << "</td>\n";
-        os << "    <td>" << m.date_ << "</td>\n";
+        os << "    <td>" << m->date_ << "</td>\n";
         os << "    <td>";
-        if ( point_l > point_r ) os << "<span class=\"winner\">" << m.name_l_ << "</span>";
-        else os << m.name_l_;
+        if ( point_l > point_r ) os << "<span class=\"winner\">" << m->name_l_ << "</span>";
+        else os << m->name_l_;
         os << " vs ";
-        if ( point_r > point_l ) os << "<span class=\"winner\">" << m.name_r_ << "</span>";
-        else os << m.name_r_;
+        if ( point_r > point_l ) os << "<span class=\"winner\">" << m->name_r_ << "</span>";
+        else os << m->name_r_;
         os<< "</td>\n";
-        os << "    <td>" << m.score_l_ << " : " << m.score_r_;
-        if ( m.hasPenaltyScore() )
+        os << "    <td>" << m->score_l_ << " : " << m->score_r_;
+        if ( m->hasPenaltyScore() )
         {
-            os << " <br />(" << m.pen_score_l_ << " : " << m.pen_score_r_ << ")";
+            os << " <br />(" << m->pen_score_l_ << " : " << m->pen_score_r_ << ")";
         }
         os << "</td>\n";
         os << "    <td>" << point_l << " : " << point_r << "</td>\n";
 
         char basename[256];
 
-        if ( m.hasPenaltyScore() )
+        if ( m->hasPenaltyScore() )
         {
             snprintf( basename, 256, "%s-%s_%d_%d-vs-%s_%d_%d",
-                      m.date_.c_str(),
-                      m.realLeftTeamName().c_str(),
-                      m.realLeftScore(),
-                      m.realLeftPenScore(),
-                      m.realRightTeamName().c_str(),
-                      m.realRightScore(),
-                      m.realRightPenScore() );
+                      m->date_.c_str(),
+                      m->realLeftTeamName().c_str(),
+                      m->realLeftScore(),
+                      m->realLeftPenScore(),
+                      m->realRightTeamName().c_str(),
+                      m->realRightScore(),
+                      m->realRightPenScore() );
         }
         else
         {
             snprintf( basename, 256, "%s-%s_%d-vs-%s_%d",
-                      m.date_.c_str(),
-                      m.realLeftTeamName().c_str(),
-                      m.realLeftScore(),
-                      m.realRightTeamName().c_str(),
-                      m.realRightScore() );
+                      m->date_.c_str(),
+                      m->realLeftTeamName().c_str(),
+                      m->realLeftScore(),
+                      m->realRightTeamName().c_str(),
+                      m->realRightScore() );
         }
 
         os << "    <td><a href=\"" << M_log_dir << basename << ".rcg.gz\">"

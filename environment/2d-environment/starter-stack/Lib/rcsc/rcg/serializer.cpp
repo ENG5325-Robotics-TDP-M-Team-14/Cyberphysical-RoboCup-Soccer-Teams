@@ -33,6 +33,13 @@
 #include <config.h>
 #endif
 
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+#ifdef HAVE_WINDOWS_H
+#include <windows.h>
+#endif
+
 #include "serializer.h"
 
 #include "util.h"
@@ -42,22 +49,22 @@
 #include "serializer_v3.h"
 #include "serializer_v4.h"
 #include "serializer_v5.h"
-#include "serializer_v6.h"
-#include "serializer_json.h"
+
 
 #include <algorithm>
 #include <cstring>
 #include <cmath>
 #include <iostream>
-#include <sstream>
-#include <iomanip>
 
-#ifdef HAVE_ARPA_INET_H
-#include <arpa/inet.h>
+#ifndef M_PI
+//! pi value
+#define M_PI 3.14159265358979323846
 #endif
-#ifdef HAVE_WINDOWS_H
-#include <windows.h>
-#endif
+
+namespace {
+const float DEG2RADF = 3.14159265358979323846f / 180.0f;
+const float RAD2DEGF = 180.0f / 3.14159265358979323846f;
+}
 
 namespace rcsc {
 namespace rcg {
@@ -82,17 +89,13 @@ Serializer::creators()
 Serializer::Ptr
 Serializer::create( const int version )
 {
-    Serializer::Ptr ptr;
+    Serializer::Ptr ptr( static_cast< Serializer * >( 0 ) );
 
     Serializer::Creator creator;
     if ( Serializer::creators().getCreator( creator, version ) )
     {
         ptr = creator();
-        return ptr;
     }
-
-    if ( version == REC_VERSION_JSON ) ptr = Serializer::Ptr( new SerializerJSON() );
-    else if ( version == REC_VERSION_6 ) ptr = Serializer::Ptr( new SerializerV6() );
     else if ( version == REC_VERSION_5 ) ptr = Serializer::Ptr( new SerializerV5() );
     else if ( version == REC_VERSION_4 ) ptr = Serializer::Ptr( new SerializerV4() );
     else if ( version == REC_VERSION_3 ) ptr = Serializer::Ptr( new SerializerV3() );
@@ -125,13 +128,7 @@ Serializer::serializeImpl( std::ostream & os,
 {
     if ( version == REC_OLD_VERSION )
     {
-        // v1 protocl does not have a header information.
-        return os;
-    }
-
-    if ( version == REC_VERSION_JSON )
-    {
-        // json protocl does not have a header information.
+        // v1 protocl does not have header.
         return os;
     }
 
@@ -468,25 +465,536 @@ Serializer::serializeImpl( std::ostream & os,
 }
 
 /*-------------------------------------------------------------------*/
-std::ostream &
-Serializer::serializeAsMsg( std::ostream & os,
-                            const char side,
-                            const int x,
-                            const int y,
-                            const std::vector< std::string > & xpm )
+/*!
+
+*/
+void
+Serializer::convert( const pos_t & from,
+                     BallT & to )
 {
+    to.x_ = nstohf( from.x );
+    to.y_ = nstohf( from.y );
+}
 
-    std::ostringstream ostr;
-    ostr << "(team_graphic_" << side
-         << ' ' << '(' << x << ' ' << y;
+/*-------------------------------------------------------------------*/
+/*!
 
-    for ( const std::string & s : xpm )
+*/
+void
+Serializer::convert( const ball_t & from,
+                     BallT & to )
+{
+    to.x_ = nltohf( from.x );
+    to.y_ = nltohf( from.y );
+    to.vx_ = nltohf( from.deltax );
+    to.vy_ = nltohf( from.deltay );
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+Serializer::convert( const pos_t & from,
+                     player_t & to )
+{
+    to.mode = from.enable;
+    to.type = 0;
+    to.x = nstonl( from.x );
+    to.y = nstonl( from.y );
+    to.deltax = 0;
+    to.deltay = 0;
+    to.body_angle = nstonl( from.angle );
+    to.head_angle = 0;
+    to.view_width = 0;
+    to.stamina = hdtonl( 4000.0 );
+    to.effort = hdtonl( 1.0 );
+    to.recovery = hdtonl( 1.0 );
+    to.kick_count = 0;
+    to.dash_count = 0;
+    to.turn_count = 0;
+    to.say_count = 0;
+    to.turn_neck_count = 0;
+    to.catch_count = 0;
+    to.move_count = 0;
+    to.change_view_count = 0;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+Serializer::convert( const SideID side,
+                     const int unum,
+                     const player_t & from,
+                     pos_t & to )
+{
+    to.enable = from.mode;
+    to.side = htons( static_cast< Int16 >( side ) );
+    to.unum = htons( static_cast< Int16 >( unum ) );
+    to.angle = htons( static_cast< Int16 >( rint( nltohd( from.body_angle ) * 180.0 / M_PI ) ) );
+    to.x = hdtons( nltohd( from.x ) );
+    to.y = hdtons( nltohd( from.y ) );
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+Serializer::convert( const pos_t & from,
+                     PlayerT & to )
+{
+    SideID side = static_cast< SideID >( ntohs( from.side ) );
+
+    to.state_ = static_cast< Int32 >( ntohs( from.enable ) );
+    to.side_ = ( side == LEFT ? 'l'
+                 : side == RIGHT ? 'r'
+                 : 'n' );
+    to.unum_ = ntohs( from.unum );
+    to.body_ = static_cast< float >( ntohs( from.angle ) );
+    to.x_ = nstohf( from.x );
+    to.y_ = nstohf( from.y );
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+Serializer::convert( const PlayerT & from,
+                     player_t & to )
+{
+    to.mode = ntohs( static_cast< Int16 >( from.state_ ) );
+    to.type = ntohs( from.type_ );
+    to.x = hftonl( from.x_ );
+    to.y = hftonl( from.y_ );
+    to.deltax = hftonl( from.vx_ );
+    to.deltay = hftonl( from.vy_ );
+    to.body_angle = hftonl( from.body_ * DEG2RADF );
+    to.head_angle = hftonl( from.neck_ * DEG2RADF );
+    to.view_width = hftonl( from.view_width_ * DEG2RADF );
+    to.view_quality = htons( from.highQuality() ? 1 : 0 );
+    to.stamina = hftonl( from.stamina_ );
+    to.effort = hftonl( from.effort_ );
+    to.recovery = hftonl( from.recovery_ );
+    to.kick_count = htons( from.kick_count_ );
+    to.dash_count = htons( from.dash_count_ );
+    to.turn_count = htons( from.turn_count_ );
+    to.say_count = htons( from.say_count_ );
+    to.turn_neck_count = htons( from.turn_neck_count_ );
+    to.catch_count = htons( from.catch_count_ );
+    to.move_count = htons( from.move_count_ );
+    to.change_view_count = htons( from.change_view_count_ );
+}
+
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+Serializer::convert( const player_t & from,
+                     PlayerT & to )
+{
+    to.state_ = static_cast< Int32 >( ntohs( from.mode ) );
+    to.type_ = ntohs( from.type );
+    to.x_ = nltohf( from.x );
+    to.y_ = nltohf( from.y );
+    to.vx_ = nltohf( from.deltax );
+    to.vy_ = nltohf( from.deltay );
+    to.body_ = nltohf( from.body_angle ) * RAD2DEGF;
+    to.neck_ = nltohf( from.head_angle ) * RAD2DEGF;
+    to.view_width_ = nltohf( from.view_width ) * RAD2DEGF;
+    to.view_quality_ = ntohs( from.view_quality ) ? 'h' : 'l';
+    to.stamina_ = nltohf( from.stamina );
+    to.effort_ = nltohf( from.effort );
+    to.recovery_ = nltohf( from.recovery );
+    to.kick_count_ = ntohs( from.kick_count );
+    to.dash_count_ = ntohs( from.dash_count );
+    to.turn_count_ = ntohs( from.turn_count );
+    to.say_count_ = ntohs( from.say_count );
+    to.turn_neck_count_ = ntohs( from.turn_neck_count );
+    to.catch_count_ = ntohs( from.catch_count );
+    to.move_count_ = ntohs( from.move_count );
+    to.change_view_count_ = ntohs( from.change_view_count );
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+Serializer::convert( const std::string & name,
+                     const int score,
+                     team_t & to )
+{
+    std::memset( to.name, 0, sizeof( to.name ) );
+    std::strncpy( to.name,
+                  name.c_str(),
+                  std::min( sizeof( to.name ), name.length() ) );
+    to.score = hitons( score );
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+Serializer::convert( const TeamT & from,
+                     team_t & to )
+{
+    std::memset( to.name, 0, sizeof( to.name ) );
+    std::strncpy( to.name,
+                  from.name_.c_str(),
+                  std::min( sizeof( to.name ), from.name_.length() ) );
+    to.score = htons( from.score_ );
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+Serializer::convert( const team_t & from,
+                     TeamT & to )
+{
+    char buf[18];
+    std::memset( buf, 0, 18 );
+    std::strncpy( buf, from.name, sizeof( from.name ) );
+
+    to.name_ = buf;
+    to.score_ = ntohs( from.score );
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+Serializer::convert( const showinfo_t & from,
+                     showinfo_t2 & to )
+{
+    // playmode
+    to.pmode = from.pmode;
+
+    // team
+
+    // ball
+    to.ball.x = nstonl( from.pos[0].x );
+    to.ball.y = nstonl( from.pos[0].y );
+    to.ball.deltax = 0;
+    to.ball.deltay = 0;
+
+    // players
+    for ( int i = 0; i < MAX_PLAYER*2; ++i )
     {
-        ostr << ' ' << std::quoted( s );
+        convert( from.pos[i+1], to.pos[i] );
     }
-    ostr << ')';
 
-    return serialize( os, 1, ostr.str() );
+    // time
+    to.time = from.time;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+Serializer::convert( const showinfo_t & from,
+                     short_showinfo_t2 & to )
+{
+    // ball
+    to.ball.x = nstonl( from.pos[0].x );
+    to.ball.y = nstonl( from.pos[0].y );
+    to.ball.deltax = 0;
+    to.ball.deltay = 0;
+
+    // players
+    for ( int i = 0; i < MAX_PLAYER*2; ++i )
+    {
+        convert( from.pos[i+1], to.pos[i] );
+    }
+
+    // time
+    to.time = from.time;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+Serializer::convert( const showinfo_t2 & from,
+                     showinfo_t & to )
+{
+    // playmode
+    to.pmode = from.pmode;
+
+    // team
+    for ( int i = 0; i < 2; ++i )
+    {
+        std::strncpy( to.team[i].name, from.team[i].name, 16 );
+        to.team[i].score = from.team[i].score;
+    }
+
+    // ball
+    to.pos[0].side = htons( NEUTRAL );
+    to.pos[0].x = hdtons( nltohd( from.ball.x ) );
+    to.pos[0].y = hdtons( nltohd( from.ball.y ) );
+
+    // left team
+    int unum = 1;
+    for ( int i = 0; i < MAX_PLAYER; ++i, ++unum )
+    {
+        convert( LEFT, unum, from.pos[i], to.pos[i+1] );
+    }
+
+    // right team
+    unum = 1;
+    for ( int i = MAX_PLAYER; i < MAX_PLAYER *2; ++i, ++unum )
+    {
+        convert( RIGHT, unum, from.pos[i], to.pos[i+1] );
+    }
+
+    // time
+    to.time = from.time;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+Serializer::convert( const char playmode,
+                     const TeamT & team_l,
+                     const TeamT & team_r,
+                     const short_showinfo_t2 & from,
+                     showinfo_t & to )
+{
+    // playmode
+    to.pmode = playmode;
+
+    // team
+    convert( team_l, to.team[0] );
+    convert( team_r, to.team[1] );
+
+    // ball
+    to.pos[0].side = htons( NEUTRAL );
+    to.pos[0].x = hdtons( nltohd( from.ball.x ) );
+    to.pos[0].y = hdtons( nltohd( from.ball.y ) );
+
+    // left team
+    int unum = 1;
+    for ( int i = 0; i < MAX_PLAYER; ++i, ++unum )
+    {
+        convert( LEFT, unum, from.pos[i], to.pos[i+1] );
+    }
+
+    // right team
+    unum = 1;
+    for ( int i = MAX_PLAYER; i < MAX_PLAYER *2; ++i, ++unum )
+    {
+        convert( RIGHT, unum, from.pos[i], to.pos[i+1] );
+    }
+
+    // time
+    to.time = from.time;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+Serializer::convert( const char playmode,
+                     const TeamT & team_l,
+                     const TeamT & team_r,
+                     const ShowInfoT & from,
+                     showinfo_t & to )
+{
+    to.pmode = playmode;
+
+    // team
+    convert( team_l, to.team[0] );
+    convert( team_r, to.team[1] );
+
+    // ball
+    to.pos[0].side = htons( NEUTRAL );
+    to.pos[0].x = hftons( from.ball_.x_ );
+    to.pos[0].y = hftons( from.ball_.y_ );
+
+    // players
+    for ( int i = 0; i < MAX_PLAYER*2; ++i )
+    {
+        int idx = from.player_[i].unum_;
+        if ( from.player_[i].side() == NEUTRAL ) continue;
+        if ( from.player_[i].side() == RIGHT ) idx += MAX_PLAYER;
+        if ( idx < 0 || MAX_PLAYER*2 + 1 <= idx ) continue;
+
+        to.pos[idx].enable = htons( static_cast< Int16 >( from.player_[i].state_ ) );
+        to.pos[idx].side = htons( from.player_[i].side() );
+        to.pos[idx].unum = htons( from.player_[i].unum_ );
+        to.pos[idx].angle = htons( static_cast< Int16 >( rintf( from.player_[i].body_ ) ) );
+        to.pos[idx].x = hftons( from.player_[i].x_ );
+        to.pos[idx].y = hftons( from.player_[i].y_ );
+    }
+
+    // time
+    to.time = htons( static_cast< Int16 >( from.time_ ) );
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+Serializer::convert( const char playmode,
+                     const TeamT & team_l,
+                     const TeamT & team_r,
+                     const ShowInfoT & from,
+                     showinfo_t2 & to )
+{
+    to.pmode = playmode;
+
+    // team
+    convert( team_l, to.team[0] );
+    convert( team_r, to.team[1] );
+
+    // ball
+    to.ball.x = hftonl( from.ball_.x_ );
+    to.ball.y = hftonl( from.ball_.y_ );
+    to.ball.deltax = hftonl( from.ball_.vx_ );
+    to.ball.deltay = hftonl( from.ball_.vx_ );
+
+    // players
+    for ( int i = 0; i < MAX_PLAYER * 2; ++i )
+    {
+        int idx = from.player_[i].unum_ - 1;
+        if ( from.player_[i].side() == NEUTRAL ) continue;
+        if ( from.player_[i].side() == RIGHT ) idx += MAX_PLAYER;
+        if ( idx < 0 || MAX_PLAYER*2 <= idx ) continue;
+
+        convert( from.player_[i], to.pos[idx] );
+    }
+
+    // time
+    to.time = htons( static_cast< Int16 >( from.time_ ) );
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+Serializer::convert( const ShowInfoT & from,
+                     short_showinfo_t2 & to )
+{
+    // ball
+    to.ball.x = hftonl( from.ball_.x_ );
+    to.ball.y = hftonl( from.ball_.y_ );
+    to.ball.deltax = hftonl( from.ball_.vx_ );
+    to.ball.deltay = hftonl( from.ball_.vx_ );
+
+    // players
+    for ( int i = 0; i < MAX_PLAYER * 2; ++i )
+    {
+        int idx = from.player_[i].unum_ - 1;
+        if ( from.player_[i].side() == NEUTRAL ) continue;
+        if ( from.player_[i].side() == RIGHT ) idx += MAX_PLAYER;
+        if ( idx < 0 || MAX_PLAYER*2 <= idx ) continue;
+
+        convert( from.player_[i], to.pos[idx] );
+    }
+
+    // time
+    to.time = htons( static_cast< Int16 >( from.time_ ) );
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+Serializer::convert( const showinfo_t & from,
+                     ShowInfoT & to )
+
+{
+    // ball
+    convert( from.pos[0], to.ball_ );
+
+    // players
+    for ( int i = 0; i < MAX_PLAYER*2; ++i )
+    {
+        convert( from.pos[i+1], to.player_[i] );
+    }
+
+    // time
+    to.time_ = static_cast< UInt32 >( ntohs( from.time ) );
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+Serializer::convert( const showinfo_t2 & from,
+                     ShowInfoT & to )
+
+{
+    // ball
+    convert( from.ball, to.ball_ );
+
+    // players
+    for ( int i = 0; i < MAX_PLAYER*2; ++i )
+    {
+        to.player_[i].side_ = ( i < MAX_PLAYER ? 'l' : 'r' );
+        to.player_[i].unum_ = ( i < MAX_PLAYER ? i + 1 : i + 1 - MAX_PLAYER );
+        convert( from.pos[i], to.player_[i] );
+    }
+
+    // time
+    to.time_ = static_cast< UInt32 >( ntohs( from.time ) );
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+Serializer::convert( const short_showinfo_t2 & from,
+                     ShowInfoT & to )
+
+{
+    // ball
+    convert( from.ball, to.ball_ );
+
+    // players
+    for ( int i = 0; i < MAX_PLAYER*2; ++i )
+    {
+        to.player_[i].side_ = ( i < MAX_PLAYER ? 'l' : 'r' );
+        to.player_[i].unum_ = ( i < MAX_PLAYER ? i + 1 : i + 1 - MAX_PLAYER );
+        convert( from.pos[i], to.player_[i] );
+    }
+
+    // time
+    to.time_ = static_cast< UInt32 >( ntohs( from.time ) );
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+Serializer::convert( const std::string & from,
+                     msginfo_t & to )
+{
+    to.board = htons( MSG_BOARD );
+    std::memset( to.message, 0, sizeof( to.message ) );
+    std::strncpy( to.message,
+                  from.c_str(),
+                  std::min( sizeof( to.message ) - 1, from.length() ) );
 }
 
 } // end of namespace

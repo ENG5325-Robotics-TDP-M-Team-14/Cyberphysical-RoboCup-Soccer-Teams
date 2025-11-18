@@ -56,9 +56,12 @@ UnitedRegion2D::area() const
 bool
 UnitedRegion2D::contains( const Vector2D & point ) const
 {
-    for ( const std::shared_ptr< const Region2D > & r : M_regions )
+    const std::vector< boost::shared_ptr< const Region2D > >::const_iterator end = M_regions.end();
+    for ( std::vector< boost::shared_ptr< const Region2D > >::const_iterator r = M_regions.begin();
+          r != end;
+          ++r )
     {
-        if ( r->contains( point ) )
+        if ( (*r)->contains( point ) )
         {
             return true;
         }
@@ -85,9 +88,12 @@ IntersectedRegion2D::area() const
 bool
 IntersectedRegion2D::contains( const Vector2D & point ) const
 {
-    for ( const std::shared_ptr< const Region2D > & r : M_regions )
+    const std::vector< boost::shared_ptr< const Region2D > >::const_iterator end = M_regions.end();
+    for ( std::vector< boost::shared_ptr< const Region2D > >::const_iterator r = M_regions.begin();
+          r != end;
+          ++r )
     {
-        if ( ! r->contains( point ) )
+        if ( ! (*r)->contains( point ) )
         {
             return false;
         }

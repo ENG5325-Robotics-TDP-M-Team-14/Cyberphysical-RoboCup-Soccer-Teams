@@ -56,7 +56,7 @@ MonitorInitCommand::MonitorInitCommand( const int version  )
 
 */
 std::ostream &
-MonitorInitCommand::toCommandString( std::ostream & to ) const
+MonitorInitCommand::toStr( std::ostream & to ) const
 {
     if ( M_version )
     {
@@ -73,7 +73,7 @@ MonitorInitCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-MonitorByeCommand::toCommandString( std::ostream & to ) const
+MonitorByeCommand::toStr( std::ostream & to ) const
 {
     return to << "(dispbye)";
 }
@@ -83,7 +83,7 @@ MonitorByeCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-MonitorKickOffCommand::toCommandString( std::ostream & to ) const
+MonitorKickOffCommand::toStr( std::ostream & to ) const
 {
     return to << "(dispstart)";
 }
@@ -105,7 +105,7 @@ MonitorDropBallCommand::MonitorDropBallCommand( const double & x,
 
 */
 std::ostream &
-MonitorDropBallCommand::toCommandString( std::ostream & to ) const
+MonitorDropBallCommand::toStr( std::ostream & to ) const
 {
     to << "(dispfoul "
        << static_cast< int >( rint( M_x * rcg::SHOWINFO_SCALE ) ) << " "
@@ -133,7 +133,7 @@ MonitorFreeKickCommand::MonitorFreeKickCommand( const double & x,
 
 */
 std::ostream &
-MonitorFreeKickCommand::toCommandString( std::ostream & to ) const
+MonitorFreeKickCommand::toStr( std::ostream & to ) const
 {
     to << "(dispfoul "
        << static_cast< int >( rint( M_x * rcg::SHOWINFO_SCALE ) ) << " "
@@ -179,7 +179,7 @@ MonitorMovePlayerCommand::MonitorMovePlayerCommand( const SideID side,
 
 */
 std::ostream &
-MonitorMovePlayerCommand::toCommandString( std::ostream & to ) const
+MonitorMovePlayerCommand::toStr( std::ostream & to ) const
 {
     if ( M_side != NEUTRAL
          && 1 <= M_unum && M_unum <= 11 )
@@ -224,7 +224,7 @@ MonitorDiscardPlayerCommand::MonitorDiscardPlayerCommand( const SideID side,
 
 */
 std::ostream &
-MonitorDiscardPlayerCommand::toCommandString( std::ostream & to ) const
+MonitorDiscardPlayerCommand::toStr( std::ostream & to ) const
 {
     if ( M_side != NEUTRAL
          && 1 <= M_unum && M_unum <= 11 )
@@ -270,7 +270,7 @@ MonitorCardCommand::MonitorCardCommand( const SideID side,
 
 */
 std::ostream &
-MonitorCardCommand::toCommandString( std::ostream & to ) const
+MonitorCardCommand::toStr( std::ostream & to ) const
 {
     if ( M_side != NEUTRAL
          && 1 <= M_unum && M_unum <= 11
@@ -310,7 +310,7 @@ MonitorCompressionCommand::MonitorCompressionCommand( const int level )
 
 */
 std::ostream &
-MonitorCompressionCommand::toCommandString( std::ostream & to ) const
+MonitorCompressionCommand::toStr( std::ostream & to ) const
 {
     return to << "(compression " << M_level << ")";
 }

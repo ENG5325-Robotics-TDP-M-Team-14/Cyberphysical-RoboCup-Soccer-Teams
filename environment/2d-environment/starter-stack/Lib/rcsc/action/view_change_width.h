@@ -1,7 +1,7 @@
 // -*-c++-*-
 
 /*!
-  \file view_change_width.h
+  \file view_normal.h
   \brief change view width to normal
 */
 

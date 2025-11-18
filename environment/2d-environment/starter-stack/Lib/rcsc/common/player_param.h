@@ -34,13 +34,12 @@
 
 #include <rcsc/rcg/types.h>
 
-#include <memory>
+#include <boost/scoped_ptr.hpp>
 
 namespace rcsc {
 
 namespace rcg {
 struct player_params_t;
-struct PlayerParamT;
 }
 class ParamMap;
 
@@ -52,7 +51,7 @@ class PlayerParam {
 private:
 
     //! parameter map implementation
-    std::unique_ptr< ParamMap > M_param_map;
+    boost::scoped_ptr< ParamMap > M_param_map;
 
     static const int DEFAULT_PLAYER_TYPES; //!< default number of player types
     static const int DEFAULT_SUBS_MAX; //!< default max number of substitution oppotunity
@@ -199,28 +198,16 @@ public:
     void convertFrom( const rcg::player_params_t & from );
 
     /*!
-      \brief convert parameters from the type in the rcg parser library.
-      \param from data structure for the rcg parser
-     */
-    void convertFrom( const rcg::PlayerParamT & from );
-
-    /*!
       \brief convert parameters to monitor protcol data
       \param to reference to the data structure variable
      */
     void convertTo( rcg::player_params_t & to ) const;
 
     /*!
-      \brief convert parameters to rcg data
-      \param to reference to the data structure variable
-     */
-    void convertTo( rcg::PlayerParamT & to ) const;
-
-    /*!
       \brief convert to the rcss parameter message
       \return parameter message string
      */
-    std::string toServerString() const;
+    std::string toStr() const;
 
 
     /*!
@@ -263,7 +250,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double playerSpeedMaxDeltaMin() const
+    const
+    double & playerSpeedMaxDeltaMin() const
       {
           return M_player_speed_max_delta_min;
       }
@@ -272,7 +260,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double playerSpeedMaxDeltaMax() const
+    const
+    double & playerSpeedMaxDeltaMax() const
       {
           return M_player_speed_max_delta_max;
       }
@@ -281,7 +270,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double staminaIncMaxDeltaFactor() const
+    const
+    double & staminaIncMaxDeltaFactor() const
       {
           return M_stamina_inc_max_delta_factor;
       }
@@ -290,7 +280,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double playerDecayDeltaMin() const
+    const
+    double & playerDecayDeltaMin() const
       {
           return M_player_decay_delta_min;
       }
@@ -299,7 +290,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double playerDecayDeltaMax() const
+    const
+    double & playerDecayDeltaMax() const
       {
           return M_player_decay_delta_max;
       }
@@ -308,7 +300,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double inertiaMomentDeltaFactor() const
+    const
+    double & inertiaMomentDeltaFactor() const
       {
           return M_inertia_moment_delta_factor;
       }
@@ -317,7 +310,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double dashPowerRateDeltaMin() const
+    const
+    double & dashPowerRateDeltaMin() const
       {
           return M_dash_power_rate_delta_min;
       }
@@ -326,7 +320,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double dashPowerRateDeltaMax() const
+    const
+    double & dashPowerRateDeltaMax() const
       {
           return M_dash_power_rate_delta_max;
       }
@@ -335,7 +330,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double playerSizeDeltaFactor() const
+    const
+    double & playerSizeDeltaFactor() const
       {
           return M_player_size_delta_factor;
       }
@@ -344,7 +340,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double kickableMarginDeltaMin() const
+    const
+    double & kickableMarginDeltaMin() const
       {
           return M_kickable_margin_delta_min;
       }
@@ -353,7 +350,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double kickableMarginDeltaMax() const
+    const
+    double & kickableMarginDeltaMax() const
       {
           return M_kickable_margin_delta_max;
       }
@@ -362,7 +360,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double kickRandDeltaFactor() const
+    const
+    double & kickRandDeltaFactor() const
       {
           return M_kick_rand_delta_factor;
       }
@@ -371,7 +370,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double extraStaminaDeltaMin() const
+    const
+    double & extraStaminaDeltaMin() const
       {
           return M_extra_stamina_delta_min;
       }
@@ -380,7 +380,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double extraStaminaDeltaMax() const
+    const
+    double & extraStaminaDeltaMax() const
       {
           return M_extra_stamina_delta_max;
       }
@@ -389,7 +390,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double effortMaxDeltaFactor() const
+    const
+    double & effortMaxDeltaFactor() const
       {
           return M_effort_max_delta_factor;
       }
@@ -398,7 +400,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double effortMinDeltaFactor() const
+    const
+    double & effortMinDeltaFactor() const
       {
           return M_effort_min_delta_factor;
       }
@@ -416,7 +419,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double newDashPowerRateDeltaMin() const
+    const
+    double & newDashPowerRateDeltaMin() const
       {
           return M_new_dash_power_rate_delta_min;
       }
@@ -425,7 +429,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double newDashPowerRateDeltaMax() const
+    const
+    double & newDashPowerRateDeltaMax() const
       {
           return M_new_dash_power_rate_delta_max;
       }
@@ -434,7 +439,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double newStaminaIncMaxDeltaFactor() const
+    const
+    double & newStaminaIncMaxDeltaFactor() const
       {
           return M_new_stamina_inc_max_delta_factor;
       }
@@ -443,7 +449,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double kickPowerRateDeltaMin() const
+    const
+    double & kickPowerRateDeltaMin() const
       {
           return M_kick_power_rate_delta_min;
       }
@@ -452,7 +459,8 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double kickPowerRateDeltaMax() const
+    const
+    double & kickPowerRateDeltaMax() const
       {
           return M_kick_power_rate_delta_max;
       }
@@ -461,28 +469,12 @@ public:
       \brief get the player_param parameter
       \return player_param parameter
      */
-    double foulDetectProbabilityDeltaFactor() const
+    const
+    double & foulDetectProbabilityDeltaFactor() const
       {
           return M_foul_detect_probability_delta_factor;
       }
 
-    /*!
-      \brief get the player_param parameter
-      \return player_param parameter
-     */
-    double catchAreaLengthStretchMin() const
-      {
-          return M_catchable_area_l_stretch_min;
-      }
-
-    /*!
-      \brief get the player_param parameter
-      \return player_param parameter
-     */
-    double catchAreaLengthStretchMax() const
-      {
-          return M_catchable_area_l_stretch_max;
-      }
 };
 
 }

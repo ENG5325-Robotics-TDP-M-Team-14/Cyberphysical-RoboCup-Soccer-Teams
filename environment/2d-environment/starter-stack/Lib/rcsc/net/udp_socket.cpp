@@ -35,19 +35,6 @@
 
 #include "udp_socket.h"
 
-#include <cstdio>
-#include <cerrno>
-
-#ifdef HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
-#ifdef HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
-#endif
-#ifdef HAVE_NETINET_IN_H
-#include <netinet/in.h> // struct sockaddr_in, struct in_addr, htons
-#endif
-
 namespace rcsc {
 
 /*-------------------------------------------------------------------*/
@@ -55,9 +42,9 @@ namespace rcsc {
 
 */
 UDPSocket::UDPSocket( const int port )
-    : AbstractSocket()
+    : BasicSocket()
 {
-    if ( open( AbstractSocket::DATAGRAM_TYPE )
+    if ( open( BasicSocket::DATAGRAM_TYPE )
          && bind( port )
          && setNonBlocking() != -1 )
     {
@@ -73,11 +60,11 @@ UDPSocket::UDPSocket( const int port )
 */
 UDPSocket::UDPSocket( const char * hostname,
                       const int port )
-    : AbstractSocket()
+    : BasicSocket()
 {
-    if ( open( AbstractSocket::DATAGRAM_TYPE )
-         && bind( 0 )
-         && setPeerAddress( hostname, port )
+    if ( open( BasicSocket::DATAGRAM_TYPE )
+         && bind()
+         && setAddr( hostname, port )
          && setNonBlocking() != -1 )
     {
         return;
@@ -97,33 +84,12 @@ UDPSocket::~UDPSocket()
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 int
-UDPSocket::writeDatagram( const char * data,
-                          const size_t len )
+UDPSocket::send( const char * data,
+                 const std::size_t len )
 {
-    return writeDatagram( data, len, M_peer_address );
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
- */
-int
-UDPSocket::writeDatagram( const char * data,
-                          const size_t len,
-                          const HostAddress & dest )
-{
-    int n = ::sendto( fd(), data, len, 0,
-                      reinterpret_cast< const sockaddr * >( &(dest.toAddress()) ),
-                      sizeof( HostAddress::AddrType ) );
-    if ( n != static_cast< int >( len ) )
-    {
-        std::perror( "sendto" );
-        return -1;
-    }
-
-    return len;
+    return BasicSocket::sendDatagramPacket( data, len );
 }
 
 /*-------------------------------------------------------------------*/
@@ -131,44 +97,10 @@ UDPSocket::writeDatagram( const char * data,
 
 */
 int
-UDPSocket::readDatagram( char * buf,
-                         const size_t len )
+UDPSocket::receive( char * buf,
+                    const std::size_t len )
 {
-    return readDatagram( buf, len, &M_peer_address );
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
- */
-int
-UDPSocket::readDatagram( char * buf,
-                         const size_t len,
-                         HostAddress * from )
-{
-    HostAddress::AddrType from_addr;
-    socklen_t from_size = sizeof( HostAddress::AddrType );
-    int n = ::recvfrom( fd(), buf, len, 0,
-                        reinterpret_cast< struct sockaddr * >( &from_addr ),
-                        &from_size );
-
-    if ( n == -1 )
-    {
-        if ( errno == EWOULDBLOCK )
-        {
-            return 0;
-        }
-
-        std::perror( "recvfrom" );
-        return -1;
-    }
-
-    if ( from )
-    {
-        from->setAddress( from_addr );
-    }
-
-    return n;
+    return BasicSocket::receiveDatagramPacket( buf, len, true );
 }
 
 } // end namespace

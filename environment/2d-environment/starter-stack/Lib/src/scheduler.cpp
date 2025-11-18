@@ -80,8 +80,6 @@ TeamNameLoader::TeamNameLoader( std::istream & is )
     std::string buf;
     int n_line = 0;
 
-    std::set< std::string > read_teams;
-
     while ( std::getline( is, buf ) )
     {
         ++n_line;
@@ -104,17 +102,11 @@ TeamNameLoader::TeamNameLoader( std::istream & is )
             continue;
         }
 
-        if ( read_teams.find( buf ) != read_teams.end() )
-        {
-            std::cerr << "Found a exsiting team name at line " << n_line
-                      << " [" << buf << "]"
-                      << std::endl;
-            continue;
-        }
-        read_teams.insert( buf );
-
         M_teams.push_back( buf );
     }
+
+    // remove same string
+    std::unique( M_teams.begin(), M_teams.end() );
 }
 
 /*---------------------------------------------------------------*/
@@ -124,9 +116,11 @@ TeamNameLoader::TeamNameLoader( std::istream & is )
 std::ostream &
 TeamNameLoader::print( std::ostream & os ) const
 {
-    for ( const auto & s : M_teams )
+    for ( std::vector< std::string >::const_iterator it = M_teams.begin();
+          it != M_teams.end();
+          ++it )
     {
-        os << s << std::endl;
+        os << *it << std::endl;
     }
     return os;
 }
@@ -239,12 +233,14 @@ Scheduler::create( const int total_teams,
         std::set< int > team_set;
 
         //int count = 0;
-        for ( const auto & m : M_match_list )
+        for ( MatchCont::const_iterator it = M_match_list.begin();
+              it != M_match_list.end();
+              ++it )
         {
             //std::cerr << ++count << ": read match: "
             //          << it->first << " vs " << it->second
             //          << std::endl;
-            match_cache.push_back( m );
+            match_cache.push_back( *it );
 
             std::list< std::pair< int, int > >::iterator c = match_cache.begin();
             while ( c != match_cache.end() )
@@ -298,14 +294,18 @@ Scheduler::create( const int total_teams,
 
         M_match_list = new_list;
 
-        for ( const auto & m : matches )
+        for ( std::list< std::pair< int, int > >::iterator m = matches.begin();
+              m != matches.end();
+              ++m )
         {
-            M_match_list.push_back( m );
+            M_match_list.push_back( *m );
         }
 
-        for ( const auto & c : match_cache )
+        for ( std::list< std::pair< int, int > >::iterator c = match_cache.begin();
+              c != match_cache.end();
+              ++c )
         {
-            M_match_list.push_back( c );
+            M_match_list.push_back( *c );
         }
     }
 }
@@ -318,10 +318,12 @@ std::ostream &
 Scheduler::print( std::ostream & os ) const
 {
     //int count = 0;
-    for ( const auto & m : M_match_list )
+    for ( MatchCont::const_iterator it = M_match_list.begin();
+          it != M_match_list.end();
+          ++it )
     {
         // os << ++count << ": " << it->first << " vs " << it->second << std::endl;
-        os << m.first << " vs " << m.second << std::endl;
+        os << it->first << " vs " << it->second << std::endl;
     }
     return os;
 }
@@ -406,7 +408,10 @@ main( int argc, char** argv )
     const bool para = ( num_para > 1 && num_para * 2 <= total_teams );
 
     int count = 0;
-    for ( const auto & m : scheduler.matchList() )
+    const Scheduler::MatchCont::const_iterator end = scheduler.matchList().end();
+    for ( Scheduler::MatchCont::const_iterator it =  scheduler.matchList().begin();
+          it != end;
+          ++it )
     {
         if ( para )
         {
@@ -423,9 +428,9 @@ main( int argc, char** argv )
 
         std::cout
             //<< ++count << ": "
-            << loader.teams().at( m.first )
+            << loader.teams().at( it->first )
             << " vs "
-            << loader.teams().at( m.second )
+            << loader.teams().at( it->second )
             << '\n';
     }
 

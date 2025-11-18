@@ -52,16 +52,17 @@ namespace rcsc {
 bool
 Neck_TurnToBallOrScan::execute( PlayerAgent * agent )
 {
-    const WorldModel & wm = agent->world();
-
     dlog.addText( Logger::ACTION,
-                  __FILE__": ball_count(%d) count_thr(%d)",
-                  wm.ball().posCount(), M_count_thr );
+                  __FILE__": Neck_TurnToBallOrScan count_thr=%d",
+                  M_count_thr );
+
+    const WorldModel & wm = agent->world();
 
     if ( wm.ball().posCount() <= M_count_thr )
     {
         dlog.addText( Logger::ACTION,
-                      __FILE__": ball_count < count_thr, ScanField" );
+                      __FILE__": pos_count=%d <= count_thr=%d",
+                      wm.ball().posCount(), M_count_thr );
         return Neck_ScanField().execute( agent );
     }
 
@@ -71,8 +72,6 @@ Neck_TurnToBallOrScan::execute( PlayerAgent * agent )
     const Vector2D my_next = agent->effector().queuedNextSelfPos();
 
     if ( wm.ball().posCount() <= 0
-         && ! wm.kickableOpponent()
-         && ! wm.kickableTeammate()
          && my_next.dist( ball_next ) < SP.visibleDistance() - 0.2 )
     {
         dlog.addText( Logger::ACTION,

@@ -34,7 +34,6 @@
 #endif
 
 #include "player_object.h"
-
 #include "fullstate_sensor.h"
 
 #include <rcsc/common/logger.h>
@@ -49,16 +48,18 @@ int PlayerObject::S_pos_count_thr = 30;
 int PlayerObject::S_vel_count_thr = 5;
 int PlayerObject::S_face_count_thr = 2;
 
-int PlayerObject::S_player_count = 0;
-
 /*-------------------------------------------------------------------*/
 /*!
 
 */
 PlayerObject::PlayerObject()
-    : AbstractPlayerObject( ++S_player_count ),
-      M_ghost_count( 0 ),
-      M_tackle_count( 1000 )
+    : AbstractPlayerObject()
+    , M_ghost_count( 0 )
+    , M_rpos( Vector2D::INVALIDATED )
+    , M_rpos_count( 1000 )
+    , M_pointto_angle( 0.0 )
+    , M_pointto_count( 1000 )
+    , M_tackle_count( 1000 )
 {
 
 }
@@ -69,9 +70,13 @@ PlayerObject::PlayerObject()
 */
 PlayerObject::PlayerObject( const SideID side,
                             const Localization::PlayerT & p )
-    : AbstractPlayerObject( ++S_player_count, side, p ),
-      M_ghost_count( 0 ),
-      M_tackle_count( 1000 )
+    : AbstractPlayerObject( side, p )
+    , M_ghost_count( 0 )
+    , M_rpos( p.rpos_ )
+    , M_pointto_angle( 0.0 )
+    , M_pointto_count( 1000 )
+    , M_tackle_count( 1000 )
+    , M_heard_stamina( -1.0 )
 {
     M_dist_from_self = p.rpos_.r();
 
@@ -95,7 +100,7 @@ PlayerObject::PlayerObject( const SideID side,
         M_pointto_count = 0;
     }
 
-    M_kicking = p.kicking_;
+    M_kicked = p.kicked_;
 
     if ( p.isTackling() )
     {
@@ -122,16 +127,6 @@ PlayerObject::set_count_thr( const int pos_thr,
     S_pos_count_thr = pos_thr;
     S_vel_count_thr = vel_thr;
     S_face_count_thr = face_thr;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-void
-PlayerObject::reset_player_count()
-{
-    S_player_count = 0;
 }
 
 /*-------------------------------------------------------------------*/
@@ -166,12 +161,6 @@ PlayerObject::isKickable( const double & buf ) const
 void
 PlayerObject::update()
 {
-    M_pos_history.push_front( M_pos );
-    if ( M_pos_history.size() > 100 )
-    {
-        M_pos_history.pop_back();
-    }
-
     if ( velValid() )
     {
         M_pos += M_vel;
@@ -185,16 +174,26 @@ PlayerObject::update()
     */
     M_unum_count = std::min( 1000, M_unum_count + 1 );
     M_pos_count = std::min( 1000, M_pos_count + 1 );
+    M_rpos_count = std::min( 1000, M_rpos_count + 1 );
     M_seen_pos_count = std::min( 1000, M_seen_pos_count + 1 );
     M_heard_pos_count = std::min( 1000, M_heard_pos_count + 1 );
     M_vel_count = std::min( 1000, M_vel_count + 1 );
     M_body_count = std::min( 1000, M_body_count + 1 );
     M_face_count = std::min( 1000, M_face_count + 1 );
     M_pointto_count = std::min( 1000, M_pointto_count + 1 );
-    M_kicking = false;
+    M_kicked = false;
     M_tackle_count = std::min( 1000, M_tackle_count + 1 );
 
-    M_last_seen_move_accuracy = std::min( 1000, M_last_seen_move_accuracy + 1 );
+    M_heard_stamina -= ServerParam::i().maxDashPower();
+    if ( playerTypePtr() )
+    {
+        M_heard_stamina += playerTypePtr()->staminaIncMax();
+    }
+    else
+    {
+        M_heard_stamina += ServerParam::i().defaultStaminaIncMax();
+    }
+    if ( M_heard_stamina < -1.0 ) M_heard_stamina = -1.0;
 }
 
 /*-------------------------------------------------------------------*/
@@ -228,9 +227,6 @@ PlayerObject::updateBySee( const SideID side,
     const Vector2D last_seen_move = p.pos_ - M_seen_pos;
     const int last_seen_pos_count = M_seen_pos_count;
 
-    M_last_seen_move = last_seen_move;
-    M_last_seen_move_accuracy = last_seen_pos_count;
-
     if ( p.hasVel() )
     {
         M_vel = p.vel_;
@@ -246,11 +242,11 @@ PlayerObject::updateBySee( const SideID side,
     }
     else if ( 0 < M_pos_count
               && M_pos_count <= 2
-              && p.rpos_.r2() < std::pow( 40.0, 2 ) )
+              && p.rpos_.r() < 40.0 )
     {
         const double speed_max = ( M_player_type
-                                   ? M_player_type->realSpeedMax()
-                                   : ServerParam::i().defaultRealSpeedMax() );
+                                   ? M_player_type->playerSpeedMax()
+                                   : ServerParam::i().defaultPlayerSpeedMax() );
         const double decay = ( M_player_type
                                ? M_player_type->playerDecay()
                                : ServerParam::i().defaultPlayerDecay() );
@@ -281,9 +277,11 @@ PlayerObject::updateBySee( const SideID side,
     }
 
     M_pos = p.pos_;
+    M_rpos = p.rpos_;
     M_seen_pos = p.pos_;
 
     M_pos_count = 0;
+    M_rpos_count = 0;
     M_seen_pos_count = 0;
 
     if ( p.hasAngle() )
@@ -316,7 +314,7 @@ PlayerObject::updateBySee( const SideID side,
         M_pointto_count = 0;
     }
 
-    M_kicking = p.isKicking();
+    M_kicked = p.kicked();
 
     if ( p.isTackling() )
     {
@@ -325,7 +323,7 @@ PlayerObject::updateBySee( const SideID side,
             M_tackle_count = 0;
         }
     }
-    else if ( p.rpos_.r2() > std::pow( ServerParam::i().visibleDistance(), 2 ) )
+    else
     {
         M_tackle_count = 1000;
     }
@@ -364,15 +362,18 @@ PlayerObject::updateByFullstate( const FullstateSensor::PlayerT & p,
     M_dist_from_ball = ( M_pos - ball_pos ).r();
     M_angle_from_ball = ( M_pos - ball_pos ).th();
 
-    M_dist_from_self = self_pos.dist( p.pos_ );
-    M_angle_from_self = ( p.pos_ - self_pos ).th();
+    M_dist_from_self = M_rpos.r();
+    M_angle_from_self = M_rpos.r();
 
     M_ghost_count = 0;
+
+    M_rpos = p.pos_ - self_pos;
+    M_rpos_count = 0;
 
     M_pointto_angle = M_face + p.pointto_dir_;
     M_pointto_count = 0;
 
-    M_kicking = p.kicked_;
+    M_kicked = p.kicked_;
 
     if ( p.tackle_ )
     {
@@ -419,17 +420,15 @@ PlayerObject::updateByHear( const SideID heard_side,
         M_goalie = true;
     }
 
-    if ( unumCount() > 2 )
-    {
-        M_unum_count = 2;
-    }
-
-    if ( seenPosCount() >= 2
-         || ( seenPosCount() > 0
-              && distFromSelf() > 20.0 ) )
+    if ( posCount() >= 2
+         || distFromSelf() > 20.0 )
     {
         M_pos = heard_pos;
-        M_pos_count = 1;
+
+        if ( posCount() > 1 )
+        {
+            M_pos_count = 1;
+        }
     }
 }
 
@@ -442,7 +441,8 @@ PlayerObject::updateByHear( const SideID heard_side,
                             const int heard_unum,
                             const bool goalie,
                             const Vector2D & heard_pos,
-                            const double & heard_body )
+                            const double & heard_body,
+                            const double & heard_stamina )
 {
     updateByHear( heard_side, heard_unum, goalie, heard_pos );
 
@@ -453,6 +453,11 @@ PlayerObject::updateByHear( const SideID heard_side,
             M_body = heard_body;
             M_body_count = 1;
         }
+    }
+
+    if ( heard_stamina > 0.0 )
+    {
+        M_heard_stamina = heard_stamina;
     }
 }
 
@@ -468,24 +473,10 @@ PlayerObject::updateSelfBallRelated( const Vector2D & self,
     M_angle_from_ball = ( M_pos - ball ).th();
     M_dist_from_self = ( M_pos - self ).r();
     M_angle_from_self = ( M_pos - self ).th();
-}
 
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-void
-PlayerObject::setCollisionEffect()
-{
-    if ( M_vel.isValid() )
+    if ( M_rpos_count > 0 )
     {
-        M_vel *= -0.1;
-    }
-
-    if ( M_seen_vel.isValid() )
-    {
-        M_seen_vel *= -0.1;
+        M_rpos = M_pos - self;
     }
 }
 

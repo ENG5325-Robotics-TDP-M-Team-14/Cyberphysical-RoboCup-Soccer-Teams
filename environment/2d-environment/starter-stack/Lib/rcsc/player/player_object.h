@@ -41,8 +41,7 @@
 #include <rcsc/geom/angle_deg.h>
 #include <rcsc/types.h>
 
-#include <vector>
-#include <list>
+#include <functional>
 
 namespace rcsc {
 
@@ -52,15 +51,6 @@ namespace rcsc {
 */
 class PlayerObject
     : public AbstractPlayerObject {
-public:
-
-    //! type of the player object instance container
-    typedef std::list< PlayerObject > List;
-
-    //! type of the player object pointer container
-    typedef std::vector< const PlayerObject * > Cont;
-
-
 private:
     //! validation count threshold value for M_pos and M_rpos
     static int S_pos_count_thr;
@@ -69,14 +59,19 @@ private:
     //! validation count threshold value for M_body and M_face
     static int S_face_count_thr;
 
-    //! the player observation count, used as the id value for each player object.
-    static int S_player_count;
+    AngleDeg M_angle_from_self; //!< angle from self global
 
-    int M_ghost_count; //!< count that this object is recognized as a ghost object.
-    int M_tackle_count; //!< time count since the last tackle observation
+    int M_ghost_count; //!< count since this object was recognized as a ghost object.
 
-    std::list< Vector2D > M_pos_history;
+    Vector2D M_rpos; //!< relative coordinate
+    int M_rpos_count; //!< relative coordinate accuracy counter
 
+    AngleDeg M_pointto_angle; //!< global pointing angle
+    int M_pointto_count; //!< pointing angle accuracy
+
+    int M_tackle_count; //!< tackle info accuracy
+
+    double M_heard_stamina; //!< heard stamina
 public:
 
     /*!
@@ -109,12 +104,6 @@ public:
                         const int vel_thr,
                         const int face_thr );
 
-    /*!
-      \brief reset player count to 0.
-     */
-    static
-    void reset_player_count();
-
     // ------------------------------------------
 
     /*!
@@ -136,6 +125,35 @@ public:
       }
 
     /*!
+      \brief get position relative to self position
+      \return const reference to the point object
+    */
+    const
+    Vector2D & rpos() const
+      {
+          return M_rpos;
+      }
+
+    /*!
+      \brief get global pointing angle
+      \return const reference to the angle object
+    */
+    const
+    AngleDeg & pointtoAngle() const
+      {
+          return M_pointto_angle; // global pointing angle
+      }
+
+    /*!
+      \brief get global pointing angle accuracy
+      \return count from last observation
+    */
+    int pointtoCount() const
+      {
+          return M_pointto_count;
+      }
+
+    /*!
       \brief get tackling status accuracy
       \return count from last observation
     */
@@ -150,6 +168,17 @@ public:
     */
     bool isTackling() const;
 
+
+    /*!
+      \brief get the heard stamina inf
+      \return heard stamina value
+     */
+    const
+    double & heardStamina() const
+      {
+          return M_heard_stamina;
+      }
+
     /*!
       \brief velify global position accuracy
       \return true if position has enough accuracy
@@ -157,6 +186,15 @@ public:
     bool posValid() const
       {
           return M_pos_count < S_pos_count_thr;
+      }
+
+    /*!
+      \brief verify relative position accuracy
+      \return true if relative position has enough accuracy
+    */
+    bool rposValid() const
+      {
+          return M_rpos_count < S_pos_count_thr;
       }
 
     /*!
@@ -184,15 +222,6 @@ public:
     bool faceValid() const
       {
           return M_face_count < S_face_count_thr;
-      }
-
-    /*!
-      \brief get the history of estimated position.
-      \return position list. the front element is the position at the previous cycle.
-     */
-    const std::list< Vector2D > & posHistory() const
-      {
-          return M_pos_history;
       }
 
     /*!
@@ -268,12 +297,14 @@ public:
       \param goalie update goalie info, only if this value is true.
       \param heard_pos heard global position
       \param heard_body heard body angle
+      \param heard_stamina heard stamina value
     */
     void updateByHear( const SideID heard_side,
                        const int heard_unum,
                        const bool goalie,
                        const Vector2D & heard_pos,
-                       const double & heard_body );
+                       const double & heard_body,
+                       const double & heard_stamina );
 
     /*!
       \brief update status related to other objects
@@ -286,16 +317,144 @@ public:
                                 const Vector2D & ball );
 
     /*!
-      \brief set collision effect to player's velocity
-     */
-    void setCollisionEffect();
-
-    /*!
       \brief reset accuracy info
     */
     void forget();
 
+    ///////////////////////////////////////////////////////////////
+    /*!
+      \class UpdateOp
+      \brief functor to update
+    */
+    class UpdateOp
+        : public std::unary_function< PlayerObject, void > {
+    public:
+        /*!
+          \brief operation function
+          \param player reference to the updated player
+         */
+        result_type operator()( argument_type & player )
+          {
+              player.update();
+          }
+    };
+
+    /*!
+      \class IsInvalidOp
+      \brief functor to check if player has enough accuracy
+    */
+    class IsInvalidOp
+        : public std::unary_function< PlayerObject, bool > {
+    public:
+        /*!
+          \brief operation function
+          \param player reference to the updated player.
+          \return true if player's position accuracy is low.
+         */
+        result_type operator()( const argument_type & player ) const
+          {
+              return ( ! player.posValid() );
+          }
+    };
+
+    ///////////////////////////////////////////////////////////////
+    /*!
+      \class CountCmp
+      \brief predicate functor to compare player's accuracy. reference version
+    */
+    class CountCmp
+        : public std::binary_function< PlayerObject, PlayerObject, bool > {
+    public:
+        /*!
+          \brief operation function
+          \param lhs left hand side variable
+          \param rhs right hand side variable
+          \return compared result
+         */
+        result_type operator()( const first_argument_type & lhs,
+                                const second_argument_type & rhs ) const
+          {
+              if ( lhs.goalie() ) return true;
+              if ( rhs.goalie() ) return false;
+              return lhs.posCount() < rhs.posCount();
+          }
+    };
+
+    /*!
+      \class PtrCountCmp
+      \brief predicate functor to compare player's accuracy. pointer version
+    */
+    class PtrCountCmp
+        : public std::binary_function< const PlayerObject *,
+                                       const PlayerObject *,
+                                       bool > {
+    public:
+        /*!
+          \brief operation function
+          \param lhs left hand side variable
+          \param rhs right hand side variable
+          \return compared result
+         */
+        result_type operator()( first_argument_type lhs,
+                                second_argument_type rhs ) const
+          {
+              if ( lhs->goalie() ) return true;
+              if ( rhs->goalie() ) return false;
+              return lhs->posCount() < rhs->posCount();
+          }
+    };
+
+    ///////////////////////////////////////////////////////////////
+    /*!
+      \class PtrSelfDistCmp
+      \brief predicate functor to compare player's distance from self
+    */
+    class PtrSelfDistCmp
+        : public std::binary_function< const PlayerObject *,
+                                       const PlayerObject *,
+                                       bool > {
+    public:
+        /*!
+          \brief operation function
+          \param lhs left hand side variable
+          \param rhs right hand side variable
+          \return compared result
+         */
+        result_type operator()( first_argument_type lhs,
+                                second_argument_type rhs ) const
+          {
+              return lhs->distFromSelf() < rhs->distFromSelf();
+          }
+    };
+
+    /*!
+      \class PtrBallDstCmp
+      \brief predicate functor to compare player's distance from ball
+    */
+    class PtrBallDistCmp
+        : public std::binary_function< const PlayerObject *,
+                                       const PlayerObject *,
+                                       bool > {
+    public:
+        /*!
+          \brief operation function
+          \param lhs left hand side variable
+          \param rhs right hand side variable
+          \return compared result
+         */
+        result_type operator()( first_argument_type lhs,
+                                second_argument_type rhs ) const
+          {
+              return lhs->distFromBall() < rhs->distFromBall();
+          }
+    };
+
 };
+
+//! type of the player object container
+typedef std::list< PlayerObject > PlayerCont;
+//! type of the player object pointer container
+typedef std::vector< PlayerObject * > PlayerPtrCont;
 
 }
 

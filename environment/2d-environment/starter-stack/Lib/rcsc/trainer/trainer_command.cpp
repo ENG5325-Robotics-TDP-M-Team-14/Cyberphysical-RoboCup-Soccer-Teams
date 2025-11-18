@@ -44,7 +44,7 @@ namespace rcsc {
 
 */
 std::ostream &
-TrainerInitCommand::toCommandString( std::ostream & to ) const
+TrainerInitCommand::toStr( std::ostream & to ) const
 {
     return to << "(init (version " << M_version << "))";
 }
@@ -54,7 +54,7 @@ TrainerInitCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerCheckBallCommand::toCommandString( std::ostream & to ) const
+TrainerCheckBallCommand::toStr( std::ostream & to ) const
 {
     return to << "(check_ball)";
 }
@@ -64,7 +64,7 @@ TrainerCheckBallCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerLookCommand::toCommandString( std::ostream & to ) const
+TrainerLookCommand::toStr( std::ostream & to ) const
 {
     return to << "(look)";
 }
@@ -74,7 +74,7 @@ TrainerLookCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerTeamNamesCommand::toCommandString( std::ostream & to ) const
+TrainerTeamNamesCommand::toStr( std::ostream & to ) const
 {
     return to << "(team_names)";
 }
@@ -84,7 +84,7 @@ TrainerTeamNamesCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerEarCommand::toCommandString( std::ostream & to ) const
+TrainerEarCommand::toStr( std::ostream & to ) const
 {
     if ( M_on )
     {
@@ -101,7 +101,7 @@ TrainerEarCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerEyeCommand::toCommandString( std::ostream & to ) const
+TrainerEyeCommand::toStr( std::ostream & to ) const
 {
     if ( M_on )
     {
@@ -118,7 +118,7 @@ TrainerEyeCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerKickOffCommand::toCommandString( std::ostream & to ) const
+TrainerKickOffCommand::toStr( std::ostream & to ) const
 {
     return to << "(start)";
 }
@@ -128,7 +128,7 @@ TrainerKickOffCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerChangeModeCommand::toCommandString( std::ostream & to ) const
+TrainerChangeModeCommand::toStr( std::ostream & to ) const
 {
     static const char * pmodes[] = PLAYMODE_STRINGS;
     return to << "(change_mode " << pmodes[M_playmode] << ")";
@@ -188,7 +188,7 @@ TrainerMoveBallCommand::TrainerMoveBallCommand( const Vector2D & pos,
 
 */
 std::ostream &
-TrainerMoveBallCommand::toCommandString( std::ostream & to ) const
+TrainerMoveBallCommand::toStr( std::ostream & to ) const
 {
     to << "(move (ball) " << M_pos.x << " " << M_pos.y;
 
@@ -349,7 +349,7 @@ TrainerMovePlayerCommand::check() const
 
 */
 std::ostream &
-TrainerMovePlayerCommand::toCommandString( std::ostream & to ) const
+TrainerMovePlayerCommand::toStr( std::ostream & to ) const
 {
     if ( ! check() )
     {
@@ -381,7 +381,7 @@ TrainerMovePlayerCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerRecoverCommand::toCommandString( std::ostream & to ) const
+TrainerRecoverCommand::toStr( std::ostream & to ) const
 {
     return to << "(recover)";
 }
@@ -406,7 +406,7 @@ TrainerChangePlayerTypeCommand( const std::string & team_name,
 
 */
 std::ostream &
-TrainerChangePlayerTypeCommand::toCommandString( std::ostream & to ) const
+TrainerChangePlayerTypeCommand::toStr( std::ostream & to ) const
 {
     if ( M_type < Hetero_Unknown
          || PlayerParam::i().playerTypes() <= M_type )
@@ -429,7 +429,7 @@ TrainerChangePlayerTypeCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerSayCommand::toCommandString( std::ostream & to ) const
+TrainerSayCommand::toStr( std::ostream & to ) const
 {
     return to << "(say " << M_message << ")";
 }
@@ -439,7 +439,7 @@ TrainerSayCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerCompressionCommand::toCommandString( std::ostream & to ) const
+TrainerCompressionCommand::toStr( std::ostream & to ) const
 {
     return to << "(compression " << M_level << ")";
 }
@@ -449,7 +449,7 @@ TrainerCompressionCommand::toCommandString( std::ostream & to ) const
 
 */
 std::ostream &
-TrainerDoneCommand::toCommandString( std::ostream & to ) const
+TrainerDoneCommand::toStr( std::ostream & to ) const
 {
     return to << "(done)";
 }

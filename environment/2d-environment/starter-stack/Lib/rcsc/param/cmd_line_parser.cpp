@@ -100,13 +100,6 @@ CmdLineParser::CmdLineParser( const std::list< std::string > & args )
 bool
 CmdLineParser::parse( ParamMap & param_map )
 {
-    if ( ! param_map.isValid() )
-    {
-        std::cerr << __FILE__ << ": ***ERROR*** detected invalid ParamMap "
-                  << param_map.groupName() << std::endl;
-        return false;
-    }
-
     std::list< std::string >::iterator it = M_args.begin();
     while ( it != M_args.end() )
     {
@@ -132,15 +125,15 @@ CmdLineParser::parse( ParamMap & param_map )
 
         if ( name_str.empty() )
         {
-            std::cerr << __FILE__ << ": ***ERROR*** Empty parameter name."
+            std::cerr << "***ERROR*** CmdLineParser. Empty parameter name"
                       << std::endl;
             ++it;
             continue;
         }
 
-        ParamEntity::Ptr param_ptr = ( is_long_name
-                                       ? param_map.findLongName( name_str )
-                                       : param_map.findShortName( name_str ) );
+        ParamPtr param_ptr = ( is_long_name
+                               ? param_map.findLongName( name_str )
+                               : param_map.findShortName( name_str ) );
 
         if ( ! param_ptr )
         {
@@ -164,7 +157,7 @@ CmdLineParser::parse( ParamMap & param_map )
         ++value_it;
         if ( value_it == M_args.end() )
         {
-            std::cerr << __FILE__ <<": ***ERROR*** No value for [--"
+            std::cerr << "***ERROR*** CmdLineParser. No value for [--"
                       << name_str << "]" << std::endl;
             ++it;
             continue;
@@ -173,7 +166,7 @@ CmdLineParser::parse( ParamMap & param_map )
         // analyze value string
         if ( ! param_ptr->analyze( *value_it ) )
         {
-            std::cerr << __FILE__ << ": ***ERROR*** Invalid value. name=["
+            std::cerr << "***ERROR*** CmdLineParser. Invalid value. name=["
                       << name_str << "] value=[" << *value_it << "]"
                       << std::endl;
             ++it;
@@ -238,34 +231,14 @@ CmdLineParser::count( const std::string & option_name ) const
 std::ostream &
 CmdLineParser::print( std::ostream & os ) const
 {
-    for ( const std::string & v : M_args )
+    for ( std::list< std::string >::const_iterator it = M_args.begin();
+          it != M_args.end();
+          ++it )
     {
-        os << v << ' ';
+        os << *it << ' ';
     }
 
-    return os;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-std::ostream &
-CmdLineParser::printOptionNameArgs( std::ostream & os,
-                                    const char sep ) const
-{
-    for ( const std::string & v : M_args )
-    {
-        if ( ! v.compare( 0, 2, "--" )
-             || ( v.length() > 1
-                  && v.at( 0 ) == '-' )
-             )
-        {
-            os << v << sep;
-        }
-    }
-
-    return os;
+    return os << std::flush;
 }
 
 }

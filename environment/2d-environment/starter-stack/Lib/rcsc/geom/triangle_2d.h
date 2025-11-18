@@ -53,7 +53,7 @@ private:
     Vector2D M_c; //!< third vertex point
 
     //! not used
-    Triangle2D() = delete;
+    Triangle2D();
 public:
     /*!
       \brief constructor with variables
@@ -64,9 +64,9 @@ public:
     Triangle2D( const Vector2D & v1,
                 const Vector2D & v2,
                 const Vector2D & v3 )
-        : M_a( v1 ),
-          M_b( v2 ),
-          M_c( v3 )
+        : M_a( v1 )
+        , M_b( v2 )
+        , M_c( v3 )
       { }
 
     /*!
@@ -76,9 +76,9 @@ public:
     */
     Triangle2D( const Segment2D & seg,
                 const Vector2D & v )
-        : M_a( seg.origin() ),
-          M_b( seg.terminal() ),
-          M_c( v )
+        : M_a( seg.origin() )
+        , M_b( seg.terminal() )
+        , M_c( v )
       { }
 
     /*!
@@ -88,9 +88,10 @@ public:
       \param v3 third vertex point
       \return const reference to itself
     */
-    const Triangle2D & assign( const Vector2D & v1,
-                               const Vector2D & v2,
-                               const Vector2D & v3 )
+    const
+    Triangle2D & assign( const Vector2D & v1,
+                         const Vector2D & v2,
+                         const Vector2D & v3 )
       {
           M_a = v1;
           M_b = v2;
@@ -118,8 +119,9 @@ public:
       \param v third vertex point
       \return const reference to itself
     */
-    const Triangle2D & assign( const Segment2D & seg,
-                               const Vector2D & v )
+    const
+    Triangle2D & assign( const Segment2D & seg,
+                         const Vector2D & v )
       {
           M_a = seg.origin();
           M_b = seg.terminal();
@@ -131,7 +133,8 @@ public:
       \brief get 1st point
       \return const reference to the member variable
      */
-    const Vector2D & a() const
+    const
+    Vector2D & a() const
       {
           return M_a;
       }
@@ -140,7 +143,8 @@ public:
       \brief get 2nd point
       \return const reference to the member variable
      */
-    const Vector2D & b() const
+    const
+    Vector2D & b() const
       {
           return M_b;
       }
@@ -149,7 +153,8 @@ public:
       \brief get 3rd point
       \return const reference to the member variable
      */
-    const Vector2D & c() const
+    const
+    Vector2D & c() const
       {
           return M_c;
       }

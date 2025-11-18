@@ -35,7 +35,6 @@
 #include <rcsc/rcg/types.h>
 
 #include <string>
-#include <vector>
 
 namespace rcsc {
 namespace rcg {
@@ -48,31 +47,24 @@ namespace rcg {
 */
 class Handler {
 private:
-
-    //! RCG version number
+    //! RCG version number(1-3, default:0)
     int M_log_version;
 
-    //! server version (available only in json)
-    std::string M_server_version;
-    //! timestamp (available only in json)
-    std::string M_timestamp;
-
-    //! last handled game time
-    int M_read_time;
-
 protected:
-
     /*!
-      \brief default constructor. log version and time are set to zero.
+      \brief default constructor. log version is set to zero
     */
-    Handler();
+    Handler()
+        : M_log_version( 0 )
+      { }
 
 public:
     /*!
       \brief virtual destructor
     */
     virtual
-    ~Handler();
+    ~Handler()
+      { }
 
     /*!
       \brief records rcg version
@@ -103,166 +95,110 @@ public:
       }
 
     /*!
-      \brief update the server version information
-      \param version string
-      \return result status
-     */
+      \brief (pure virtual) handle dispinfo_t
+      \param info handled data
+      \return handled result
+    */
     virtual
-    bool handleServerVersion( const std::string & version )
-      {
-          M_server_version = version;
-          return true;
-      }
+    bool handleDispInfo( const dispinfo_t & info ) = 0;
 
     /*!
-      \brief get the server version string
-      \return server version string
-     */
-    const std::string & serverVersion() const
-      {
-          return M_server_version;
-      }
-
-    /*!
-      \brief update the time stamp information
-      \param timestamp string
-      \return result status
-     */
-    bool handleTimestamp( const std::string & timestamp )
-      {
-          M_timestamp = timestamp;
-          return true;
-      }
-
-    /*!
-      \brief get the time stamp string
-      \return time stamp  string
-     */
-    const std::string & timestamp() const
-      {
-          return M_timestamp;
-      }
-
-    //
-    // old version handers
-    // all data are automatically converted to the intermediate format.
-    //
-
-    /*!
-      \brief handle dispinfo_t.
-      \param info new data
-      \return result status
-    */
-    bool handleDispInfo( const dispinfo_t & info );
-
-    /*!
-      \brief handle dispinfo_t2.
-      \param info new data
-      \return result status
-    */
-    bool handleDispInfo2( const dispinfo_t2 & info );
-
-    /*!
-      \brief handle showinfo_t
+      \brief (pure virtual) handle showinfo_t
       \param info handled data
-      \return result status
+      \return handled result
     */
-    bool handleShowInfo( const showinfo_t & info );
+    virtual
+    bool handleShowInfo( const showinfo_t & info ) = 0;
 
     /*!
-      \brief handle showinfo_t2
+      \brief (pure virtual) handle short_showinfo_t
       \param info handled data
-      \return result status
+      \return handled result
     */
-    bool handleShowInfo2( const showinfo_t2 & info );
+    virtual
+    bool handleShortShowInfo2( const short_showinfo_t2 & info ) = 0;
 
+    //! virtual method
     /*!
-      \brief handle short_showinfo_t.
-      \param info handled data
-      \return result status
-    */
-    bool handleShortShowInfo2( const short_showinfo_t2 & info );
-
-    /*!
-      \brief handle msginfo_t
+      \brief (pure virtual) handle msginfo_t
       \param board handled message type
       \param msg handled message data
-      \return result status
+      \return handled result
     */
-    bool handleMsgInfo( const Int16 board,
-                        const std::string & msg );
+    virtual
+    bool handleMsgInfo( Int16 board,
+                        const std::string & msg ) = 0;
 
     /*!
-      \brief handle drawinfo_t
-      \param draw new data
-      \return result status
-    */
-    bool handleDrawInfo( const drawinfo_t & draw );
-
-    /*!
-      \brief handle playmode
+      \brief (pure virtual) handle playmode
       \param playmode handled playmode character
-      \return result status
+      \return handled result
     */
-    bool handlePlayMode( char playmode );
+    virtual
+    bool handlePlayMode( char playmode ) = 0;
 
     /*!
-      \brief handle team data
-      \param team_l left team data
-      \param team_r right team data
-      \return result status
+      \brief (pure virtual) handle team data
+      \param team_left left team data
+      \param team_right right team data
+      \return handled result
     */
-    bool handleTeamInfo( const team_t & team_l,
-                         const team_t & team_r );
+    virtual
+    bool handleTeamInfo( const team_t & team_left,
+                         const team_t & team_right ) = 0;
 
     /*!
-      \brief handle player_type_t
-      \param type binary data
-      \return result status
+      \brief (pure virtual) handle player_type_t
+      \param type handled data
+      \return handled result
     */
-    bool handlePlayerType( const player_type_t & type );
+    virtual
+    bool handlePlayerType( const player_type_t & type ) = 0;
 
     /*!
-      \brief handle server_params_t
-      \param param binary data
-      \return result status
+      \brief (pure virtual) handle server_params_t
+      \param param handled data
+      \return handled result
     */
-    bool handleServerParam( const server_params_t & param );
+    virtual
+    bool handleServerParam( const server_params_t & param ) = 0;
 
     /*!
-      \brief handle player_params_t
-      \param param binary data
-      \return result status
+      \brief (pure virtual) handle player_params_t
+      \param param handled data
+      \return handled result
     */
-    bool handlePlayerParam( const player_params_t & param );
+    virtual
+    bool handlePlayerParam( const player_params_t & param ) = 0;
 
     /*!
       \brief (pure virtual) handle end of file
-      \return result status
+      \return handled result
     */
     virtual
     bool handleEOF() = 0;
 
 
     //
-    // version 4, 5
+    // version 4
     //
 
     /*!
       \brief (pure virtual) handle the start of show info v4
       \param time game time of handled show info
       \param show read data
-      \return result status
+      \return handled result
      */
     virtual
-    bool handleShow( const ShowInfoT & show ) = 0;
+    bool handleShow( const int time,
+                     const ShowInfoT & show ) = 0;
 
     /*!
       \brief (pure virtual) handle msg info
       \param time game time of handled msg info
       \param board message board type
-      \param msg new data
-      \return result status
+      \param msg read data
+      \return handled result
      */
     virtual
     bool handleMsg( const int time,
@@ -270,20 +206,10 @@ public:
                     const std::string & msg ) = 0;
 
     /*!
-      \brief (pure virtual) handle draw info
-      \param time game time of handled data
-      \param draw new data
-      \return result status
-     */
-    virtual
-    bool handleDraw( const int time,
-                     const drawinfo_t & draw ) = 0;
-
-    /*!
       \brief handle playmode
       \param time game time of handled playmode info
       \param pm playmode id
-      \return result status
+      \return handled result
      */
     virtual
     bool handlePlayMode( const int time,
@@ -294,7 +220,7 @@ public:
       \param time game time of handled team info
       \param team_l left team info
       \param team_r right team info
-      \return result status
+      \return handled result
     */
     virtual
     bool handleTeam( const int time,
@@ -303,50 +229,27 @@ public:
 
     /*!
       \brief handle server_param message
-      \param param parameter holder
-      \return result status
+      \param msg raw message string
+      \return handled result
     */
     virtual
-    bool handleServerParam( const ServerParamT & param ) = 0;
+    bool handleServerParam( const std::string & msg ) = 0;
 
     /*!
       \brief handle player_param message
-      \param param parameter holder
-      \return result status
+      \param msg raw message string
+      \return handled result
     */
     virtual
-    bool handlePlayerParam( const PlayerParamT & param ) = 0;
+    bool handlePlayerParam( const std::string & msg ) = 0;
 
     /*!
       \brief handle player_type message
-      \param param parameter holder
-      \return result status
-    */
-    virtual
-    bool handlePlayerType( const PlayerTypeT & param ) = 0;
-
-    /*!
-      \brief handle team_graphic message
       \param msg raw message string
-      \return result status
+      \return handled result
     */
     virtual
-    bool handleTeamGraphic( const char side,
-                            const int x,
-                            const int y,
-                            const std::vector< std::string > & xpm_data ) = 0;
-
-    //
-    //
-    //
-
-    /*!
-      \brief wrapper of handlePlayMode(int,PlayMode)
-      \param playmode playmode name
-      \return result status
-    */
-    bool handlePlayMode( const int time,
-                         const std::string & playmode );
+    bool handlePlayerType( const std::string & msg ) = 0;
 
 };
 

@@ -66,7 +66,6 @@ public:
         // support commands
         TURN_NECK,
         CHANGE_VIEW,
-        CHANGE_FOCUS,
         SAY,
         POINTTO,
         ATTENTIONTO,
@@ -111,7 +110,7 @@ public:
       \return reference to the output stream
     */
     virtual
-    std::ostream & toCommandString( std::ostream & to ) const = 0;
+    std::ostream & toStr( std::ostream & to ) const = 0;
 
     /*!
       \brief get command name (pure virtual)
@@ -166,7 +165,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -219,7 +218,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -266,7 +265,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -315,7 +314,7 @@ public:
       \return reference to the output stream
     */
     virtual
-    std::ostream & toCommandString( std::ostream & to ) const = 0;
+    std::ostream & toStr( std::ostream & to ) const = 0;
 
     /*!
       \brief get command name (pure virtual)
@@ -325,81 +324,6 @@ public:
     std::string name() const = 0;
 
 };
-
-#if 0
-//////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////
-
-/*!
-  \class PlayerLegCommand
-  \brief abstract leg command
-*/
-class PlayerLegCommand
-    : public PlayerCommand {
-public:
-    enum Side {
-        LEFT,
-        RIGHT,
-    };
-
-
-private:
-
-
-    Side M_side; //!< left or right flag
-
-    // not used
-    PlayerLegCommand() = delete;
-
-protected:
-
-    /*!
-      \brief the default constructor is protected.
-    */
-    explicit
-    PlayerLegCommand( Side side )
-        : M_side( side )
-      { }
-
-public:
-
-    virtual
-    ~PlayerLegCommand()
-      { }
-
-    /*!
-      \brief get command type (pure virtual)
-      \return command type Id
-    */
-    virtual
-    Type type() const = 0;
-
-    /*!
-      \brief put command string to ostream (pure virtual)
-      \param to reference to the output stream
-      \return reference to the output stream
-    */
-    virtual
-    std::ostream & toCommandString( std::ostream & to ) const = 0;
-
-    /*!
-      \brief get command name (pure virtual)
-      \return command name string
-    */
-    virtual
-    std::string name() const = 0;
-
-    /*!
-     \brief get the side flag
-     \return return the side flag valeu
-    */
-    Side side() const
-      {
-          return M_side;
-      }
-};
-#endif
 
 //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////
@@ -445,7 +369,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -483,50 +407,18 @@ class PlayerDashCommand
 private:
     double M_power; //!< dash power
     double M_dir; //!< dash direction
-
-    bool M_two_legs;
-    double M_left_power; //!< dash power for the left leg
-    double M_left_dir; //!< dash dir for the left leg
-    double M_right_power; //!< dash power for the right leg
-    double M_right_dir; //!< dash dir for the right leg
 public:
     /*!
-      \brief construct dash command
+      \brief construct with dash power
       \param power dash power
       \param dir dash direction
     */
     explicit
-    PlayerDashCommand( const double power,
-                       const double dir = 0.0 )
-        : M_power( power ),
-          M_dir( dir ),
-          M_two_legs( false ),
-          M_left_power( 0.0 ),
-          M_left_dir( 0.0 ),
-          M_right_power( 0.0 ),
-          M_right_dir( 0.0 )
+    PlayerDashCommand( const double & power,
+                       const double & dir = 0.0 )
+        : M_power( power )
+        , M_dir( dir )
       { }
-
-    /*!
-      \brief construct dash command for each leg
-      \param left_power dash power for the left leg
-      \param left_dir dash direction for the left leg
-      \param right_power dash power for the right leg
-      \param right_dir dash direction for the right leg
-    */
-    PlayerDashCommand( const double left_power,
-                       const double left_dir,
-                       const double right_power,
-                       const double right_dir )
-        : M_power( 0.0 ),
-          M_dir( 0.0 ),
-          M_two_legs( true ),
-          M_left_power( left_power ),
-          M_left_dir( left_dir ),
-          M_right_power( right_power ),
-          M_right_dir( right_dir )
-      { }
-
 
     /*!
       \brief get command type
@@ -542,7 +434,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -571,83 +463,6 @@ public:
           return M_dir;
       }
 };
-
-#if 0
-//////////////////////////////////////////////////////////////////////
-/*!
-  \class PlayerDashCommand
-  \brief player's dash command
-
-  <pre>
-  Format:
-  <- (dash <power> <dir>)
-  <- (dash (<lr> <power> <dir>))
-  </pre>
-*/
-class PlayerLegDashCommand
-    : public PlayerLegCommand {
-private:
-    double M_power; //!< dash power
-    double M_dir; //!< dash direction
-public:
-    /*!
-      \brief construct with parameters
-      \param side leg side
-      \param power dash power
-      \param dir dash direction
-    */
-    PlayerLegDashCommand( const Side side,
-                          const double power,
-                          const double dir )
-        : PlayerLegCommand( side ),
-          M_power( power ),
-          M_dir( dir )
-      { }
-
-    /*!
-      \brief get command type
-      \return command type Id
-    */
-    Type type() const
-      {
-          return DASH;
-      }
-
-    /*!
-      \brief put command string to ostream
-      \param to reference to the output stream
-      \return reference to the output stream
-    */
-    std::ostream & toCommandString( std::ostream & to ) const;
-
-    /*!
-      \brief get command name
-      \return command name string
-    */
-    std::string name() const
-      {
-          return std::string( "dash" );
-      }
-
-    /*!
-      \brief get dash command parameter
-      \return dash power
-     */
-    double dashPower() const
-      {
-          return M_power;
-      }
-
-    /*!
-      \brief get dash command parameter
-      \return dash direction
-     */
-    double dashDir() const
-      {
-          return M_dir;
-      }
-};
-#endif
 
 //////////////////////////////////////////////////////////////////////
 /*!
@@ -687,7 +502,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -750,7 +565,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -818,7 +633,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -886,7 +701,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -949,7 +764,7 @@ public:
       \return reference to the output stream
     */
     virtual
-    std::ostream & toCommandString( std::ostream & to ) const = 0;
+    std::ostream & toStr( std::ostream & to ) const = 0;
 
     /*!
       \brief get command name (pure virtual)
@@ -999,7 +814,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -1039,16 +854,20 @@ class PlayerChangeViewCommand
 private:
     ViewWidth M_width; //!< view width
     ViewQuality M_quality; //!< view quality
+    double M_version; //!< client version
 public:
     /*!
       \brief construct with view mode objects
       \param w view width object
       \param q view quality object
+      \param version client version
     */
     PlayerChangeViewCommand( const ViewWidth & w,
-                             const ViewQuality & q )
+                             const ViewQuality & q,
+                             const double & version = 8.0 )
         : M_width( w )
         , M_quality( q )
+        , M_version( version )
       { }
 
     /*!
@@ -1065,7 +884,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command paramter
@@ -1095,81 +914,6 @@ public:
       {
           return M_quality;
       }
-};
-
-//////////////////////////////////////////////////////////////////////
-/*!
-  \class PlayerChangeFocusCommand
-  \brief player's change focus command
-
-  <pre>
-  Format:
-  <- (change_focus <moment_dist> <moment_dir>)
-  </pre>
-*/
-class PlayerChangeFocusCommand
-    : public PlayerSupportCommand {
-private:
-    double M_moment_dist; //!< this value is added to the current focus distance, and the result is limited to [0.0, 40.0].
-    double M_moment_dir; //!< this value is added to the current focus direction, and the result is limited to visible angle.
-
-    PlayerChangeFocusCommand() = delete; // not used
-public:
-
-    /*!
-      \brief construct with command parameters
-      \param moment_dist moment for the distance
-      \param moment_dir moment for the direction
-     */
-    PlayerChangeFocusCommand( const double moment_dist,
-                              const double moment_dir )
-        : M_moment_dist( moment_dist ),
-          M_moment_dir( moment_dir )
-      { }
-
-    /*!
-      \brief get command type
-      \return command type Id
-    */
-    Type type() const
-      {
-          return CHANGE_FOCUS;
-      }
-
-    /*!
-      \brief put command string to ostream
-      \param to reference to the output stream
-      \return reference to the output stream
-    */
-    std::ostream & toCommandString( std::ostream & to ) const;
-
-    /*!
-      \brief get thencommand name
-      \return command name string
-    */
-    std::string name() const
-      {
-          return std::string( "change_focus" );
-      }
-
-    /*!
-      \brief get the command parameter
-      \return the value of moment distance
-    */
-    double momentDist() const
-      {
-          return M_moment_dist;
-      }
-
-    /*!
-      \brief get the command parameter
-      \return the value of moment direction
-    */
-    double momentDir() const
-      {
-          return M_moment_dir;
-      }
-
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -1234,7 +978,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command paramter
@@ -1328,7 +1072,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command paramter
@@ -1432,7 +1176,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command paramter
@@ -1514,7 +1258,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command paramter
@@ -1641,7 +1385,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command paramter
@@ -1719,7 +1463,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command paramter
@@ -1769,7 +1513,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command paramter
@@ -1822,7 +1566,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command paramter
@@ -1879,7 +1623,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command paramter

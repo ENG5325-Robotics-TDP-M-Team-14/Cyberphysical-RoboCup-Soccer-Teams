@@ -37,7 +37,8 @@
 #include <rcsc/player/world_model.h>
 #include <rcsc/math_util.h>
 
-#include <memory>
+#include <boost/shared_ptr.hpp>
+
 #include <vector>
 #include <algorithm>
 #include <cmath>
@@ -50,8 +51,8 @@ namespace rcsc {
 */
 class PlayerPredicate {
 public:
-    typedef std::shared_ptr< PlayerPredicate > Ptr; //!< smart pointer type
-    typedef std::shared_ptr< const PlayerPredicate > ConstPtr; //!< const smart pointer type
+    typedef boost::shared_ptr< PlayerPredicate > Ptr; //!< smart pointer type
+    typedef boost::shared_ptr< const PlayerPredicate > ConstPtr; //!< const smart pointer type
 
 protected:
     /*!
@@ -81,7 +82,7 @@ public:
       \return cloned object.
      */
     virtual
-    Ptr clone() const = 0;
+    PlayerPredicate * clone() const = 0;
 };
 
 /*!
@@ -95,7 +96,7 @@ private:
     std::vector< PlayerPredicate::ConstPtr > M_predicates;
 
     // not used
-    AndPlayerPredicate() = delete;
+    AndPlayerPredicate();
 public:
     // XXX: implicit_shared_ptr
 
@@ -109,8 +110,8 @@ public:
         : M_predicates()
       {
           M_predicates.reserve( 2 );
-          M_predicates.push_back( ConstPtr( p1 ) );
-          M_predicates.push_back( ConstPtr( p2 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p1 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p2 ) );
       }
 
     /*!
@@ -125,9 +126,9 @@ public:
         : M_predicates()
       {
           M_predicates.reserve( 3 );
-          M_predicates.push_back( ConstPtr( p1 ) );
-          M_predicates.push_back( ConstPtr( p2 ) );
-          M_predicates.push_back( ConstPtr( p3 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p1 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p2 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p3 ) );
       }
 
     /*!
@@ -144,10 +145,10 @@ public:
         : M_predicates()
       {
           M_predicates.reserve( 4 );
-          M_predicates.push_back( ConstPtr( p1 ) );
-          M_predicates.push_back( ConstPtr( p2 ) );
-          M_predicates.push_back( ConstPtr( p3 ) );
-          M_predicates.push_back( ConstPtr( p4 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p1 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p2 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p3 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p4 ) );
       }
 
     /*!
@@ -166,11 +167,11 @@ public:
         : M_predicates()
       {
           M_predicates.reserve( 5 );
-          M_predicates.push_back( ConstPtr( p1 ) );
-          M_predicates.push_back( ConstPtr( p2 ) );
-          M_predicates.push_back( ConstPtr( p3 ) );
-          M_predicates.push_back( ConstPtr( p4 ) );
-          M_predicates.push_back( ConstPtr( p5 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p1 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p2 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p3 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p4 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p5 ) );
       }
 
     /*!
@@ -191,12 +192,12 @@ public:
         : M_predicates()
       {
           M_predicates.reserve( 6 );
-          M_predicates.push_back( ConstPtr( p1 ) );
-          M_predicates.push_back( ConstPtr( p2 ) );
-          M_predicates.push_back( ConstPtr( p3 ) );
-          M_predicates.push_back( ConstPtr( p4 ) );
-          M_predicates.push_back( ConstPtr( p5 ) );
-          M_predicates.push_back( ConstPtr( p6 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p1 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p2 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p3 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p4 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p5 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p6 ) );
       }
 
     /*!
@@ -219,13 +220,13 @@ public:
         : M_predicates()
       {
           M_predicates.reserve( 7 );
-          M_predicates.push_back( ConstPtr( p1 ) );
-          M_predicates.push_back( ConstPtr( p2 ) );
-          M_predicates.push_back( ConstPtr( p3 ) );
-          M_predicates.push_back( ConstPtr( p4 ) );
-          M_predicates.push_back( ConstPtr( p5 ) );
-          M_predicates.push_back( ConstPtr( p6 ) );
-          M_predicates.push_back( ConstPtr( p7 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p1 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p2 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p3 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p4 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p5 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p6 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p7 ) );
       }
 
     /*!
@@ -250,14 +251,14 @@ public:
         : M_predicates()
       {
           M_predicates.reserve( 8 );
-          M_predicates.push_back( ConstPtr( p1 ) );
-          M_predicates.push_back( ConstPtr( p2 ) );
-          M_predicates.push_back( ConstPtr( p3 ) );
-          M_predicates.push_back( ConstPtr( p4 ) );
-          M_predicates.push_back( ConstPtr( p5 ) );
-          M_predicates.push_back( ConstPtr( p6 ) );
-          M_predicates.push_back( ConstPtr( p7 ) );
-          M_predicates.push_back( ConstPtr( p8 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p1 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p2 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p3 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p4 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p5 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p6 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p7 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p8 ) );
       }
 
 private:
@@ -265,7 +266,7 @@ private:
       \brief construct with children predicates container.
       \param predicates predicates container.
      */
-    AndPlayerPredicate( const std::vector< ConstPtr > & predicates )
+    AndPlayerPredicate( const std::vector< PlayerPredicate::ConstPtr > & predicates )
         : M_predicates( predicates )
       { }
 
@@ -278,9 +279,13 @@ public:
     */
     bool operator()( const AbstractPlayerObject & p ) const
       {
-          for ( const ConstPtr & pred : M_predicates )
+          for ( std::vector< PlayerPredicate::ConstPtr >::const_iterator
+                    it = M_predicates.begin(),
+                    end = M_predicates.end();
+                it != end;
+                ++it )
           {
-              if ( ! (*pred)( p ) )
+              if ( ! (**it)( p ) )
               {
                   return false;
               }
@@ -293,9 +298,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new AndPlayerPredicate( M_predicates ) );
+          return new AndPlayerPredicate( M_predicates );
       }
 };
 
@@ -307,10 +312,10 @@ class OrPlayerPredicate
     : public PlayerPredicate {
 private:
     //! the set of predicate
-    std::vector< ConstPtr > M_predicates;
+    std::vector< PlayerPredicate::ConstPtr > M_predicates;
 
     // not used
-    OrPlayerPredicate() = delete;
+    OrPlayerPredicate();
 public:
     // XXX: implicit_shared_ptr
 
@@ -323,8 +328,8 @@ public:
                        const PlayerPredicate * p2 )
         : M_predicates()
       {
-          M_predicates.push_back( ConstPtr( p1 ) );
-          M_predicates.push_back( ConstPtr( p2 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p1 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p2 ) );
       }
 
     /*!
@@ -338,9 +343,9 @@ public:
                        const PlayerPredicate * p3 )
         : M_predicates()
       {
-          M_predicates.push_back( ConstPtr( p1 ) );
-          M_predicates.push_back( ConstPtr( p2 ) );
-          M_predicates.push_back( ConstPtr( p3 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p1 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p2 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p3 ) );
       }
 
     /*!
@@ -356,10 +361,10 @@ public:
                        const PlayerPredicate * p4 )
         : M_predicates()
       {
-          M_predicates.push_back( ConstPtr( p1 ) );
-          M_predicates.push_back( ConstPtr( p2 ) );
-          M_predicates.push_back( ConstPtr( p3 ) );
-          M_predicates.push_back( ConstPtr( p4 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p1 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p2 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p3 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p4 ) );
       }
 
     /*!
@@ -377,11 +382,11 @@ public:
                        const PlayerPredicate * p5 )
         : M_predicates()
       {
-          M_predicates.push_back( ConstPtr( p1 ) );
-          M_predicates.push_back( ConstPtr( p2 ) );
-          M_predicates.push_back( ConstPtr( p3 ) );
-          M_predicates.push_back( ConstPtr( p4 ) );
-          M_predicates.push_back( ConstPtr( p5 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p1 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p2 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p3 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p4 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p5 ) );
       }
 
     /*!
@@ -401,12 +406,12 @@ public:
                        const PlayerPredicate * p6 )
         : M_predicates()
       {
-          M_predicates.push_back( ConstPtr( p1 ) );
-          M_predicates.push_back( ConstPtr( p2 ) );
-          M_predicates.push_back( ConstPtr( p3 ) );
-          M_predicates.push_back( ConstPtr( p4 ) );
-          M_predicates.push_back( ConstPtr( p5 ) );
-          M_predicates.push_back( ConstPtr( p6 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p1 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p2 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p3 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p4 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p5 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p6 ) );
       }
 
     /*!
@@ -428,13 +433,13 @@ public:
                        const PlayerPredicate * p7 )
         : M_predicates()
       {
-          M_predicates.push_back( ConstPtr( p1 ) );
-          M_predicates.push_back( ConstPtr( p2 ) );
-          M_predicates.push_back( ConstPtr( p3 ) );
-          M_predicates.push_back( ConstPtr( p4 ) );
-          M_predicates.push_back( ConstPtr( p5 ) );
-          M_predicates.push_back( ConstPtr( p6 ) );
-          M_predicates.push_back( ConstPtr( p7 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p1 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p2 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p3 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p4 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p5 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p6 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p7 ) );
       }
 
     /*!
@@ -458,14 +463,14 @@ public:
                        const PlayerPredicate * p8 )
         : M_predicates()
       {
-          M_predicates.push_back( ConstPtr( p1 ) );
-          M_predicates.push_back( ConstPtr( p2 ) );
-          M_predicates.push_back( ConstPtr( p3 ) );
-          M_predicates.push_back( ConstPtr( p4 ) );
-          M_predicates.push_back( ConstPtr( p5 ) );
-          M_predicates.push_back( ConstPtr( p6 ) );
-          M_predicates.push_back( ConstPtr( p7 ) );
-          M_predicates.push_back( ConstPtr( p8 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p1 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p2 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p3 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p4 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p5 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p6 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p7 ) );
+          M_predicates.push_back( PlayerPredicate::ConstPtr( p8 ) );
       }
 
 private:
@@ -473,7 +478,7 @@ private:
       \brief construct with children predicates container.
       \param predicates predicates container.
      */
-    OrPlayerPredicate( const std::vector< ConstPtr > & predicates )
+    OrPlayerPredicate( const std::vector< PlayerPredicate::ConstPtr > & predicates )
         : M_predicates( predicates )
       { }
 
@@ -486,9 +491,13 @@ public:
     */
     bool operator()( const AbstractPlayerObject & p ) const
       {
-          for ( const ConstPtr & pred : M_predicates )
+          for ( std::vector< PlayerPredicate::ConstPtr >::const_iterator
+                    it = M_predicates.begin(),
+                    end = M_predicates.end();
+                it != end;
+                ++it )
           {
-              if ( (*pred)( p ) )
+              if ( (**it)( p ) )
               {
                   return true;
               }
@@ -501,9 +510,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new OrPlayerPredicate( M_predicates ) );
+          return new OrPlayerPredicate( M_predicates );
       }
 };
 
@@ -515,11 +524,12 @@ class NotPlayerPredicate
     : public PlayerPredicate {
 private:
     //! predicate instance
-    ConstPtr M_predicate;
+    PlayerPredicate::ConstPtr M_predicate;
 
     // not used
-    NotPlayerPredicate() = delete;
+    NotPlayerPredicate();
 public:
+    // XXX: implicit_shared_ptr
 
     /*!
       \brief construct with the predicate. argument must be a dynamically allocated object.
@@ -535,7 +545,7 @@ public:
       \param predicate pointer to the predicate instance
     */
     explicit
-    NotPlayerPredicate( ConstPtr predicate )
+    NotPlayerPredicate( PlayerPredicate::ConstPtr predicate )
         : M_predicate( predicate )
       { }
 
@@ -553,9 +563,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new NotPlayerPredicate( M_predicate ) );
+          return new NotPlayerPredicate( M_predicate );
       }
 };
 
@@ -572,7 +582,7 @@ private:
     const int M_self_unum;
 
     // not used
-    SelfPlayerPredicate() = delete;
+    SelfPlayerPredicate();
 public:
     /*!
       \brief construct with the WorldModel instance
@@ -580,8 +590,8 @@ public:
     */
     explicit
     SelfPlayerPredicate( const WorldModel & wm )
-        : M_our_side( wm.ourSide() ),
-          M_self_unum( wm.self().unum() )
+        : M_our_side( wm.ourSide() )
+        , M_self_unum( wm.self().unum() )
       { }
 
     /*!
@@ -592,8 +602,8 @@ public:
     explicit
     SelfPlayerPredicate( const SideID our_side,
                          const int self_unum )
-        : M_our_side( our_side ),
-          M_self_unum( self_unum )
+        : M_our_side( our_side )
+        , M_self_unum( self_unum )
       { }
 
     /*!
@@ -611,9 +621,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new SelfPlayerPredicate( M_our_side, M_self_unum ) );
+          return new SelfPlayerPredicate( M_our_side, M_self_unum );
       }
 };
 
@@ -628,7 +638,7 @@ private:
     const SideID M_our_side;
 
     // not used
-    TeammateOrSelfPlayerPredicate() = delete;
+    TeammateOrSelfPlayerPredicate();
 public:
     /*!
       \brief construct with the WorldModel instance
@@ -659,9 +669,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new TeammateOrSelfPlayerPredicate( M_our_side ) );
+          return new TeammateOrSelfPlayerPredicate( M_our_side );
       }
 };
 
@@ -678,7 +688,7 @@ private:
     const int M_self_unum;
 
     // not used
-    TeammatePlayerPredicate() = delete;
+    TeammatePlayerPredicate();
 public:
     /*!
       \brief construct with the WorldModel instance
@@ -717,9 +727,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new TeammatePlayerPredicate( M_our_side, M_self_unum ) );
+          return new TeammatePlayerPredicate( M_our_side, M_self_unum );
       }
 };
 
@@ -734,7 +744,7 @@ private:
     const SideID M_our_side;
 
     // not used
-    OpponentPlayerPredicate() = delete;
+    OpponentPlayerPredicate();
 public:
     /*!
       \brief construct with the WorldModel instance
@@ -769,9 +779,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new OpponentPlayerPredicate( M_our_side ) );
+          return new OpponentPlayerPredicate( M_our_side );
       }
 };
 
@@ -786,7 +796,7 @@ private:
     const SideID M_our_side;
 
     // not used
-    OpponentOrUnknownPlayerPredicate() = delete;
+    OpponentOrUnknownPlayerPredicate();
 public:
     /*!
       \brief construct with the WorldModel instance
@@ -820,9 +830,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new OpponentOrUnknownPlayerPredicate( M_our_side ) );
+          return new OpponentOrUnknownPlayerPredicate( M_our_side );
       }
 };
 
@@ -848,9 +858,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new GoaliePlayerPredicate() );
+          return new GoaliePlayerPredicate();
       }
 };
 
@@ -876,9 +886,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new FieldPlayerPredicate() );
+          return new FieldPlayerPredicate();
       }
 };
 
@@ -893,7 +903,7 @@ private:
     const int M_threshold;
 
     // not used
-    CoordinateAccuratePlayerPredicate() = delete;
+    CoordinateAccuratePlayerPredicate();
 public:
     /*!
       \brief construct with threshold value
@@ -918,9 +928,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new CoordinateAccuratePlayerPredicate( M_threshold ) );
+          return new CoordinateAccuratePlayerPredicate( M_threshold );
       }
 };
 
@@ -948,9 +958,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new GhostPlayerPredicate() );
+          return new GhostPlayerPredicate();
       }
 };
 
@@ -965,7 +975,7 @@ private:
     const int M_threshold;
 
     // not used
-    NoGhostPlayerPredicate() = delete;
+    NoGhostPlayerPredicate();
 public:
     /*!
       \brief construct with threshold value
@@ -991,9 +1001,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new NoGhostPlayerPredicate( M_threshold ) );
+          return new NoGhostPlayerPredicate( M_threshold );
       }
 };
 
@@ -1008,7 +1018,7 @@ private:
     const double M_threshold;
 
     // not used
-    XCoordinateForwardPlayerPredicate() = delete;
+    XCoordinateForwardPlayerPredicate();
 public:
     /*!
       \brief construct with threshold value
@@ -1033,9 +1043,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new XCoordinateForwardPlayerPredicate( M_threshold ) );
+          return new XCoordinateForwardPlayerPredicate( M_threshold );
       }
 };
 
@@ -1050,7 +1060,7 @@ private:
     const double M_threshold;
 
     // not used
-    XCoordinateBackwardPlayerPredicate() = delete;
+    XCoordinateBackwardPlayerPredicate();
 public:
     /*!
       \brief construct with threshold value
@@ -1075,9 +1085,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new XCoordinateBackwardPlayerPredicate( M_threshold ) );
+          return new XCoordinateBackwardPlayerPredicate( M_threshold );
       }
 };
 
@@ -1092,7 +1102,7 @@ private:
     const double M_threshold;
 
     // not used
-    YCoordinatePlusPlayerPredicate() = delete;
+    YCoordinatePlusPlayerPredicate();
 public:
     /*!
       \brief construct with threshold value
@@ -1117,9 +1127,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new YCoordinatePlusPlayerPredicate( M_threshold ) );
+          return new YCoordinatePlusPlayerPredicate( M_threshold );
       }
 };
 
@@ -1134,7 +1144,7 @@ private:
     const double M_threshold;
 
     // not used
-    YCoordinateMinusPlayerPredicate() = delete;
+    YCoordinateMinusPlayerPredicate();
 public:
     /*!
       \brief construct with threshold value
@@ -1159,9 +1169,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new YCoordinateMinusPlayerPredicate( M_threshold ) );
+          return new YCoordinateMinusPlayerPredicate( M_threshold );
       }
 };
 
@@ -1178,7 +1188,7 @@ private:
     const double M_threshold2;
 
     // not used
-    PointFarPlayerPredicate() = delete;
+    PointFarPlayerPredicate();
 public:
     /*!
       \brief construct with base point and threshold distance
@@ -1205,9 +1215,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new PointFarPlayerPredicate( M_base_point, M_threshold2 ) );
+          return new PointFarPlayerPredicate( M_base_point, M_threshold2 );
       }
 };
 
@@ -1224,7 +1234,7 @@ private:
     const double M_threshold2;
 
     // not used
-    PointNearPlayerPredicate() = delete;
+    PointNearPlayerPredicate();
 public:
     /*!
       \brief construct with base point and threshold distance
@@ -1233,8 +1243,8 @@ public:
     */
     PointNearPlayerPredicate( const Vector2D & base_point,
                               const double & threshold )
-        : M_base_point( base_point ),
-          M_threshold2( threshold * threshold )
+        : M_base_point( base_point )
+        , M_threshold2( threshold * threshold )
       { }
 
     /*!
@@ -1251,9 +1261,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new PointNearPlayerPredicate( M_base_point, M_threshold2 ) );
+          return new PointNearPlayerPredicate( M_base_point, M_threshold2 );
       }
 };
 
@@ -1272,7 +1282,7 @@ private:
     const double M_threshold;
 
     // not used
-    AbsAngleDiffLessPlayerPredicate() = delete;
+    AbsAngleDiffLessPlayerPredicate();
 public:
     /*!
       \brief construct with base point and threshold distance
@@ -1283,8 +1293,8 @@ public:
     AbsAngleDiffLessPlayerPredicate( const Vector2D & base_point,
                                      const AngleDeg & base_angle,
                                      const double & degree_threshold )
-        : M_base_point( base_point ),
-          M_base_angle( base_angle ),
+        : M_base_point( base_point )
+        , M_base_angle( base_angle ),
           M_threshold( std::fabs( degree_threshold ) )
       { }
 
@@ -1302,9 +1312,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new AbsAngleDiffLessPlayerPredicate( M_base_point, M_base_angle, M_threshold ) );
+          return new AbsAngleDiffLessPlayerPredicate( M_base_point, M_base_angle, M_threshold );
       }
 };
 
@@ -1323,7 +1333,7 @@ private:
     const double M_threshold;
 
     // not used
-    AbsAngleDiffGreaterPlayerPredicate() = delete;
+    AbsAngleDiffGreaterPlayerPredicate();
 public:
     /*!
       \brief construct with base point and threshold distance
@@ -1334,9 +1344,9 @@ public:
     AbsAngleDiffGreaterPlayerPredicate( const Vector2D & base_point,
                                         const AngleDeg & base_angle,
                                         const double & threshold )
-        : M_base_point( base_point ),
-          M_base_angle( base_angle ),
-          M_threshold( std::fabs( threshold ) )
+        : M_base_point( base_point )
+        , M_base_angle( base_angle )
+        , M_threshold( std::fabs( threshold ) )
       { }
 
     /*!
@@ -1353,9 +1363,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new AbsAngleDiffGreaterPlayerPredicate( M_base_point, M_base_angle, M_threshold ) );
+          return new AbsAngleDiffGreaterPlayerPredicate( M_base_point, M_base_angle, M_threshold );
       }
 };
 
@@ -1370,7 +1380,7 @@ private:
     const WorldModel & M_world;
 
     // not used
-    OffsidePositionPlayerPredicate() = delete;
+    OffsidePositionPlayerPredicate();
 public:
     /*!
       \brief construct with the WorldModel instance
@@ -1405,9 +1415,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new OffsidePositionPlayerPredicate( M_world ) );
+          return new OffsidePositionPlayerPredicate( M_world );
       }
 };
 
@@ -1423,7 +1433,7 @@ private:
     const rcsc::WorldModel & M_world;
 
     //! predicate to check players around of the argument player.
-    ConstPtr M_predicate;
+    boost::shared_ptr< const rcsc::PlayerPredicate > M_predicate;
 
     //! squared circle radius
     double M_threshold2;
@@ -1435,12 +1445,12 @@ public:
       \param predicate filter predicate object
       \param threshold distance
     */
-    ExistNearPlayerPlayerPredicate( const WorldModel & wm,
-                                    ConstPtr predicate,
+    ExistNearPlayerPlayerPredicate( const rcsc::WorldModel & wm,
+                                    const rcsc::PlayerPredicate * predicate,
                                     const double & threshold )
-        : M_world( wm ),
-          M_predicate( predicate ),
-          M_threshold2( threshold * threshold )
+        : M_world( wm )
+        , M_predicate( predicate )
+        , M_threshold2( threshold * threshold )
       { }
 
     /*!
@@ -1448,12 +1458,15 @@ public:
       \param p const reference to the target player object
       \return true if target player is within threshold distance from the filtered player.
     */
-    bool operator() ( const AbstractPlayerObject & p ) const
+    bool operator() ( const rcsc::AbstractPlayerObject & p ) const
       {
-          for ( const AbstractPlayerObject * target : M_world.allPlayers() )
+          const rcsc::AbstractPlayerCont::const_iterator end = M_world.allPlayers().end();
+          for ( rcsc::AbstractPlayerCont::const_iterator it = M_world.allPlayers().begin();
+                it != end;
+                ++ it )
           {
-              if ( ( target->pos() - p.pos() ).r2() <= M_threshold2
-                   && (*M_predicate)( *target ) )
+              if ( ( (**it).pos() - p.pos() ).r2() <= M_threshold2
+                   && (*M_predicate)( **it ) )
               {
                   return true;
               }
@@ -1466,11 +1479,11 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new ExistNearPlayerPlayerPredicate( M_world,
-                                                          M_predicate->clone(),
-                                                          std::sqrt( M_threshold2 ) ) );
+          return new ExistNearPlayerPlayerPredicate( M_world,
+                                                     M_predicate->clone(),
+                                                     std::sqrt( M_threshold2 ) );
       }
 };
 
@@ -1509,9 +1522,9 @@ public:
       \brief create clone object.
       \return cloned object.
      */
-    PlayerPredicate::Ptr clone() const
+    PlayerPredicate * clone() const
       {
-          return Ptr( new ContainsPlayerPredicate( M_region ) );
+          return new ContainsPlayerPredicate( M_region );
       }
 };
 

@@ -32,10 +32,14 @@
 #ifndef RCSC_GZ_GZCOMPRESSOR_H
 #define RCSC_GZ_GZCOMPRESSOR_H
 
-#include <memory>
+#include <boost/scoped_ptr.hpp>
+
 #include <string>
 
 namespace rcsc {
+
+class GZCompressorImpl;
+class GZDecompressorImpl;
 
 /*!
   \class GZCompressor
@@ -43,11 +47,9 @@ namespace rcsc {
  */
 class GZCompressor {
 private:
-    //! pimpl
-    struct Impl;
 
     //! implementation object
-    std::unique_ptr< Impl > M_impl;
+    boost::scoped_ptr< GZCompressorImpl > M_impl;
 
 public:
 
@@ -92,11 +94,9 @@ public:
  */
 class GZDecompressor {
 private:
-    //! pimpl
-    struct Impl;
 
     //! implementation object
-    std::unique_ptr< Impl > M_impl;
+    boost::scoped_ptr< GZDecompressorImpl > M_impl;
 
 public:
 

@@ -55,8 +55,8 @@ public:
       \brief default constructor.
     */
     Size2D()
-        : M_length( 0.0 ),
-          M_width( 0.0 )
+        : M_length( 0.0 )
+        , M_width( 0.0 )
       { }
 
     /*!
@@ -64,10 +64,10 @@ public:
       \param length x range
       \param width y range
      */
-    Size2D( const double length,
-            const double width )
-        : M_length( std::fabs( length ) ),
-          M_width( std::fabs( width ) )
+    Size2D( const double & length,
+            const double & width )
+        : M_length( std::fabs( length ) )
+        , M_width( std::fabs( width ) )
       { }
 
     /*!
@@ -76,8 +76,9 @@ public:
       \param width new Y range
       \return reference to itself
     */
-    const Size2D & assign( const double length,
-                           const double width )
+    const
+    Size2D & assign( const double & length,
+                     const double & width )
       {
           M_length = std::fabs( length );
           M_width = std::fabs( width );
@@ -89,7 +90,8 @@ public:
       \param length new X range
       \return reference to itself
     */
-    const Size2D & setLength( const double length )
+    const
+    Size2D & setLength( const double & length )
       {
           M_length = std::fabs( length );
           return *this;
@@ -100,7 +102,8 @@ public:
       \param width new Y range
       \return reference to itself
     */
-    const Size2D & setWidth( const double width )
+    const
+    Size2D & setWidth( const double & width )
       {
           M_width = std::fabs( width );
           return *this;
@@ -110,7 +113,8 @@ public:
       \brief get the value of X range
       \return value of X range
      */
-    double length() const
+    const
+    double & length() const
       {
           return M_length;
       }
@@ -119,7 +123,8 @@ public:
       \brief get the value of Y range
       \return value of Y range
      */
-    double width() const
+    const
+    double & width() const
       {
           return M_width;
       }

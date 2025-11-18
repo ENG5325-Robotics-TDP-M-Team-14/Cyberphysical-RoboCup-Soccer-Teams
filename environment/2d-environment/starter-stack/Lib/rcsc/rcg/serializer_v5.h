@@ -61,13 +61,10 @@ public:
     /*!
       \brief write header
       \param os reference to the output stream
-      \aram server_version server version string
-      \aram timestamp time stamp string
-      \return reference to the output stream
+      \return serialization result
     */
-    std::ostream & serializeBegin( std::ostream & os,
-                                   const std::string & server_version,
-                                   const std::string & timestamp ) override;
+    virtual
+    std::ostream & serializeHeader( std::ostream & os );
 
     /*!
       \brief write ShowInfoT
@@ -77,7 +74,7 @@ public:
      */
     virtual
     std::ostream & serialize( std::ostream & os,
-                              const ShowInfoT & show ) override;
+                              const ShowInfoT & show );
 
 };
 

@@ -12,7 +12,6 @@
 #include <cstring>
 #include <iostream>
 #include <fstream>
-#include <sstream>
 #include <string>
 
 #include <rcsc/gz.h>
@@ -21,6 +20,15 @@
 /*
 
 // first line
+(Init (goal_width 14.02) (player_size 0.299988)
+(ball_size 0.0849915) (kickable_margin 0.699997)
+(visible_distance 3) (kickable_area 1.08498)
+(catchable_area_l 2) (catchable_area_w 1)
+(half_time 3000) (ckick_margin 1)
+(offside_active_area_size 2.5)
+(offside_kick_margin 9.14999)
+(audio_cut_dist 50))
+
 (Info (state <time> <playmode> <score_l> <score_r>)
 (ball <x> <y> <vx> <vy>)
 (player {l|r} <unum>[ g]
@@ -95,6 +103,7 @@ private:
 
     std::ostream & M_os;
 
+    bool M_init_written;
     rcsc::PlayMode M_playmode;
     std::string M_left_team_name;
     std::string M_right_team_name;
@@ -104,46 +113,46 @@ private:
     CommandCount M_command_count[rcsc::MAX_PLAYER * 2];
 
     // not used
-    TextPrinter() = delete;
+    TextPrinter();
 public:
 
     explicit
     TextPrinter( std::ostream & os );
 
-    bool handleEOF() override;
+    // v3 or older
+    bool handleDispInfo( const rcsc::rcg::dispinfo_t & disp );
+    bool handleShowInfo( const rcsc::rcg::showinfo_t & show );
+    bool handleShortShowInfo2( const rcsc::rcg::short_showinfo_t2 & show );
+    bool handleMsgInfo( rcsc::rcg::Int16,
+                        const std::string & )
+      {
+          return true;
+      }
+    bool handlePlayMode( char playmode );
+    bool handleTeamInfo( const rcsc::rcg::team_t & team_left,
+                         const rcsc::rcg::team_t & team_right );
+    bool handlePlayerType( const rcsc::rcg::player_type_t & param );
+    bool handleServerParam( const rcsc::rcg::server_params_t & param );
+    bool handlePlayerParam( const rcsc::rcg::player_params_t & param );
 
-    bool handleShow( const rcsc::rcg::ShowInfoT & show ) override;
+    // common
+    bool handleEOF();
+
+    // v4 or later
+    bool handleShow( const int time,
+                     const rcsc::rcg::ShowInfoT & show );
     bool handleMsg( const int time,
                     const int board,
-                    const std::string & msg ) override;
-    bool handleDraw( const int time,
-                     const rcsc::rcg::drawinfo_t & draw ) override;
+                    const std::string & msg );
     bool handlePlayMode( const int time,
-                         const rcsc::PlayMode pm ) override;
+                         const rcsc::PlayMode pm );
     bool handleTeam( const int time,
                      const rcsc::rcg::TeamT & team_l,
-                     const rcsc::rcg::TeamT & team_r ) override;
+                     const rcsc::rcg::TeamT & team_r );
+    bool handleServerParam( const std::string & msg );
+    bool handlePlayerParam( const std::string & msg );
+    bool handlePlayerType( const std::string & msg );
 
-    bool handleServerParam( const rcsc::rcg::ServerParamT & ) override
-      {
-          return true;
-      }
-    bool handlePlayerParam( const rcsc::rcg::PlayerParamT & ) override
-      {
-          return true;
-      }
-    bool handlePlayerType( const rcsc::rcg::PlayerTypeT & ) override
-      {
-          return true;
-      }
-
-    bool handleTeamGraphic( const char,
-                            const int,
-                            const int,
-                            const std::vector< std::string > & ) override
-      {
-          return true;
-      }
 private:
     const
     std::string & getPlayModeString( const rcsc::PlayMode playmode ) const;
@@ -176,14 +185,250 @@ private:
 
  */
 TextPrinter::TextPrinter( std::ostream & os )
-    : M_os( os ),
-      M_playmode( rcsc::PM_Null ),
-      M_left_team_name( "" ),
-      M_right_team_name( "" ),
-      M_left_score( 0 ),
-      M_right_score( 0 )
+    : M_os( os )
+    , M_init_written( false )
+    , M_playmode( rcsc::PM_Null )
+    , M_left_team_name( "" )
+    , M_right_team_name( "" )
+    , M_left_score( 0 )
+    , M_right_score( 0 )
 {
 
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+bool
+TextPrinter::handleDispInfo( const rcsc::rcg::dispinfo_t & disp )
+{
+    //std::cerr << "handleDispInfo size = " << sizeof( disp ) << std::endl;
+    switch ( ntohs( disp.mode ) ) {
+    case rcsc::rcg::SHOW_MODE:
+        //std::cerr << "SHOW_MODE" << std::endl;
+        handleShowInfo( disp.body.show );
+        break;
+    case rcsc::rcg::MSG_MODE:
+        //td::cerr << "MSG_MODE" << std::endl;
+        break;
+    case rcsc::rcg::DRAW_MODE:
+        //std::cerr << "DRAW_MODE" << std::endl;
+        break;
+    case rcsc::rcg::BLANK_MODE:
+        //std::cerr << "BLANK_MODE" << std::endl;
+        break;
+    case rcsc::rcg::PM_MODE:
+        //std::cerr << "PM_MODE" << std::endl;
+        break;
+    case rcsc::rcg::TEAM_MODE:
+        //std::cerr << "TEAM_MODE" << std::endl;
+        break;
+    case rcsc::rcg::PT_MODE:
+        //std::cerr << "PT_MODE" << std::endl;
+        break;
+    case rcsc::rcg::PARAM_MODE:
+        //std::cerr << "PARAM_MODE" << std::endl;
+        break;
+    case rcsc::rcg::PPARAM_MODE:
+        //std::cerr << "PPARAM_MODE" << std::endl;
+        break;
+    default:
+        std::cerr << __FILE__ << ":" << __LINE__
+                  << " Unsupported mode " << ntohs( disp.mode )
+                  << " in dispinfo_t" << std::endl;
+        return false;
+        break;
+    }
+
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+bool
+TextPrinter::handleShowInfo( const rcsc::rcg::showinfo_t & show )
+{
+    if ( ! M_init_written )
+    {
+        M_init_written = true;
+        M_os << "(Init)" << "\n";
+    }
+
+    handlePlayMode( show.pmode );
+    handleTeamInfo( show.team[0], show.team[1] );
+
+    M_os << "(Info";
+    M_os << ' ';
+    printState( M_os, static_cast< long >( static_cast< short >( ntohs( show.time ) ) ) );
+    M_os << ' ';
+    printBall( M_os, show.pos[0] );
+
+    for ( int i = 1; i < rcsc::MAX_PLAYER * 2 + 1; ++i )
+    {
+        if ( ntohs( show.pos[i].enable ) == 0 )
+        {
+            // player is not connected
+            continue;
+        }
+
+        int unum = ( i <= rcsc::MAX_PLAYER
+                     ? i
+                     : i - rcsc::MAX_PLAYER );
+        //const std::string & teamname = ( i <= rcsc::MAX_PLAYER
+        //? M_left_team_name
+        //: M_right_team_name );
+        M_os << ' ';
+        printPlayer( M_os,
+                     //teamname,
+                     ( i <= rcsc::MAX_PLAYER
+                       ? rcsc::LEFT
+                       : rcsc::RIGHT ),
+                     unum, show.pos[i] );
+    }
+
+    M_os << ")" << std::endl;
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+bool
+TextPrinter::handleShortShowInfo2( const rcsc::rcg::short_showinfo_t2 & show )
+{
+    if ( ! M_init_written )
+    {
+        M_init_written = true;
+        M_os << "(Init)" << "\n";
+    }
+
+    M_os << "(Info ";
+    printState( M_os, static_cast< long >( static_cast< short >( ntohs( show.time ) ) ) );
+    M_os << " ";
+    printBall( M_os, show.ball );
+
+    for ( int i = 0; i < rcsc::MAX_PLAYER * 2; ++i )
+    {
+        if ( ntohs( show.pos[i].mode ) == 0 )
+        {
+            // player is not connected
+            continue;
+        }
+
+        int unum = ( i < rcsc::MAX_PLAYER
+                     ? i + 1
+                     : i + 1 - rcsc::MAX_PLAYER );
+        //const std::string & teamname = ( i < rcsc::MAX_PLAYER
+        //? M_left_team_name
+        //: M_right_team_name );
+        M_os << " ";
+        printPlayer( M_os,
+                     //teamname,
+                     ( i < rcsc::MAX_PLAYER
+                       ? rcsc::LEFT
+                       : rcsc::RIGHT ),
+                     unum, M_command_count[i], show.pos[i] );
+        M_command_count[i].update( show.pos[i] );
+    }
+
+    M_os << ")" << std::endl;
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+bool
+TextPrinter::handlePlayMode( char playmode )
+{
+    M_playmode = static_cast< rcsc::PlayMode >( playmode );
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+bool
+TextPrinter::handleTeamInfo( const rcsc::rcg::team_t & team_left,
+                             const rcsc::rcg::team_t & team_right )
+{
+    if ( M_left_team_name.empty() )
+    {
+        char buf[18];
+        std::memset( buf, '\0', 18 );
+        std::strncpy( buf, team_left.name, 16 );
+        M_left_team_name = buf;
+    }
+    if ( M_right_team_name.empty() )
+    {
+        char buf[18];
+        std::memset( buf, '\0', 18 );
+        std::strncpy( buf, team_right.name, 16 );
+        M_right_team_name = buf;
+    }
+
+    M_left_score = rcsc::rcg::nstohi( team_left.score );
+    M_right_score = rcsc::rcg::nstohi( team_right.score );
+
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+bool
+TextPrinter::handlePlayerType( const rcsc::rcg::player_type_t & )
+{
+    std::cerr << "handlePlayerType" << std::endl;
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+bool
+TextPrinter::handleServerParam( const rcsc::rcg::server_params_t & param )
+{
+    M_init_written = true;
+    M_os << "(Init"
+         << " (goal_width " << rcsc::rcg::nltohd( param.goal_width ) << ")"
+         << " (player_size " << rcsc::rcg::nltohd( param.player_size ) << ")"
+         << " (ball_size " << rcsc::rcg::nltohd( param.ball_size ) << ")"
+         << " (kickable_margin " << rcsc::rcg::nltohd( param.kickable_margin ) << ")"
+         << " (visible_distance " <<  rcsc::rcg::nltohd( param.visible_distance ) << ")"
+         << " (kickable_area " << ( rcsc::rcg::nltohd( param.player_size )
+                                    + rcsc::rcg::nltohd( param.ball_size )
+                                    + rcsc::rcg::nltohd( param.kickable_margin ) )
+         << ")"
+         << " (catchable_area_l " << rcsc::rcg::nltohd( param.catch_area_l ) << ")"
+         << " (catchable_area_w " << rcsc::rcg::nltohd( param.catch_area_w ) << ")"
+         << " (half_time " << static_cast< short >( ntohs( param.half_time ) ) << ")"
+         << " (ckick_margin " << rcsc::rcg::nltohd( param.corner_kick_margin ) << ")"
+         << " (offside_active_area_size " << rcsc::rcg::nltohd( param.offside_active_area ) << ")"
+         << " (offside_kick_margin " << rcsc::rcg::nltohd( param.offside_kick_margin ) << ")"
+         << " (audio_cut_dist " << rcsc::rcg::nltohd( param.audio_cut_dist ) << ")"
+         << ")"
+         << std::endl;
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+bool
+TextPrinter::handlePlayerParam( const rcsc::rcg::player_params_t & )
+{
+    std::cerr << "handlePlayerParam" << std::endl;
+    return true;
 }
 
 /*-------------------------------------------------------------------*/
@@ -207,8 +452,15 @@ TextPrinter::handleEOF()
 
  */
 bool
-TextPrinter::handleShow( const rcsc::rcg::ShowInfoT & show )
+TextPrinter::handleShow( const int,
+                         const rcsc::rcg::ShowInfoT & show )
 {
+    if ( ! M_init_written )
+    {
+        M_init_written = true;
+        M_os << "(Init)" << "\n";
+    }
+
     M_os << "(Info ";
     printState( M_os, show.time_ );
 
@@ -221,7 +473,7 @@ TextPrinter::handleShow( const rcsc::rcg::ShowInfoT & show )
     for ( int i = 0; i < rcsc::MAX_PLAYER*2; ++i )
     {
         rcsc::rcg::player_t p;
-        rcsc::rcg::convert( show.player_[i], p );
+        rcsc::rcg::Serializer::convert( show.player_[i], p );
 
         printPlayer( M_os,
                      show.player_[i].side(),
@@ -243,17 +495,6 @@ bool
 TextPrinter::handleMsg( const int,
                         const int,
                         const std::string & )
-{
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
- */
-bool
-TextPrinter::handleDraw( const int,
-                         const rcsc::rcg::drawinfo_t & )
 {
     return true;
 }
@@ -291,6 +532,44 @@ TextPrinter::handleTeam( const int,
     M_left_score = team_l.score_;
     M_right_score = team_r.score_;
 
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+bool
+TextPrinter::handleServerParam( const std::string & msg )
+{
+    std::string::size_type pos = msg.find_first_of( ' ' );
+    if ( pos != std::string::npos )
+    {
+        M_init_written = true;
+        M_os << "(Init"
+             << msg.substr( pos )
+             << '\n';
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+bool
+TextPrinter::handlePlayerParam( const std::string & )
+{
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+bool
+TextPrinter::handlePlayerType( const std::string & )
+{
     return true;
 }
 

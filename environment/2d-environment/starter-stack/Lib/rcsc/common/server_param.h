@@ -36,7 +36,7 @@
 #include <rcsc/geom/rect_2d.h>
 #include <rcsc/math_util.h>
 
-#include <memory>
+#include <boost/scoped_ptr.hpp>
 
 #include <string>
 
@@ -44,7 +44,6 @@ namespace rcsc {
 
 namespace rcg {
 struct server_params_t;
-struct ServerParamT;
 }
 class ParamMap;
 
@@ -56,7 +55,7 @@ class ServerParam {
 private:
 
     //! parameter map implementation
-    std::unique_ptr< ParamMap > M_param_map;
+    boost::scoped_ptr< ParamMap > M_param_map;
 
 public:
     //////////////////////////////////////////////////////
@@ -232,7 +231,7 @@ public:
 
     static const bool   DEFAULT_VERBOSE_MODE;
 
-    static const int    DEFAULT_ONLINE_COACH_LOOK_STEP; // defined as SEND_VISUALINFO_INTERVAL_MSEC in rcssserver/param.h
+    static const int    DEFAULT_COACH_SEND_VI_STEP; // defined as SEND_VISUALINFO_INTERVAL_MSEC in rcssserver/param.h
 
     static const std::string DEFAULT_REPLAY_FILE; // unused after rcsserver-9+
     static const std::string DEFAULT_LANDMARK_FILE;
@@ -338,14 +337,6 @@ public:
     static const double FOUL_DETECT_PROBABILITY;
     static const double FOUL_EXPONENT;
     static const int FOUL_CYCLES;
-    // 15.0.0
-    static const double RED_CARD_PROBABILITY;
-    // 16.0.0
-    static const int ILLEGAL_DEFENSE_DURATION;
-    static const int ILLEGAL_DEFENSE_NUMBER;
-    static const double ILLEGAL_DEFENSE_DIST_X;
-    static const double ILLEGAL_DEFENSE_WIDTH;
-
 private:
 
     //////////////////////////////////////////////////////
@@ -504,7 +495,7 @@ private:
 
     bool M_verbose_mode;
 
-    int M_online_coach_look_step; // coach's visual info step
+    int M_coach_send_vi_step; // coach's visual info step
 
     std::string M_replay_file; // unused after rcsserver-9+
     std::string M_landmark_file;
@@ -625,36 +616,16 @@ private:
     double M_foul_detect_probability;
     double M_foul_exponent;
     int M_foul_cycles;
-    bool M_golden_goal;
 
-    // 15.0.0
-    double M_red_card_probability;
-
-    // 16.0.0
-    int M_illegal_defense_duration;
-    int M_illegal_defense_number;
-    double M_illegal_defense_dist_x;
-    double M_illegal_defense_width;
-    std::string M_fixed_teamname_l;
-    std::string M_fixed_teamname_r;
-
-    // 17.0
-    double M_max_catch_angle;
-    double M_min_catch_angle;
-
-    // 19.0
-    double M_dist_noise_rate;
-    double M_focus_dist_noise_rate;
-    double M_land_dist_noise_rate;
-    double M_land_focus_dist_noise_rate;
-
-    // xxx
     int M_random_seed;
-    double M_long_kick_power_factor;
-    int M_long_kick_delay;
+    bool M_golden_goal;
 
     // 999
     int M_max_monitors;
+
+    // test
+    double M_min_catch_probability;
+    double M_reliable_catch_area_l;
 
     //--------------------------------------------------------
     // additional params
@@ -739,28 +710,16 @@ public:
     void convertFrom( const rcg::server_params_t & from );
 
     /*!
-      \brief convert from the data type in the rcg parser library.
-      \param from monitor protocol data structure
-     */
-    void convertFrom( const rcg::ServerParamT & from );
-
-    /*!
       \brief convert to the monitor protocol format
       \param to monitor protocol data structure
      */
     void convertTo( rcg::server_params_t & to ) const;
 
     /*!
-      \brief convert from the data type in the rcg parser library.
-      \param from monitor protocol data structure
-     */
-    void convertTo( rcg::ServerParamT & to ) const;
-
-    /*!
       \brief convert to the rcss parameter message
       \return parameter message string
      */
-    std::string toServerString() const;
+    std::string toStr() const;
 
 
     // static parameters
@@ -769,78 +728,78 @@ public:
       {
           return DEFAULT_MAX_PLAYER;
       }
-
-    double pitchLength() const
+    const
+    double & pitchLength() const
       {
           return DEFAULT_PITCH_LENGTH;
       }
-
-    double pitchWidth() const
+    const
+    double & pitchWidth() const
       {
           return DEFAULT_PITCH_WIDTH;
       }
-
-    double pitchMargin() const
+    const
+    double & pitchMargin() const
       {
           return DEFAULT_PITCH_MARGIN;
       }
-
-    double centerCircleR() const
+    const
+    double & centerCircleR() const
       {
           return DEFAULT_CENTER_CIRCLE_R;
       }
-
-    double penaltyAreaLength() const
+    const
+    double & penaltyAreaLength() const
       {
           return DEFAULT_PENALTY_AREA_LENGTH;
       }
-
-    double penaltyAreaWidth() const
+    const
+    double & penaltyAreaWidth() const
       {
           return DEFAULT_PENALTY_AREA_WIDTH;
       }
-
-    double goalAreaLength() const
+    const
+    double & goalAreaLength() const
       {
           return DEFAULT_GOAL_AREA_LENGTH;
       }
-
-    double goalAreaWidth() const
+    const
+    double & goalAreaWidth() const
       {
           return DEFAULT_GOAL_AREA_WIDTH;
       }
-
-    double goalDepth() const
+    const
+    double & goalDepth() const
       {
           return DEFAULT_GOAL_DEPTH;
       }
-
-    double penaltyCircleR() const
+    const
+    double & penaltyCircleR() const
       {
           return DEFAULT_PENALTY_CIRCLE_R;
       }
-
-    double penaltySpotDist() const
+    const
+    double & penaltySpotDist() const
       {
           return DEFAULT_PENALTY_SPOT_DIST;
       }
-
-    double cornerArcR() const
+    const
+    double & cornerArcR() const
       {
           return DEFAULT_CORNER_ARC_R;
       }
-
-    double kickOffClearDistance() const
+    const
+    double & kickOffClearDistance() const
       {
           return DEFAULT_CENTER_CIRCLE_R;
       }
-
-    double windWeight() const
+    const
+    double & windWeight() const
       {
           return DEFAULT_WIND_WEIGHT;
       }
-
-    double goalPostRadius() const
+    const
+    double & goalPostRadius() const
       {
           return DEFAULT_GOAL_POST_RADIUS;
       }
@@ -848,300 +807,996 @@ public:
 
     // configurable parameters
 
-    double goalWidth() const { return M_goal_width; }
+    const
+    double & goalWidth() const
+      {
+          return M_goal_width;
+      }
     // hetero param
-    double defaultInertiaMoment() const { return M_inertia_moment; }
+    const
+    double & defaultInertiaMoment() const
+      {
+          return M_inertia_moment;
+      }
     // hetero param
-    double defaultPlayerSize() const { return M_player_size; }
+    const
+    double & defaultPlayerSize() const
+      {
+          return M_player_size;
+      }
     // hetero param
-    double defaultPlayerDecay() const { return M_player_decay; }
-    double playerRand() const { return M_player_rand; }
-    double playerWeight() const { return M_player_weight; }
+    const
+    double & defaultPlayerDecay() const
+      {
+          return M_player_decay;
+      }
+    const
+    double & playerRand() const
+      {
+          return M_player_rand;
+      }
+    const
+    double & playerWeight() const
+      {
+          return M_player_weight;
+      }
     // hetero param
-    double defaultPlayerSpeedMax() const { return M_player_speed_max; }
-    double playerAccelMax() const { return M_player_accel_max; }
-    double staminaMax() const { return M_stamina_max; }
+    const
+    double & defaultPlayerSpeedMax() const
+      {
+          return M_player_speed_max;
+      }
+    const
+    double & playerAccelMax() const
+      {
+          return M_player_accel_max;
+      }
+
+    const
+    double & staminaMax() const
+      {
+          return M_stamina_max;
+      }
     // hetero param
-    double defaultStaminaIncMax() const { return M_stamina_inc_max; }
-    double recoverInit() const { return M_recover_init; }
-    double recoverDecThr() const { return M_recover_dec_thr; }
-    double recoverMin() const { return M_recover_min; }
-    double recoverDec() const { return M_recover_dec; }
-    double effortInit() const { return M_effort_init; }
-    double effortDecThr() const { return M_effort_dec_thr; }
+    const
+    double & defaultStaminaIncMax() const
+      {
+          return M_stamina_inc_max;
+      }
+    const
+    double & recoverInit() const
+      {
+          return M_recover_init;
+      }
+    const
+    double & recoverDecThr() const
+      {
+          return M_recover_dec_thr;
+      }
+    const
+    double & recoverMin() const
+      {
+          return M_recover_min;
+      }
+    const
+    double & recoverDec() const
+      {
+          return M_recover_dec;
+      }
+
+    const
+    double & effortInit() const
+      {
+          return M_effort_init;
+      }
+    const
+    double & effortDecThr() const
+      {
+          return M_effort_dec_thr;
+      }
     // hetero param
-    double defaultEffortMax() const { return M_effort_init; }
+    const
+    double & defaultEffortMax() const
+      {
+          return M_effort_init;
+      }
     // hetero param
-    double defaultEffortMin() const { return M_effort_min; }
-    double effortDec() const { return M_effort_dec; }
-    double effortIncThr() const { return M_effort_inc_thr; }
-    double effortInc() const { return M_effort_inc; }
+    const
+    double & defaultEffortMin() const
+      {
+          return M_effort_min;
+      }
+    const
+    double & effortDec() const
+      {
+          return M_effort_dec;
+      }
+    const
+    double & effortIncThr() const
+      {
+          return M_effort_inc_thr;
+      }
+    const
+    double & effortInc() const
+      {
+          return M_effort_inc;
+      }
+
     // hetero param
-    double defaultKickRand() const { return M_kick_rand; }
-    bool teamActuatorNoise() const { return M_team_actuator_noise; }
-    double playerRandFactorLeft() const { return M_player_rand_factor_l; }
-    double playerRandFactorRight() const { return M_player_rand_factor_r; }
-    double kickRandFactorLeft() const { return M_kick_rand_factor_l; }
-    double kickRandFactorRight() const { return M_kick_rand_factor_r; }
-    double ballSize() const { return M_ball_size; }
-    double ballDecay() const { return M_ball_decay; }
-    double ballRand() const { return M_ball_rand; }
-    double ballWeight() const { return M_ball_weight; }
-    double ballSpeedMax() const { return M_ball_speed_max; }
-    double ballAccelMax() const { return M_ball_accel_max; }
+    const
+    double & defaultKickRand() const
+      {
+          return M_kick_rand;
+      }
+    bool teamActuatorNoise() const
+      {
+          return M_team_actuator_noise;
+      }
+    const
+    double & playerRandFactorLeft() const
+      {
+          return M_player_rand_factor_l;
+      }
+    const
+    double & playerRandFactorRight() const
+      {
+          return M_player_rand_factor_r;
+      }
+    const
+    double & kickRandFactorLeft() const
+      {
+          return M_kick_rand_factor_l;
+      }
+    const
+    double & kickRandFactorRight() const
+      {
+          return M_kick_rand_factor_r;
+      }
+
+    const
+    double & ballSize() const
+      {
+          return M_ball_size;
+      }
+    const
+    double & ballDecay() const
+      {
+          return M_ball_decay;
+      }
+    const
+    double & ballRand() const
+      {
+          return M_ball_rand;
+      }
+    const
+    double & ballWeight() const
+      {
+          return M_ball_weight;
+      }
+    const
+    double & ballSpeedMax() const
+      {
+          return M_ball_speed_max;
+      }
+    const
+    double & ballAccelMax() const
+      {
+          return M_ball_accel_max;
+      }
+
     // hetero param
-    double defaultDashPowerRate() const { return M_dash_power_rate; }
-    double kickPowerRate() const { return M_kick_power_rate; }
+    const
+    double & defaultDashPowerRate() const
+      {
+          return M_dash_power_rate;
+      }
+    const
+    double & kickPowerRate() const
+      {
+          return M_kick_power_rate;
+      }
     // hetero param
-    double defaultKickableMargin() const { return M_kickable_margin; }
-    double controlRadius() const { return M_control_radius; }
-    double controlRadiusWidth() const { return M_control_radius_width; }
+    const
+    double & defaultKickableMargin() const
+      {
+          return M_kickable_margin;
+      }
+    const
+    double & controlRadius() const
+      {
+          return M_control_radius;
+      }
+    const
+    double & controlRadiusWidth() const
+      {
+          return M_control_radius_width;
+      }
 
-    double maxPower() const { return M_max_power; }
-    double minPower() const { return M_min_power; }
-    double maxMoment() const { return M_max_moment; }
-    double minMoment() const { return M_min_moment; }
-    double maxNeckMoment() const { return M_max_neck_moment; }
-    double minNeckMoment() const { return M_min_neck_moment; }
-    double maxNeckAngle() const { return M_max_neck_angle; }
-    double minNeckAngle() const { return M_min_neck_angle; }
+    const
+    double & maxPower() const
+      {
+          return M_max_power;
+      }
+    const
+    double & minPower() const
+      {
+          return M_min_power;
+      }
+    const
+    double & maxMoment() const
+      {
+          return M_max_moment;
+      }
+    const
+    double & minMoment() const
+      {
+          return M_min_moment;
+      }
+    const
+    double & maxNeckMoment() const
+      {
+          return M_max_neck_moment;
+      }
+    const
+    double & minNeckMoment() const
+      {
+          return M_min_neck_moment;
+      }
+    const
+    double & maxNeckAngle() const
+      {
+          return M_max_neck_angle;
+      }
+    const
+    double & minNeckAngle() const
+      {
+          return M_min_neck_angle;
+      }
 
-    double visibleAngle() const { return M_visible_angle; }
-    double visibleDistance() const { return M_visible_distance; }
+    const
+    double & visibleAngle() const
+      {
+          return M_visible_angle;
+      }
+    const
+    double & visibleDistance() const
+      {
+          return M_visible_distance;
+      }
 
-    double windDir() const { return M_wind_dir; }
-    double windForce() const { return M_wind_force; }
-    double windAngle() const { return M_wind_angle; }
-    double windRand() const { return M_wind_rand; }
+    const
+    double & windDir() const
+      {
+          return M_wind_dir;
+      }
+    const
+    double & windForce() const
+      {
+          return M_wind_force;
+      }
+    const
+    double & windAngle() const
+      {
+          return M_wind_angle;
+      }
+    const
+    double & windRand() const
+      {
+          return M_wind_rand;
+      }
 
-    double defaultKickableArea() const { return M_kickable_area; }
-    double catchAreaLength() const { return M_catch_area_l; }
-    double catchAreaWidth() const { return M_catch_area_w; }
-    double catchProbability() const { return M_catch_probability; }
-    int goalieMaxMoves() const { return M_goalie_max_moves; }
+    const
+    double & defaultKickableArea() const
+      {
+          return M_kickable_area;
+      }
 
-    double cornerKickMargin() const { return M_corner_kick_margin; }
-    double offsideActiveAreaSize() const { return M_offside_active_area_size; }
+    const
+    double & catchAreaLength() const
+      {
+          return M_catch_area_l;
+      }
+    const
+    double & catchAreaWidth() const
+      {
+          return M_catch_area_w;
+      }
+    const
+    double & catchProbability() const
+      {
+          return M_catch_probability;
+      }
+    int goalieMaxMoves() const
+      {
+          return M_goalie_max_moves;
+      }
 
-    bool windNone() const { return M_wind_none; }
-    bool useWindRandom() const { return M_use_wind_random; }
+    const
+    double & cornerKickMargin() const
+      {
+          return M_corner_kick_margin;
+      }
+    const
+    double & offsideActiveAreaSize() const
+      {
+          return M_offside_active_area_size;
+      }
 
-    int coachSayCountMax() const { return M_coach_say_count_max; }
-    int coachSayMsgSize() const { return M_coach_say_msg_size; }
+    bool windNone() const
+      {
+          return M_wind_none;
+      }
+    bool useWindRandom() const
+      {
+          return M_use_wind_random;
+      }
 
-    int clangWinSize() const { return M_clang_win_size; }
-    int clangDefineWin() const { return M_clang_define_win; }
-    int clangMetaWin() const { return M_clang_meta_win; }
-    int clangAdviceWin() const { return M_clang_advice_win; }
-    int clangInfoWin() const { return M_clang_info_win; }
-    int clangMessDelay() const { return M_clang_mess_delay; }
-    int clangMessPerCycle() const { return M_clang_mess_per_cycle; }
+    int coachSayCountMax() const
+      {
+          return M_coach_say_count_max;
+      }
+    int coachSayMsgSize() const
+      {
+          return M_coach_say_msg_size;
+      }
 
-    int halfTime() const { return M_half_time; }
-    int simulatorStep() const { return M_simulator_step; }
-    int sendStep() const { return M_send_step; }
-    int recvStep() const { return M_recv_step; }
-    int senseBodyStep() const { return M_sense_body_step; }
-    int lcmStep() const { return M_lcm_step; }
+    int clangWinSize() const
+      {
+          return M_clang_win_size;
+      }
+    int clangDefineWin() const
+      {
+          return M_clang_define_win;
+      }
+    int clangMetaWin() const
+      {
+          return M_clang_meta_win;
+      }
+    int clangAdviceWin() const
+      {
+          return M_clang_advice_win;
+      }
+    int clangInfoWin() const
+      {
+          return M_clang_info_win;
+      }
+    int clangMessDelay() const
+      {
+          return M_clang_mess_delay;
+      }
+    int clangMessPerCycle() const
+      {
+          return M_clang_mess_per_cycle;
+      }
 
-    int playerSayMsgSize() const { return M_player_say_msg_size; }
-    int playerHearMax() const { return M_player_hear_max; }
-    int playerHearInc() const { return M_player_hear_inc; }
-    int playerHearDecay() const { return M_player_hear_decay; }
+    int halfTime() const
+      {
+          return M_half_time;
+      }
+    int simulatorStep() const
+      {
+          return M_simulator_step;
+      }
+    int sendStep() const
+      {
+          return M_send_step;
+      }
 
-    int catchBanCycle() const { return M_catch_ban_cycle; }
+    int recvStep() const
+      {
+          return M_recv_step;
+      }
+    int senseBodyStep() const
+      {
+          return M_sense_body_step;
+      }
+    int lcmStep() const
+      {
+          return M_lcm_step;
+      }
 
-    int slowDownFactor() const { return M_slow_down_factor; }
+    int playerSayMsgSize() const
+      {
+          return M_player_say_msg_size;
+      }
+    int playerHearMax() const
+      {
+          return M_player_hear_max;
+      }
+    int playerHearInc() const
+      {
+          return M_player_hear_inc;
+      }
+    int playerHearDecay() const
+      {
+          return M_player_hear_decay;
+      }
 
-    bool useOffside() const { return M_use_offside;}
-    bool kickoffOffside() const { return M_kickoff_offside; }
-    double offsideKickMargin() const { return M_offside_kick_margin; }
+    int catchBanCycle() const
+      {
+          return M_catch_ban_cycle;
+      }
 
-    double audioCutDist() const { return M_audio_cut_dist; }
+    int slowDownFactor() const
+      {
+          return M_slow_down_factor;
+      }
 
-    double distQuantizeStep() const { return M_dist_quantize_step; }
-    double landmarkDistQuantizeStep() const { return M_landmark_dist_quantize_step; }
-    double dirQuantizeStep() const { return M_dir_quantize_step; }
-    double distQuantizeSteqLeft() const { return M_dist_quantize_step_l; }
-    double distQuantizeStepRight() const { return M_dist_quantize_step_r; }
-    double landmarkDistQuantizeStepLeft() const { return M_landmark_dist_quantize_step_l; }
-    double landmarkDistQuantizeStepRight() const { return M_landmark_dist_quantize_step_r; }
-    double dirQuantizeStepLeft() const { return M_dir_quantize_step_l; }
-    double dirQuantizeStepRight() const { return M_dir_quantize_step_r; }
+    bool useOffside() const
+      {
+          return M_use_offside;
+      }
+    bool kickoffOffside() const
+      {
+          return M_kickoff_offside;
+      }
+    const
+    double & offsideKickMargin() const
+      {
+          return M_offside_kick_margin;
+      }
 
-    bool coachMode() const { return M_coach_mode; }
-    bool coachWithRefereeMode() const { return M_coach_with_referee_mode; }
-    bool useOldCoachHear() const { return M_use_old_coach_hear; }
+    const
+    double & audioCutDist() const
+      {
+          return M_audio_cut_dist;
+      }
 
-    double slownessOnTopForLeft() const { return M_slowness_on_top_for_left_team; }
-    double slownessOnTopForRight() const { return M_slowness_on_top_for_right_team; }
+    const
+    double & distQuantizeStep() const
+      {
+          return M_dist_quantize_step;
+      }
+    const
+    double & landmarkDistQuantizeStep() const
+      {
+          return M_landmark_dist_quantize_step;
+      }
+    const
+    double & dirQuantizeStep() const
+      {
+          return M_dir_quantize_step;
+      }
+    const
+    double & distQuantizeSteqLeft() const
+      {
+          return M_dist_quantize_step_l;
+      }
+    const
+    double & distQuantizeStepRight() const
+      {
+          return M_dist_quantize_step_r;
+      }
+    const
+    double & landmarkDistQuantizeStepLeft() const
+      {
+          return M_landmark_dist_quantize_step_l;
+      }
+    const
+    double & landmarkDistQuantizeStepRight() const
+      {
+          return M_landmark_dist_quantize_step_r;
+      }
+    const
+    double & dirQuantizeStepLeft() const
+      {
+          return M_dir_quantize_step_l;
+      }
+    const
+    double & dirQuantizeStepRight() const
+      {
+          return M_dir_quantize_step_r;
+      }
 
-    int startGoalLeft() const { return M_start_goal_l; }
-    int stargGoalRight() const { return M_start_goal_r; }
+    bool coachMode() const
+      {
+          return M_coach_mode;
+      }
+    bool coachWithRefereeMode() const
+      {
+          return M_coach_with_referee_mode;
+      }
+    bool useOldCoachHear() const
+      {
+          return M_use_old_coach_hear;
+      }
 
-    bool fullstateLeft() const { return M_fullstate_l; }
-    bool fullstateRight() const { return M_fullstate_r; }
+    const
+    double & slownessOnTopForLeft() const
+      {
+          return M_slowness_on_top_for_left_team;
+      }
+    const
+    double & slownessOnTopForRight() const
+      {
+          return M_slowness_on_top_for_right_team;
+      }
 
-    int dropBallTime() const { return M_drop_ball_time; }
+    int startGoalLeft() const
+      {
+          return M_start_goal_l;
+      }
+    int stargGoalRight() const
+      {
+          return M_start_goal_r;
+      }
 
-    bool synchMode() const { return M_synch_mode; }
-    int synchOffset() const { return M_synch_offset; }
-    int synchMicroSleep() const { return M_synch_micro_sleep; }
+    bool fullstateLeft() const
+      {
+          return M_fullstate_l;
+      }
+    bool fullstateRight() const
+      {
+          return M_fullstate_r;
+      }
 
-    int pointToBan() const { return M_point_to_ban; }
-    int pointToDuration() const { return M_point_to_duration; }
+    int dropBallTime() const
+      {
+          return M_drop_ball_time;
+      }
+
+    bool synchMode() const
+      {
+          return M_synch_mode;
+      }
+    int synchOffset() const
+      {
+          return M_synch_offset;
+      }
+    int synchMicroSleep() const
+      {
+          return M_synch_micro_sleep;
+      }
+
+    int pointToBan() const
+      {
+          return M_point_to_ban;
+      }
+    int pointToDuration() const
+      {
+          return M_point_to_duration;
+      }
 
 
     // not defined in server_param_t
 
-    int playerPort() const { return M_player_port; }
-    int trainerPort() const { return M_trainer_port; }
-    int onlineCoachPort() const { return M_online_coach_port; }
+    int playerPort() const
+      {
+          return M_player_port;
+      }
+    int trainerPort() const
+      {
+          return M_trainer_port;
+      }
+    int onlineCoachPort() const
+      {
+          return M_online_coach_port;
+      }
 
-    bool verboseMode() const { return M_verbose_mode; }
+    bool verboseMode() const
+      {
+          return M_verbose_mode;
+      }
 
-    int onlineCoachLookStep() const { return M_online_coach_look_step; }
+    int coachSendVIStep() const
+      {
+          return M_coach_send_vi_step;
+      }
 
-    const std::string & replayFile() const { return M_replay_file; }
-    const std::string & landmarkFile() const { return M_landmark_file; }
+    const
+    std::string & replayFile() const
+      {
+          return M_replay_file;
+      }
+    const
+    std::string & landmarkFile() const
+      {
+          return M_landmark_file;
+      }
 
-    bool sendComms() const { return M_send_comms; }
+    bool sendComms() const
+      {
+          return M_send_comms;
+      }
 
-    bool textLogging() const { return  M_text_logging; }
-    bool gameLogging() const { return M_game_logging; }
-    int gameLogVersion() const { return M_game_log_version; }
-    const std::string & textLogDir() const { return M_text_log_dir; }
-    const std::string & gameLogDir() const { return M_game_log_dir; }
-    const std::string & textLogFixedName() const { return M_text_log_fixed_name; }
-    const std::string & gameLogFixedName() const { return M_game_log_fixed_name; }
-    bool textLogFixed() const { return M_use_text_log_fixed; }
-    bool gameLogFixed() const { return M_use_game_log_fixed; }
-    bool textLogDated() const { return M_use_text_log_dated; }
-    bool gameLogDated() const { return M_use_game_log_dated; }
-    const std::string & logDateFormat() const { return M_log_date_format; }
-    bool logTimes() const { return M_log_times; }
-    bool recordMessage() const { return M_record_message; }
-    int textLogCompression() const { return M_text_log_compression; }
-    int gameLogCompression() const { return M_game_log_compression; }
+    bool textLogging() const
+      {
+          return  M_text_logging;
+      }
+    bool gameLogging() const
+      {
+          return M_game_logging;
+      }
+    int gameLogVersion() const
+      {
+          return M_game_log_version;
+      }
+    const
+    std::string & textLogDir() const
+      {
+          return M_text_log_dir;
+      }
+    const
+    std::string & gameLogDir() const
+      {
+          return M_game_log_dir;
+      }
+    const
+    std::string & textLogFixedName() const
+      {
+          return M_text_log_fixed_name;
+      }
+    const
+    std::string & gameLogFixedName() const
+      {
+          return M_game_log_fixed_name;
+      }
+    bool textLogFixed() const
+      {
+          return M_use_text_log_fixed;
+      }
+    bool gameLogFixed() const
+      {
+          return M_use_game_log_fixed;
+      }
+    bool textLogDated() const
+      {
+          return M_use_text_log_dated;
+      }
+    bool gameLogDated() const
+      {
+          return M_use_game_log_dated;
+      }
+    const
+    std::string & logDateFormat() const
+      {
+          return M_log_date_format;
+      }
+    bool logTimes() const
+      {
+          return M_log_times;
+      }
+    bool recordMessage() const
+      {
+          return M_record_message;
+      }
+    int textLogCompression() const
+      {
+          return M_text_log_compression;
+      }
+    int gameLogCompression() const
+      {
+          return M_game_log_compression;
+      }
 
-    bool useProfile() const { return M_use_profile; }
+    bool useProfile() const
+      {
+          return M_use_profile;
+      }
 
-    double tackleDist() const { return M_tackle_dist; }
-    double tackleBackDist() const { return M_tackle_back_dist; }
-    double tackleWidth() const { return M_tackle_width; }
-    double tackleExponent() const { return M_tackle_exponent; }
-    int tackleCycles() const { return M_tackle_cycles; }
-    double tacklePowerRate() const { return M_tackle_power_rate; }
+    const
+    double & tackleDist() const
+      {
+          return M_tackle_dist;
+      }
+    const
+    double & tackleBackDist() const
+      {
+          return M_tackle_back_dist;
+      }
+    const
+    double & tackleWidth() const
+      {
+          return M_tackle_width;
+      }
+    const
+    double & tackleExponent() const
+      {
+          return M_tackle_exponent;
+      }
+    int tackleCycles() const
+      {
+          return M_tackle_cycles;
+      }
+    const
+    double & tacklePowerRate() const
+      {
+          return M_tackle_power_rate;
+      }
 
-    int freeformWaitPeriod() const { return M_freeform_wait_period; }
-    int freeformSendPeriod() const { return M_freeform_send_period; }
+    int freeformWaitPeriod() const
+      {
+          return M_freeform_wait_period;
+      }
+    int freeformSendPeriod() const
+      {
+          return M_freeform_send_period;
+      }
 
-    bool freeKickFaults() const { return M_free_kick_faults; }
-    bool backPasses() const { return M_back_passes; }
+    bool freeKickFaults() const
+      {
+          return M_free_kick_faults;
+      }
+    bool backPasses() const
+      {
+          return M_back_passes;
+      }
 
-    bool properGoalKicks() const { return M_proper_goal_kicks; }
-    double stoppedBallVel() const { return M_stopped_ball_vel; }
-    int maxGoalKicks() const { return M_max_goal_kicks; }
+    bool properGoalKicks() const
+      {
+          return M_proper_goal_kicks;
+      }
+    const
+    double & stoppedBallVel() const
+      {
+          return M_stopped_ball_vel;
+      }
+    int maxGoalKicks() const
+      {
+          return M_max_goal_kicks;
+      }
 
-    int clangDelWin() const { return M_clang_del_win; }
-    int clangRuleWin() const { return M_clang_rule_win; }
+    bool autoMode() const
+      {
+          return M_auto_mode;
+      }
+    int kickOffWait() const
+      {
+          return M_kick_off_wait;
+      }
+    int connectWait() const
+      {
+          return M_connect_wait;
+      }
+    int gameOverWait() const
+      {
+          return M_game_over_wait;
+      }
+    const
+    std::string & teamLeftStartCommand() const
+      {
+          return M_team_l_start;
+      }
+    const
+    std::string & teamRightStartCommand() const
+      {
+          return M_team_r_start;
+      }
 
-    bool autoMode() const { return M_auto_mode; }
-    int kickOffWait() const { return M_kick_off_wait; }
-    int connectWait() const { return M_connect_wait; }
-    int gameOverWait() const { return M_game_over_wait; }
-    const std::string & teamLeftStartCommand() const { return M_team_l_start; }
-    const std::string & teamRightStartCommand() const { return M_team_r_start; }
+    bool keepawayMode() const
+      {
+          return M_keepaway_mode;
+      }
+    const
+    double & keepawayLength() const
+      {
+          return M_keepaway_length;
+      }
+    const
+    double & keepawayWidth() const
+      {
+          return M_keepaway_width;
+      }
 
-    bool keepawayMode() const { return M_keepaway_mode; }
-    double keepawayLength() const { return M_keepaway_length; }
-    double keepawayWidth() const { return M_keepaway_width; }
+    bool keepawayLogging() const
+      {
+          return M_keepaway_logging;
+      }
+    const
+    std::string & keepawayLogDir() const
+      {
+          return M_keepaway_log_dir;
+      }
+    const
+    std::string & keepawayLogFixedName() const
+      {
+          return M_keepaway_log_fixed_name;
+      }
+    bool keepawayLogFixed() const
+      {
+          return M_keepaway_log_fixed;
+      }
+    bool keepawayLogDated() const
+      {
+          return M_keepaway_log_dated;
+      }
 
-    bool keepawayLogging() const { return M_keepaway_logging; }
-    const std::string & keepawayLogDir() const { return M_keepaway_log_dir; }
-    const std::string & keepawayLogFixedName() const { return M_keepaway_log_fixed_name; }
-    bool keepawayLogFixed() const { return M_keepaway_log_fixed; }
-    bool keepawayLogDated() const { return M_keepaway_log_dated; }
+    int keepawayStart() const
+      {
+          return M_keepaway_start;
+      }
 
-    int keepawayStart() const { return M_keepaway_start; }
+    int nrNormalHalfs() const
+      {
+          return M_nr_normal_halfs;
+      }
+    int nrExtraHalfs() const
+      {
+          return M_nr_extra_halfs;
+      }
+    bool penaltyShootOuts() const
+      {
+          return  M_penalty_shoot_outs;
+      }
 
-    int nrNormalHalfs() const { return M_nr_normal_halfs; }
-    int nrExtraHalfs() const { return M_nr_extra_halfs; }
-    bool penaltyShootOuts() const { return  M_penalty_shoot_outs; }
+    int penBeforeSetupWait() const
+      {
+          return M_pen_before_setup_wait;
+      }
+    int penSetupWait() const
+      {
+          return M_pen_setup_wait;
+      }
+    int penReadyWait() const
+      {
+          return M_pen_ready_wait;
+      }
+    int penTakenWait() const
+      {
+          return M_pen_taken_wait;
+      }
+    int penNrKicks() const
+      {
+          return M_pen_nr_kicks;
+      }
+    int penMaxExtraKicks() const
+      {
+          return M_pen_max_extra_kicks;
+      }
+    const
+    double & penDistX() const
+      {
+          return M_pen_dist_x;
+      }
+    bool penRandomWinner() const
+      {
+          return M_pen_random_winner;
+      }
+    bool penAllowMultKicks() const
+      {
+          return M_pen_allow_mult_kicks;
+      }
+    const
+    double & penMaxGoalieDistX() const
+      {
+          return M_pen_max_goalie_dist_x;
+      }
+    bool penCoachMovesPlayers() const
+      {
+          return M_pen_coach_moves_players;
+      }
 
-    int penBeforeSetupWait() const { return M_pen_before_setup_wait; }
-    int penSetupWait() const { return M_pen_setup_wait; }
-    int penReadyWait() const { return M_pen_ready_wait; }
-    int penTakenWait() const { return M_pen_taken_wait; }
-    int penNrKicks() const { return M_pen_nr_kicks; }
-    int penMaxExtraKicks() const { return M_pen_max_extra_kicks; }
-    double penDistX() const { return M_pen_dist_x; }
-    bool penRandomWinner() const { return M_pen_random_winner; }
-    bool penAllowMultKicks() const { return M_pen_allow_mult_kicks; }
-    double penMaxGoalieDistX() const { return M_pen_max_goalie_dist_x; }
-    bool penCoachMovesPlayers() const { return M_pen_coach_moves_players; }
-
-    const std::string & moduleDir() const { return M_module_dir; }
+    const
+    std::string & moduleDir() const
+      {
+          return M_module_dir;
+      }
 
     // 11.0.0
-    double ballStuckArea() const { return M_ball_stuck_area; }
-    const std::string & coachMsgFile() const { return M_coach_msg_file; }
+
+    const
+    double & ballStuckArea() const
+      {
+          return M_ball_stuck_area;
+      }
+    const
+    std::string & coachMsgFile() const
+      {
+          return M_coach_msg_file;
+      }
 
     // 12.0.0
-    double maxTacklePower() const { return M_max_tackle_power; }
-    double maxBackTacklePower() const { return M_max_back_tackle_power; }
-    double playerSpeedMaxMin() const { return M_player_speed_max_min; }
-    double defaultExtraStamina() const { return M_extra_stamina; }
 
-    int synchSeeOffset() const { return M_synch_see_offset; }
-    int maxMonitors() const { return M_max_monitors; }
+    const
+    double & maxTacklePower() const
+      {
+          return M_max_tackle_power;
+      }
+    const
+    double & maxBackTacklePower() const
+      {
+          return M_max_back_tackle_power;
+      }
+    const
+    double & playerSpeedMaxMin() const
+      {
+          return M_player_speed_max_min;
+      }
+    const
+    double & defaultExtraStamina() const
+      {
+          return M_extra_stamina;
+      }
+
+    int synchSeeOffset() const
+      {
+          return M_synch_see_offset;
+      }
+
+    int maxMonitors() const
+      {
+          return M_max_monitors;
+      }
+
 
     // v12.1.3
-    int extraHalfTime() const { return M_extra_half_time; }
+    int extraHalfTime() const
+      {
+          return M_extra_half_time;
+      }
 
     // v13
-    double staminaCapacity() const { return M_stamina_capacity; }
-    double maxDashAngle() const { return M_max_dash_angle; }
-    double minDashAngle() const { return M_min_dash_angle; }
-    double dashAngleStep() const { return M_dash_angle_step; }
-    double sideDashRate() const { return M_side_dash_rate; }
-    double backDashRate() const { return M_back_dash_rate; }
-    double maxDashPower() const { return M_max_dash_power; }
-    double minDashPower() const { return M_min_dash_power; }
+    const
+    double & staminaCapacity() const
+      {
+          return M_stamina_capacity;
+      }
+    const
+    double & maxDashAngle() const
+      {
+          return M_max_dash_angle;
+      }
+    const
+    double & minDashAngle() const
+      {
+          return M_min_dash_angle;
+      }
+    const
+    double & dashAngleStep() const
+      {
+          return M_dash_angle_step;
+      }
+    const
+    double & sideDashRate() const
+      {
+          return M_side_dash_rate;
+      }
+    const
+    double & backDashRate() const
+      {
+          return M_back_dash_rate;
+      }
+    const
+    double & maxDashPower() const
+      {
+          return M_max_dash_power;
+      }
+    const
+    double & minDashPower() const
+      {
+          return M_min_dash_power;
+      }
 
     // v14
-    double tackleRandFactor() const { return M_tackle_rand_factor; }
-    double foulDetectProbability() const { return M_foul_detect_probability; }
-    double foulExponent() const { return M_foul_exponent; }
-    int foulCycles() const { return M_foul_cycles; }
-    bool goldenGoal() const { return M_golden_goal; }
+    const
+    double & tackleRandFactor() const
+      {
+          return M_tackle_rand_factor;
+      }
+    const
+    double & foulDetectProbability() const
+      {
+          return M_foul_detect_probability;
+      }
+    const
+    double & foulExponent() const
+      {
+          return M_foul_exponent;
+      }
+    int foulCycles() const
+      {
+          return M_foul_cycles;
+      }
 
-    // v15
-    double redCardProbability() const { return M_red_card_probability; }
+    int randomSeed() const
+      {
+          return M_random_seed;
+      }
 
-    // v16
-    bool useIllegalDefense() const { return M_illegal_defense_number != 0; }
-    int illegalDefenseDuration() const { return M_illegal_defense_duration; }
-    int illegalDefenseNumber() const { return M_illegal_defense_number; }
-    double illegalDefenseDistX() const { return M_illegal_defense_dist_x; }
-    double illegalDefenseWidth() const { return M_illegal_defense_width; }
-    const std::string & fixedTeamNameLeft() const { return M_fixed_teamname_l; }
-    const std::string & fixedTeamNameRight() const { return M_fixed_teamname_r; }
-
-    // v17
-    double maxCatchAngle() const { return M_max_catch_angle; }
-    double minCatchAngle() const { return M_min_catch_angle; }
-
-    // v19
-    double distNoiseRate() const { return M_dist_noise_rate; }
-    double focusDistNoiseRate() const { return M_focus_dist_noise_rate; }
-    double landDistNoiseRate() const { return M_land_dist_noise_rate; }
-    double landFocusDistNoiseRate() const { return M_land_focus_dist_noise_rate; }
-
-    // XXX
-    int randomSeed() const { return M_random_seed; }
-    double longKickPowerFactor() const { return M_long_kick_power_factor; }
-    int longKickDelay() const { return M_long_kick_delay; }
+    bool goldenGoal() const
+      {
+          return M_golden_goal;
+      }
 
 
     // automatically defined values
@@ -1252,7 +1907,8 @@ public:
                                        +goalAreaHalfWidth() );
       }
 
-    double defaultRealSpeedMax() const
+    const
+    double & defaultRealSpeedMax() const
       {
           return M_real_speed_max;
       }
@@ -1273,7 +1929,8 @@ public:
       }
 
     // additional params
-    double catchableArea() const
+    const
+    double & catchableArea() const
       {
           return M_catchable_area;
       }
@@ -1285,7 +1942,8 @@ public:
       \param power command argument power
       \return normalized power
      */
-    double normalizePower( const double & power ) const
+    const
+    double & normalizePower( const double & power ) const
       {
           if ( power < minPower() ) return  minPower();
           else if ( power > maxPower() ) return maxPower();
@@ -1297,7 +1955,8 @@ public:
       \param power dash power value
       \return normalized dash power value
      */
-    double normalizeDashPower( const double & power ) const
+    const
+    double & normalizeDashPower( const double & power ) const
       {
           if ( power < minDashPower() ) return  minDashPower();
           else if ( power > maxDashPower() ) return maxDashPower();
@@ -1309,7 +1968,8 @@ public:
       \param dir dash direction
       \return normalized dash direction
      */
-    double normalizeDashAngle( const double & dir ) const
+    const
+    double & normalizeDashAngle( const double & dir ) const
       {
           if ( dir < minDashAngle() ) return  minDashAngle();
           else if ( dir > maxDashAngle() ) return maxDashAngle();
@@ -1323,10 +1983,9 @@ public:
      */
     double discretizeDashAngle( const double & dir ) const
       {
-          double d = normalizeDashAngle( dir );
           return ( dashAngleStep() < 1.0e-10 // SERVER_EPS
-                   ? d
-                   : dashAngleStep() * rint( d / dashAngleStep() ) );
+                   ? dir
+                   : dashAngleStep() * rint( dir / dashAngleStep() ) );
       }
 
     /*!
@@ -1341,31 +2000,20 @@ public:
       \param moment command argument moment
       \return normalized moment
      */
-    double normalizeMoment( const double & moment ) const
+    const
+    double & normalizeMoment( const double & moment ) const
       {
           if ( moment < minMoment() ) return minMoment();
           else if ( moment > maxMoment() ) return maxMoment();
           return moment;
       }
-
-    /*!
-      \brief normalize the catch direction within [min_catch_angle, max_catch_angle]
-      \param dir input direction value (degree)
-      \return normalized direction value (degree)
-     */
-    double normalizeCatchAngle( const double dir ) const
-    {
-        return ( dir < minCatchAngle() ? minCatchAngle()
-                 : maxCatchAngle() < dir ? maxCatchAngle()
-                 : dir );
-    }
-
     /*!
       \brief normalize neck moment
       \param moment command argument moment
       \return normalized moment
      */
-    double normalizeNeckMoment( const double & moment ) const
+    const
+    double & normalizeNeckMoment( const double & moment ) const
       {
           if ( moment < minNeckMoment() ) return minNeckMoment();
           else if ( moment > maxNeckMoment() ) return maxNeckMoment();
@@ -1376,7 +2024,8 @@ public:
       \param neck_angle neck angle
       \return normalized neck angle
      */
-    double normalizeNeckAngle( const double & neck_angle ) const
+    const
+    double & normalizeNeckAngle( const double & neck_angle ) const
       {
           if ( neck_angle < minNeckAngle() ) return minNeckAngle();
           else if ( neck_angle > maxNeckAngle() ) return maxNeckAngle();

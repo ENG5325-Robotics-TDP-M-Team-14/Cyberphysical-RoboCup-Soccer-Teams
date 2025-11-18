@@ -53,12 +53,12 @@ namespace rcsc {
 bool
 Neck_TurnToGoalieOrScan::execute( PlayerAgent * agent )
 {
-    dlog.addText( Logger::ACTION,
+    dlog.addText( Logger::TEAM,
                   __FILE__": Neck_TurnToGoalieOrScan" );
 
     const WorldModel & wm = agent->world();
 
-    const AbstractPlayerObject * opp_goalie = wm.getTheirGoalie();
+    const PlayerObject * opp_goalie = wm.getOpponentGoalie();
 
     if ( ! opp_goalie
          || opp_goalie->posCount() <= M_count_thr )
@@ -139,8 +139,7 @@ Neck_TurnToGoalieOrScan::execute( PlayerAgent * agent )
     }
 
     dlog.addText( Logger::ACTION,
-                  __FILE__": neck to goalie. pos=(%.1f %.1f)",
-                  goalie_next.x, goalie_next.y );
+                  __FILE__": neck to goalie" );
     return Neck_TurnToPoint( goalie_next ).execute( agent );
 }
 

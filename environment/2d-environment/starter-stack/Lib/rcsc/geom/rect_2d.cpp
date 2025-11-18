@@ -46,9 +46,10 @@ namespace rcsc {
 /*!
 
  */
-const Rect2D &
-Rect2D::setTopLeft( const double x,
-                    const double y )
+const
+Rect2D &
+Rect2D::setTopLeft( const double & x,
+                    const double & y )
 {
     double new_left = std::min( right(), x );
     double new_right = std::max( right(), x );
@@ -65,9 +66,10 @@ Rect2D::setTopLeft( const double x,
 /*!
 
  */
-const Rect2D &
-Rect2D::setBottomRight( const double x,
-                        const double y )
+const
+Rect2D &
+Rect2D::setBottomRight( const double & x,
+                        const double & y )
 {
     double new_left = std::min( left(), x );
     double new_right = std::max( left(), x );
@@ -84,8 +86,9 @@ Rect2D::setBottomRight( const double x,
 /*!
 
  */
-const Rect2D &
-Rect2D::setLeft( const double x )
+const
+Rect2D &
+Rect2D::setLeft( const double & x )
 {
     double new_left = std::min( right(), x );
     double new_right = std::max( right(), x );
@@ -99,8 +102,9 @@ Rect2D::setLeft( const double x )
 /*!
 
  */
-const Rect2D &
-Rect2D::setRight( const double x )
+const
+Rect2D &
+Rect2D::setRight( const double & x )
 {
     double new_left = std::min( left(), x );
     double new_right = std::max( left(), x );
@@ -114,8 +118,9 @@ Rect2D::setRight( const double x )
 /*!
 
  */
-const Rect2D &
-Rect2D::setTop( const double y )
+const
+Rect2D &
+Rect2D::setTop( const double & y )
 {
     double new_top = std::min( bottom(), y );
     double new_bottom = std::max( bottom(), y );
@@ -129,8 +134,9 @@ Rect2D::setTop( const double y )
 /*!
 
  */
-const Rect2D &
-Rect2D::setBottom( const double y )
+const
+Rect2D &
+Rect2D::setBottom( const double & y )
 {
     double new_top = std::min( top(), y );
     double new_bottom = std::max( top(), y );
@@ -291,7 +297,8 @@ Rect2D::intersection( const Segment2D & segment,
 /*!
 
  */
-const Rect2D &
+const
+Rect2D &
 Rect2D::operator&=( const Rect2D & other )
 {
     if ( ! this->isValid()
@@ -323,7 +330,8 @@ Rect2D::operator&=( const Rect2D & other )
 /*!
 
  */
-const Rect2D &
+const
+Rect2D &
 Rect2D::operator|=( const Rect2D & other )
 {
     if ( ! this->isValid()

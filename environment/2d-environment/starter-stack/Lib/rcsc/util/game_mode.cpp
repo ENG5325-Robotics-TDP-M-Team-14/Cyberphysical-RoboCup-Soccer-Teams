@@ -33,15 +33,15 @@
 #include <config.h>
 #endif
 
-#include "../game_mode.h"
+#include <rcsc/game_mode.h>
 
 #include <iostream>
-#include <unordered_map>
-#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 namespace {
 
-typedef std::unordered_map< std::string, rcsc::GameMode::Pair > PlayModeMap;
+typedef std::map< std::string, rcsc::GameMode::Pair > PlayModeMap;
 
 /*!
   \class MapHolder
@@ -52,18 +52,34 @@ private:
     //! key: playmode string, value: playmode type
     PlayModeMap M_playmode_map;
 
-public:
-
     /*!
-      \brief create playmode map.
+      \brief private access for singleton. create playmode map.
     */
     MapHolder();
+
+public:
+
+    ~MapHolder()
+      {
+          //std::cerr << "delete MapHolder map" << std::endl;
+          M_playmode_map.clear();
+          //std::cerr << "delete MapHolder done map.clear" << std::endl;
+      }
+
+    static
+    const
+    MapHolder & instance()
+      {
+          static MapHolder s_instance;
+          return s_instance;
+      }
 
     /*!
       \brief singleton interface. get playmode map
       \return const reference to the playmode map
     */
-    const PlayModeMap & get() const
+    const
+    PlayModeMap & get() const
       {
           return M_playmode_map;
       }
@@ -127,8 +143,6 @@ MapHolder::MapHolder()
     M_playmode_map["penalty_miss_r"] = std::make_pair( GameMode::PenaltyMiss_, RIGHT );
     M_playmode_map["penalty_score_l"] = std::make_pair( GameMode::PenaltyScore_, LEFT );
     M_playmode_map["penalty_score_r"] = std::make_pair( GameMode::PenaltyScore_, RIGHT );
-    M_playmode_map["illegal_defense_l"] = std::make_pair( GameMode::IllegalDefense_, LEFT );
-    M_playmode_map["illegal_defense_r"] = std::make_pair( GameMode::IllegalDefense_, RIGHT );
 
     //"goal_SIDE_SCORE"
     M_playmode_map["half_time"] = std::make_pair( GameMode::FirstHalfOver, NEUTRAL );
@@ -147,6 +161,11 @@ MapHolder::MapHolder()
     M_playmode_map["penalty_winner_l"] = std::make_pair( GameMode::TimeOver, NEUTRAL );//std::make_pair(PenaltyWinner_, LEFT);
     M_playmode_map["penalty_winner_r"] = std::make_pair( GameMode::TimeOver, NEUTRAL );//std::make_pair(PenaltyWinner_, RIGHT);
     M_playmode_map["penalty_draw"] = std::make_pair( GameMode::TimeOver, NEUTRAL );//std::make_pair(PenaltyDraw, NEUTRAL);
+
+    // IllegalDefense_
+    M_playmode_map["illegal_defense_r"] = std::make_pair( GameMode::IllegalDefense_, LEFT );
+    M_playmode_map["illegal_defense_l"] = std::make_pair( GameMode::IllegalDefense_, RIGHT );
+
 }
 
 } // end of no name namespace
@@ -158,29 +177,11 @@ namespace rcsc {
 
 */
 GameMode::GameMode()
-    : M_time( -1, 0 ),
-      M_type( BeforeKickOff ),
-      M_side( NEUTRAL ),
-      M_score_left( 0 ),
-      M_score_right( 0 )
-{
-
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-GameMode::GameMode( Type type,
-                    SideID side,
-                    const GameTime & time,
-                    int score_left,
-                    int score_right )
-    : M_time( time ),
-      M_type( type ),
-      M_side( side ),
-      M_score_left( score_left ),
-      M_score_right( score_right )
+    : M_time( -1, 0 )
+    , M_type( BeforeKickOff )
+    , M_side( NEUTRAL )
+    , M_score_left( 0 )
+    , M_score_right( 0 )
 {
 
 }
@@ -193,12 +194,23 @@ bool
 GameMode::update( const std::string & mode_str,
                   const GameTime & current )
 {
+    /*****
+          (hear TIME referee PLAY_MODE)\n
+    *****/
+
+    // "offside_OURSIDE" playmode means (PM_Their_Offside_Kick)
+    // "offside_OPPSIDE" playmode means (PM_My_Offside_Kick);
+
     Pair mode_pair = parse( mode_str );
 
     if ( mode_pair.first == MODE_MAX )
     {
         return false;
+        //if ( current.cycle() == 0 ) mode_pair.first = BeforeKickOff;
+        //else mode_pair.first = PlayOn;
+        //mode_pair.second = NEUTRAL;
     }
+
 
     // when goalie catch the ball, playmode is changed twice at the same game cycle:
     //   PlayOn -> GoalieCatch_ -> FreeKick_
@@ -227,24 +239,10 @@ GameMode::update( const std::string & mode_str,
 /*!
 
 */
-void
-GameMode::setScore( const int score_l,
-                    const int score_r )
-{
-    M_score_left = score_l;
-    M_score_right = score_r;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
 GameMode::Pair
 GameMode::parse( const std::string & mode_str )
 {
-    static MapHolder S_map_holder;
-
-    const PlayModeMap & pmap = S_map_holder.get();
+    const PlayModeMap & pmap = MapHolder::instance().get();
 
     PlayModeMap::const_iterator it = pmap.find( mode_str );
     if ( it != pmap.end() )
@@ -252,34 +250,14 @@ GameMode::parse( const std::string & mode_str )
         return it->second;
     }
 
-    if ( ! mode_str.compare( 0, 6, "goal_l" ) )
+    if ( ! mode_str.compare( 0, 6, "goal_l") )
     {
-        int score = 0;
-        if ( std::sscanf( mode_str.c_str(), " goal_l_%d ", &score ) == 1 )
-        {
-            M_score_left = score;
-        }
-        // else
-        // {
-        //     std::cerr << __FILE__ << ' ' << __LINE__
-        //               << ": illegal playmode message [" << mode_str << "]"
-        //               << std::endl;
-        // }
+        M_score_left = std::atoi( mode_str.substr( std::strlen( "goal_l_" ) ).c_str() );
         return std::make_pair( AfterGoal_, LEFT );
     }
     else if ( ! mode_str.compare( 0, 6, "goal_r" ) )
     {
-        int score = 0;
-        if ( std::sscanf( mode_str.c_str(), " goal_r_%d ", &score ) == 1 )
-        {
-            M_score_right = score;
-        }
-        // else
-        // {
-        //     std::cerr << __FILE__ << ' ' << __LINE__
-        //               << ": illegal playmode message [" << mode_str << "]"
-        //               << std::endl;
-        // }
+        M_score_right = std::atoi( mode_str.substr( std::strlen( "goal_r_" ) ).c_str() );
         return std::make_pair( AfterGoal_, RIGHT );
     }
 
@@ -372,7 +350,6 @@ GameMode::isTeamsSetPlay( const SideID team_side ) const
     case FreeKickFault_:
     case BackPass_:
     case CatchFault_:
-    case IllegalDefense_:
         if ( team_side != side() )
         {
             return true;
@@ -492,122 +469,11 @@ GameMode::getServerPlayMode() const
                  : PM_PenaltyScore_Right );
     case IllegalDefense_:
         return ( side() == LEFT
-                 ? PM_Illegal_Defense_Left
-                 : PM_Illegal_Defense_Right );
+                 ? PM_IllegalDefense_Left
+                 : PM_IllegalDefense_Right);
     default:
         return PM_MAX;
     };
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-const char *
-GameMode::toCString() const
-{
-    static char msg[32];
-
-    switch ( type() ) {
-    case BeforeKickOff:
-        snprintf( msg, 32, "before_kick_off" );
-        break;
-    case TimeOver:
-        snprintf( msg, 32, "game_over" );
-        break;
-    case PlayOn:
-        snprintf( msg, 32, "play_on" );
-        break;
-    case KickOff_:
-        snprintf( msg, 32, "kick_off_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-    case KickIn_:
-        snprintf( msg, 32, "kick_in_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-    case FreeKick_:
-        snprintf( msg, 32, "free_kick_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-    case CornerKick_:
-        snprintf( msg, 32, "corner_kick_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-    case GoalKick_:
-        snprintf( msg, 32, "goal_kick_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-    case AfterGoal_:  // Left | Right
-        if ( side() == LEFT )
-        {
-            snprintf( msg, 32, "goal_l_%d", scoreLeft() );
-        }
-        else
-        {
-            snprintf( msg, 32, "goal_r_%d", scoreRight() );
-        }
-        break;
-        //Drop_Ball,   // Left | Right
-    case OffSide_:
-        snprintf( msg, 32, "offside_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-        //PK_,         // Left | Right
-    case FirstHalfOver:
-        snprintf( msg, 32, "half_time" );
-        break;
-        //Pause,
-        //Human,
-    case FoulCharge_:
-        snprintf( msg, 32, "foul_charge_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-    case FoulPush_:
-        snprintf( msg, 32, "foul_push_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-        //Foul_MultipleAttacker_,
-        //Foul_BallOut_,
-    case BackPass_:
-        snprintf( msg, 32, "back_pass_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-    case FreeKickFault_:
-        snprintf( msg, 32, "free_kick_fault_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-    case CatchFault_:
-        snprintf( msg, 32, "catch_fault_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-    case IndFreeKick_:
-        snprintf( msg, 32, "indirect_free_kick_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-    case PenaltySetup_:
-        snprintf( msg, 32, "penalty_setup_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-    case PenaltyReady_:
-        snprintf( msg, 32, "penalty_ready_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-    case PenaltyTaken_:
-        snprintf( msg, 32, "penalty_taken_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-    case PenaltyMiss_:
-        snprintf( msg, 32, "penalty_miss_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-    case PenaltyScore_:
-        snprintf( msg, 32, "penalty_score_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-    case PenaltyOnfield_:
-        snprintf( msg, 32, "penalty_onfield_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-    case PenaltyFoul_:
-        snprintf( msg, 32, "penalty_foul_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-        //case PenaltyWinner_:
-        //case PenaltyDraw:
-    case GoalieCatch_:
-        snprintf( msg, 32, "goalie_catch_%c", ( side() == LEFT ? 'l' : 'r' ) );
-        break;
-    case ExtendHalf:
-        snprintf( msg, 32, "time_extend" );
-        break;
-    default:
-        snprintf( msg, 32, "unknown_playmode" );
-        break;
-    }
-
-    return msg;
 }
 
 /*-------------------------------------------------------------------*/
@@ -645,7 +511,7 @@ GameMode::print( std::ostream & os ) const
         os << " goal_kick";
         break;
     case AfterGoal_:  // Left | Right
-        os << " goal_?";
+        os << "goal_?";
         break;
         //Drop_Ball,   // Left | Right
     case OffSide_:
@@ -693,16 +559,13 @@ GameMode::print( std::ostream & os ) const
         os << "penalty_score";
         break;
     case PenaltyOnfield_:
-        os << "penalty_onfield";
+        os << "penalty_onfield_l";
         break;
     case PenaltyFoul_:
-        os << "penalty_foul";
+        os << "penalty_foul_l";
         break;
         //case PenaltyWinner_:
         //case PenaltyDraw:
-    case IllegalDefense_:
-        os << "illgal_defense";
-        break;
     case GoalieCatch_:
         os << " goalie_catch";
         break;
@@ -716,20 +579,20 @@ GameMode::print( std::ostream & os ) const
 
     switch ( side() ) {
     case NEUTRAL:
-        os << " neutral";
+        os << " Neutral";
         break;
     case LEFT:
-        os << " left";
+        os << " Left";
         break;
     case RIGHT:
-        os << " right";
+        os << " Right";
         break;
     default:
-        os << " unknown side";
+        os << " Unknown Side";
         break;
     }
 
-    return os;
+    return os << std::endl;
 }
 
 }

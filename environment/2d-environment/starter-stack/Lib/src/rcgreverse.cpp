@@ -9,11 +9,14 @@
 
 #include <iostream>
 #include <fstream>
-#include <sstream>
 #include <string>
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
 
 class Reverser
     : public rcsc::rcg::Handler {
@@ -24,39 +27,50 @@ private:
     rcsc::rcg::Serializer::Ptr M_serializer;
 
     // not used
-    Reverser() = delete;
+    Reverser();
 public:
 
     explicit
     Reverser( std::ostream & os );
 
-    bool handleLogVersion( const int ver ) override;
+    bool handleLogVersion( const int ver );
 
-    bool handleEOF() override;
+    // v3 or older
+    bool handleDispInfo( const rcsc::rcg::dispinfo_t & disp );
+    bool handleShowInfo( const rcsc::rcg::showinfo_t & show );
+    bool handleShortShowInfo2( const rcsc::rcg::short_showinfo_t2 & show );
+    bool handleMsgInfo( rcsc::rcg::Int16 board,
+                        const std::string & msg );
+    bool handlePlayMode( char playmode );
+    bool handleTeamInfo( const rcsc::rcg::team_t & team_left,
+                         const rcsc::rcg::team_t & team_right );
+    bool handlePlayerType( const rcsc::rcg::player_type_t & param );
+    bool handleServerParam( const rcsc::rcg::server_params_t & param );
+    bool handlePlayerParam( const rcsc::rcg::player_params_t & param );
 
-    bool handleShow( const rcsc::rcg::ShowInfoT & show ) override;
+    bool handleEOF();
+
+    // v4 or later
+    bool handleShow( const int time,
+                     const rcsc::rcg::ShowInfoT & show );
     bool handleMsg( const int time,
                     const int board,
-                    const std::string & msg ) override;
-    bool handleDraw( const int ,
-                     const rcsc::rcg::drawinfo_t & ) override
-      {
-          return true;
-      }
+                    const std::string & msg );
     bool handlePlayMode( const int time,
-                         const rcsc::PlayMode pm ) override;
+                         const rcsc::PlayMode pm );
     bool handleTeam( const int time,
                      const rcsc::rcg::TeamT & team_l,
-                     const rcsc::rcg::TeamT & team_r ) override;
+                     const rcsc::rcg::TeamT & team_r );
+    bool handleServerParam( const std::string & msg );
+    bool handlePlayerParam( const std::string & msg );
+    bool handlePlayerType( const std::string & msg );
 
-    bool handleServerParam( const rcsc::rcg::ServerParamT & param ) override;
-    bool handlePlayerParam( const rcsc::rcg::PlayerParamT & param ) override;
-    bool handlePlayerType( const rcsc::rcg::PlayerTypeT & param ) override;
-    bool handleTeamGraphic( const char side,
-                            const int x,
-                            const int y,
-                            const std::vector< std::string > & xpm ) override;
 private:
+
+    rcsc::rcg::pos_t reverse( const rcsc::rcg::pos_t & pos,
+                              const bool ball = false );
+    rcsc::rcg::ball_t reverse( const rcsc::rcg::ball_t & ball );
+    rcsc::rcg::player_t reverse( const rcsc::rcg::player_t & player );
 
     rcsc::rcg::BallT reverse( const rcsc::rcg::BallT & ball );
     rcsc::rcg::PlayerT reverse( const rcsc::rcg::PlayerT & player );
@@ -89,7 +103,7 @@ Reverser::handleLogVersion( const int ver )
         return false;
     }
 
-    M_serializer->serializeBegin( M_os, serverVersion(), timestamp() );
+    M_serializer->serializeHeader( M_os );
     return true;
 }
 
@@ -98,11 +112,33 @@ Reverser::handleLogVersion( const int ver )
 
 */
 bool
-Reverser::handleEOF()
+Reverser::handleDispInfo( const rcsc::rcg::dispinfo_t & disp )
 {
-    if ( M_serializer )
-    {
-        M_serializer->serializeEnd( M_os );
+    //std::cerr << "handleDispInfo size = " << sizeof( disp ) << std::endl;
+    switch ( ntohs( disp.mode ) ) {
+    case rcsc::rcg::SHOW_MODE:
+        //std::cerr << "SHOW_MODE" << std::endl;
+        handleShowInfo( disp.body.show );
+        break;
+    case rcsc::rcg::MSG_MODE:
+        //std::cerr << "MSG_MODE" << std::endl;
+        handleMsgInfo( disp.body.msg.board, disp.body.msg.message );
+        break;
+    case rcsc::rcg::BLANK_MODE:
+        std::cerr << "BLANK_MODE" << std::endl;
+        break;
+    case rcsc::rcg::DRAW_MODE:
+    case rcsc::rcg::PM_MODE:
+    case rcsc::rcg::TEAM_MODE:
+    case rcsc::rcg::PT_MODE:
+    case rcsc::rcg::PARAM_MODE:
+    case rcsc::rcg::PPARAM_MODE:
+    default:
+        std::cerr << __FILE__ << ":" << __LINE__
+                  << " Unsupported mode " << ntohs( disp.mode )
+                  << " in dispinfo_t" << std::endl;
+        return false;
+        break;
     }
 
     return true;
@@ -113,7 +149,183 @@ Reverser::handleEOF()
 
 */
 bool
-Reverser::handleShow( const rcsc::rcg::ShowInfoT & show )
+Reverser::handleShowInfo( const rcsc::rcg::showinfo_t & show )
+{
+    if ( ! M_serializer )
+    {
+        return false;
+    }
+
+    rcsc::rcg::showinfo_t new_show;
+
+    new_show.pmode = show.pmode;
+    new_show.team[0] = show.team[1];
+    new_show.team[1] = show.team[0];
+
+    new_show.pos[0] = reverse( show.pos[0], true );
+
+    for ( int i = 1; i < rcsc::MAX_PLAYER + 1; ++i )
+    {
+        new_show.pos[i] = reverse( show.pos[i + rcsc::MAX_PLAYER] );
+    }
+    for ( int i = rcsc::MAX_PLAYER + 1; i < rcsc::MAX_PLAYER * 2 + 1; ++i )
+    {
+        new_show.pos[i] = reverse( show.pos[i - rcsc::MAX_PLAYER] );
+    }
+
+    new_show.time = show.time;
+
+    M_serializer->serialize( M_os, new_show );
+
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+Reverser::handleShortShowInfo2( const rcsc::rcg::short_showinfo_t2 & show )
+{
+    if ( ! M_serializer )
+    {
+        return false;
+    }
+
+    rcsc::rcg::short_showinfo_t2 new_show;
+
+    new_show.ball = reverse( show.ball );
+
+    for ( int i = 0; i < rcsc::MAX_PLAYER; ++i )
+    {
+        new_show.pos[i] = reverse( show.pos[i + rcsc::MAX_PLAYER] );
+    }
+    for ( int i = rcsc::MAX_PLAYER; i < rcsc::MAX_PLAYER * 2; ++i )
+    {
+        new_show.pos[i] = reverse( show.pos[i - rcsc::MAX_PLAYER] );
+    }
+
+    new_show.time = show.time;
+
+    M_serializer->serialize( M_os, new_show );
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+Reverser::handleMsgInfo( rcsc::rcg::Int16 board,
+                         const std::string & msg )
+{
+    if ( ! M_serializer )
+    {
+        return false;
+    }
+
+    M_serializer->serialize( M_os, board, msg );
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+Reverser::handlePlayMode( char playmode )
+{
+    if ( ! M_serializer )
+    {
+        return false;
+    }
+
+    M_serializer->serialize( M_os, playmode );
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+Reverser::handleTeamInfo( const rcsc::rcg::team_t & team_left,
+                          const rcsc::rcg::team_t & team_right )
+{
+    if ( ! M_serializer )
+    {
+        return false;
+    }
+
+    M_serializer->serialize( M_os, team_right, team_left );
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+Reverser::handlePlayerType( const rcsc::rcg::player_type_t & param )
+{
+    if ( ! M_serializer )
+    {
+        return false;
+    }
+
+    M_serializer->serialize( M_os, param );
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+Reverser::handleServerParam( const rcsc::rcg::server_params_t & param )
+{
+    if ( ! M_serializer )
+    {
+        return false;
+    }
+
+    M_serializer->serialize( M_os, param );
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+Reverser::handlePlayerParam( const rcsc::rcg::player_params_t & param )
+{
+    if ( ! M_serializer )
+    {
+        return false;
+    }
+
+    M_serializer->serialize( M_os, param );
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+Reverser::handleEOF()
+{
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+Reverser::handleShow( const int,
+                      const rcsc::rcg::ShowInfoT & show )
 {
     if ( ! M_serializer )
     {
@@ -193,59 +405,143 @@ Reverser::handleTeam( const int,
 }
 
 /*-------------------------------------------------------------------*/
+/*!
+
+*/
 bool
-Reverser::handleServerParam( const rcsc::rcg::ServerParamT & param )
+Reverser::handleServerParam( const std::string & msg )
 {
     if ( ! M_serializer )
     {
         return false;
     }
 
-    M_serializer->serialize( M_os, param );
+    M_serializer->serializeParam( M_os, msg );
     return true;
 }
 
 /*-------------------------------------------------------------------*/
+/*!
+
+*/
 bool
-Reverser::handlePlayerParam( const rcsc::rcg::PlayerParamT & param )
+Reverser::handlePlayerParam( const std::string & msg )
 {
     if ( ! M_serializer )
     {
         return false;
     }
 
-    M_serializer->serialize( M_os, param );
+    M_serializer->serializeParam( M_os, msg );
     return true;
 }
 
 /*-------------------------------------------------------------------*/
+/*!
+
+*/
 bool
-Reverser::handlePlayerType( const rcsc::rcg::PlayerTypeT & param )
+Reverser::handlePlayerType( const std::string & msg )
 {
     if ( ! M_serializer )
     {
         return false;
     }
 
-    M_serializer->serialize( M_os, param );
+    M_serializer->serializeParam( M_os, msg );
     return true;
 }
 
 /*-------------------------------------------------------------------*/
-bool
-Reverser::handleTeamGraphic( const char side,
-                             const int x,
-                             const int y,
-                             const std::vector< std::string > & xpm )
+/*!
+
+*/
+rcsc::rcg::pos_t
+Reverser::reverse( const rcsc::rcg::pos_t & pos,
+                   const bool ball )
 {
-    if ( ! M_serializer )
+    rcsc::rcg::Int16 enable = ntohs( pos.enable );
+    rcsc::rcg::Int16 side = ntohs( pos.side );
+
+    rcsc::rcg::pos_t new_pos;
+    new_pos.enable = pos.enable;
+    new_pos.side = htons( -side );
+    new_pos.unum = pos.unum;
+
+    if ( ball
+         || enable != rcsc::rcg::DISABLE )
     {
-        return false;
+        rcsc::rcg::Int16 angle = ntohs( pos.angle );
+        double x = rcsc::rcg::nstohd( pos.x );
+        double y = rcsc::rcg::nstohd( pos.y );
+
+        angle += 180;
+        if ( angle > 180 ) angle -= 360;
+
+        new_pos.angle = htons( angle );
+        new_pos.x = rcsc::rcg::hdtons( - x );
+        new_pos.y = rcsc::rcg::hdtons( - y );
+    }
+    else
+    {
+        double x = rcsc::rcg::nstohd( pos.x );
+
+        new_pos.angle = pos.angle;
+        new_pos.x = rcsc::rcg::hdtons( - x );
+        new_pos.y = pos.y;
     }
 
-    const rcsc::SideID reverse = static_cast< rcsc::SideID >( side * -1 );
-    M_serializer->serialize( M_os, reverse, x, y, xpm );
-    return true;
+    return new_pos;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+rcsc::rcg::ball_t
+Reverser::reverse( const rcsc::rcg::ball_t & ball )
+{
+    rcsc::rcg::ball_t new_ball;
+
+    new_ball.x = rcsc::rcg::hdtonl( - rcsc::rcg::nltohd( ball.x ) );
+    new_ball.y = rcsc::rcg::hdtonl( - rcsc::rcg::nltohd( ball.y ) );
+    new_ball.deltax = rcsc::rcg::hdtonl( - rcsc::rcg::nltohd( ball.deltax ) );
+    new_ball.deltay = rcsc::rcg::hdtonl( - rcsc::rcg::nltohd( ball.deltay ) );
+
+    return new_ball;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+rcsc::rcg::player_t
+Reverser::reverse( const rcsc::rcg::player_t & player )
+{
+    rcsc::rcg::player_t new_player;
+
+    new_player = player;
+
+    rcsc::rcg::Int16 mode = ntohs( player.mode );
+
+    if ( mode != rcsc::rcg::DISABLE )
+    {
+        new_player.x = rcsc::rcg::hdtonl( - rcsc::rcg::nltohd( player.x ) );
+        new_player.y = rcsc::rcg::hdtonl( - rcsc::rcg::nltohd( player.y ) );
+        new_player.deltax = rcsc::rcg::hdtonl( - rcsc::rcg::nltohd( player.deltax ) );
+        new_player.deltay = rcsc::rcg::hdtonl( - rcsc::rcg::nltohd( player.deltay ) );
+
+        double body_angle = rcsc::rcg::nltohd( player.body_angle );
+        body_angle += M_PI;
+        if ( body_angle > M_PI ) body_angle -= 2 * M_PI;
+        new_player.body_angle = rcsc::rcg::hdtonl( body_angle );
+    }
+    else
+    {
+        new_player.x = rcsc::rcg::hdtonl( - rcsc::rcg::nltohd( player.x ) );
+    }
+
+    return new_player;
 }
 
 /*-------------------------------------------------------------------*/
@@ -284,11 +580,6 @@ Reverser::reverse( const rcsc::rcg::PlayerT & player )
         new_player.vy_ = - player.vy_;
         new_player.body_ += 180.0;
         if ( new_player.body_ > 180.0 ) new_player.body_ -= 360.0;
-        if ( player.hasArm() )
-        {
-            new_player.point_x_ = - player.point_x_;
-            new_player.point_y_ = - player.point_y_;
-        }
     }
     else
     {

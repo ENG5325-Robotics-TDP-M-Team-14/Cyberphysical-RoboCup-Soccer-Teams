@@ -2,7 +2,7 @@
 
 /*!
   \file view_mode.cpp
-  \brief player view mode data classes Source File
+  \brief player view mode data classes Header File
 */
 
 /*
@@ -61,7 +61,6 @@ ViewWidth::operator++()
         break;
     case ViewWidth::WIDE:
         M_type = ViewWidth::ILLEGAL;
-        break;
     default:
         M_type = ViewWidth::ILLEGAL;
         break;

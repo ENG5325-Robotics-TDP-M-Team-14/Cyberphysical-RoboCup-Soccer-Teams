@@ -143,9 +143,9 @@ StaminaModel::update( const PlayerType & player_type,
 
 */
 void
-StaminaModel::updateBySenseBody( const double sensed_stamina,
-                                 const double sensed_effort,
-                                 const double sensed_capacity,
+StaminaModel::updateBySenseBody( const double & sensed_stamina,
+                                 const double & sensed_effort,
+                                 const double & sensed_capacity,
                                  const GameTime & current )
 {
     M_stamina = sensed_stamina;
@@ -172,19 +172,18 @@ StaminaModel::updateBySenseBody( const double sensed_stamina,
 /*!
 
 */
-const StaminaModel &
-StaminaModel::setValues( const double new_stamina,
-                         const double new_effort,
-                         const double new_recovery,
-                         const double new_capacity )
+void
+StaminaModel::updateByFullstate( const double & fullstate_stamina,
+                                 const double & fullstate_effort,
+                                 const double & fullstate_recovery,
+                                 const double & fullstate_capacity )
 {
-    M_stamina = new_stamina;
-    M_effort = new_effort;
-    M_recovery = new_recovery;
-    M_capacity = new_capacity;
-
-    return *this;
+    M_stamina = fullstate_stamina;
+    M_effort = fullstate_effort;
+    M_recovery = fullstate_recovery;
+    M_capacity = fullstate_capacity;
 }
+
 
 /*-------------------------------------------------------------------*/
 /*!
@@ -269,20 +268,6 @@ StaminaModel::simulateDash( const PlayerType & player_type,
 }
 
 /*-------------------------------------------------------------------*/
-void
-StaminaModel::simulateDash( const PlayerType & player_type,
-                            const double left_dash_power,
-                            const double right_dash_power )
-{
-    double left_stamina = ( left_dash_power < 0.0 ? -left_dash_power : left_dash_power * 0.5 );
-    double right_stamina = ( right_dash_power < 0.0 ? -right_dash_power : right_dash_power * 0.5 );
-    M_stamina -= ( left_stamina + right_stamina );
-    M_stamina = std::max( 0.0, M_stamina );
-
-    simulateWait( player_type );
-}
-
-/*-------------------------------------------------------------------*/
 /*!
 
 */
@@ -324,8 +309,7 @@ StaminaModel::simulate( const PlayerType & player_type,
 */
 double
 StaminaModel::getSafetyDashPower( const PlayerType & player_type,
-                                  const double dash_power,
-                                  const double stamina_buffer ) const
+                                  const double & dash_power ) const
 {
     double normalized_power = ServerParam::i().normalizeDashPower( dash_power );
 
@@ -353,7 +337,7 @@ StaminaModel::getSafetyDashPower( const PlayerType & player_type,
 
     double threshold = ( capacityIsEmpty()
                          ? -player_type.extraStamina()
-                         : ServerParam::i().recoverDecThrValue() + std::max( stamina_buffer, 1.0 ) );
+                         : ServerParam::i().recoverDecThrValue() + 1.0 );
     double safety_stamina = stamina() - threshold;
     double available_stamina = std::max( 0.0, safety_stamina );
     double result_power = std::min( required_stamina, available_stamina );

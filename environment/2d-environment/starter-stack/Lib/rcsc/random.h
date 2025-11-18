@@ -32,7 +32,8 @@
 #ifndef RCSC_UTIL_RANDOM_H
 #define RCSC_UTIL_RANDOM_H
 
-#include <random>
+#include <boost/random.hpp>
+
 #include <algorithm> // min, max
 #include <iostream>
 #include <ctime>
@@ -47,7 +48,7 @@ namespace rcsc {
 class RandomEngine {
 public:
     //! alias of the randome engine object type.
-    typedef std::mt19937 base_type;
+    typedef boost::mt19937 base_type;
 private:
     //! engine object
     base_type M_engine;
@@ -59,13 +60,13 @@ private:
       The random engine object is seeded by current time.
     */
     RandomEngine()
-        : M_engine( std::random_device()() )
+        : M_engine( std::time( 0 ) )
       { }
 
     //! not used for singleton.
-    RandomEngine( const RandomEngine & ) = delete;
+    RandomEngine( const RandomEngine & );
     //! not used for singleton.
-    RandomEngine & operator=( const RandomEngine & ) = delete;
+    RandomEngine & operator=( const RandomEngine & );
 
 public:
 
@@ -110,10 +111,12 @@ class UniformRNG {
 public:
     //! alias of the result value type
     typedef typename DstType::result_type result_type;
-
+    //! alias of the generator function object type. engine type must be reference
+    typedef boost::variate_generator< RandomEngine::base_type&,
+                                      DstType > Generator;
 private:
     //! random number generator object
-    DstType M_dst;
+    Generator M_gen;
 
     //! default constructor must not be used
     UniformRNG();
@@ -125,7 +128,8 @@ public:
      */
     UniformRNG( result_type min,
                 result_type max )
-        : M_dst( min, max )
+        : M_gen( RandomEngine::instance().get(),
+                 DstType( min, max ) )
       { }
 
     /*!
@@ -134,14 +138,16 @@ public:
      */
     result_type operator()()
       {
-          return M_dst( RandomEngine::instance().get() );
+          return M_gen();
       }
 };
 
+//! alias of the uniform small int number generator
+typedef UniformRNG< boost::uniform_smallint<> > UniformSmallInt;
 //! alias of the uniform int number generator
-typedef UniformRNG< std::uniform_int_distribution<> > UniformInt;
+typedef UniformRNG< boost::uniform_int<> > UniformInt;
 //! alias of the uniform real number generator
-typedef UniformRNG< std::uniform_real_distribution<> > UniformReal;
+typedef UniformRNG< boost::uniform_real<> > UniformReal;
 
 }
 

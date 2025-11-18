@@ -78,11 +78,6 @@ public:
         double recovery_; //!< recovery value
         double stamina_capacity_; //!< stamina capacity value
 
-        //! v18+. disntance to the focus point
-        double focus_dist_;
-        //! v18+. direction to the focus point
-        double focus_dir_;
-
         //! v8+. distance from pos_ to pointing point
         double pointto_dist_;
         //! v8+. pointing direction direction relative to face(=body+neck)
@@ -102,25 +97,23 @@ public:
           \brief initialize member variables
         */
         PlayerT()
-            : side_( NEUTRAL ),
-              unum_( Unum_Unknown ),
-              goalie_( false ),
-              type_( 0 ),
-              pos_( Vector2D::INVALIDATED ),
-              vel_( 0.0, 0.0 ),
-              body_( 0.0 ),
-              neck_( 0.0 ),
-              stamina_( 0.0 ),
-              effort_( 0.0 ),
-              recovery_( 0.0 ),
-              focus_dist_( 0.0 ),
-              focus_dir_( 0.0 ),
-              pointto_dist_( -1.0 ),
-              pointto_dir_( 0.0 ),
-              kicked_( false ),
-              tackle_( false ),
-              charged_( false ),
-              card_( NO_CARD )
+            : side_( NEUTRAL )
+            , unum_( Unum_Unknown )
+            , goalie_( false )
+            , type_( 0 )
+            , pos_( Vector2D::INVALIDATED )
+            , vel_( 0.0, 0.0 )
+            , body_( 0.0 )
+            , neck_( 0.0 )
+            , stamina_( 0.0 )
+            , effort_( 0.0 )
+            , recovery_( 0.0 )
+            , pointto_dist_( -1.0 )
+            , pointto_dir_( 0.0 )
+            , kicked_( false )
+            , tackle_( false )
+            , charged_( false )
+            , card_( NO_CARD )
           { }
 
         /*!
@@ -135,14 +128,13 @@ public:
     typedef std::vector< PlayerT > PlayerCont; //!< player information container
 
 private:
-
     GameTime M_time; //!< last updated time
 
     /*
-    // Because sense_body message have the following information,
-    // it is not necessary to analyze these data.
+    // Following data are included in sense_body.
+    // So, it is not necessary to analyze these data
 
-    std::string M_playmode_string; //!< playmode string
+    std::string M_playmode_str; //!< playmode string
 
     ViewQuality M_view_quality; //!< agent's view quality
     ViewWidth M_view_width; //!< agent's view width
@@ -165,54 +157,44 @@ private:
 
     // set the information of left-hand-side orientation
 
-    BallT M_ball; //! fullstate ball info
-    PlayerCont M_our_players; //! fullstate our team players
-    PlayerCont M_their_players; //! fullstate opponent team players
+    //! fullstate ball info
+    BallT M_ball;
+    //! fullstate left team players
+    PlayerCont M_left_team;
+    //! fullstate right team players
+    PlayerCont M_right_team;
 
-    int M_our_score; //! our team score
-    int M_their_score; //! their team score
-
-
-public:
-
-    /*!
-      \brief init member variables.
-     */
-    FullstateSensor();
-
-private:
+    //! left team score
+    int M_left_score;
+    //! right team score
+    int M_right_score;
 
     /*!
-      \brief analyze raw server message (protcol version 7)
+      \brief analyzer raw server message with protcol version 7
       \param msg server message
     */
-    void parseV7( const char * msg,
-                  const SideID our_side );
+    void parseV7( const char * msg );
 
     /*!
-      \brief analyze raw server message (protcol version 8 or later)
+      \brief analyzer raw server message with protcol version 8 or later
       \param msg server message
     */
-    void parseV8( const char * msg,
-                  const SideID our_side );
-
-    /*!
-      \brief reverse the coordinate system
-     */
-    void reverseSide();
-
+    void parseV8( const char * msg );
 public:
     /*!
       \brief parse server message
-      \param side our team side
       \param msg server message
       \param version client version
       \param current received game time
     */
     void parse( const char * msg,
-                const SideID our_side,
-                const double version,
+                const double & version,
                 const GameTime & current );
+
+    /*!
+      \brief reverse the coordinate system
+     */
+    void reverse();
 
     // accessor method
 
@@ -220,7 +202,8 @@ public:
       \brief get updated time
       \return cost reference to the game time
     */
-    const GameTime & time() const
+    const
+    GameTime & time() const
       {
           return M_time;
       }
@@ -229,7 +212,8 @@ public:
       \brief get analyzed ball data
       \return const reference to the internal ball object
     */
-    const BallT & ball() const
+    const
+    BallT & ball() const
       {
           return M_ball;
       }
@@ -238,36 +222,38 @@ public:
       \brief get analyzed left team data
       \return const reference to the player container
     */
-    const PlayerCont & ourPlayers() const
+    const
+    PlayerCont & leftTeam() const
       {
-          return M_our_players;
+          return M_left_team;
       }
 
     /*!
       \brief get analyzed right team data
       \return const reference to the player container
     */
-    const PlayerCont & theirPlayers() const
+    const
+    PlayerCont & rightTeam() const
       {
-          return M_their_players;
+          return M_right_team;
       }
 
     /*!
       \brief get left team score
       \return score value
     */
-    int ourScore() const
+    int leftScore() const
       {
-          return M_our_score;
+          return M_left_score;
       }
 
     /*!
       \brief get right team score
       \return score value
     */
-    int theirScore() const
+    int rightScore() const
       {
-          return M_their_score;
+          return M_right_score;
       }
 
     /*!
@@ -277,6 +263,11 @@ public:
     */
     std::ostream & print( std::ostream & os ) const;
 
+    /*!
+      \brief put ball and one player's fullstate info to the debug stream
+      \param world const reference to the WorldModel instance
+    */
+    //void printWithWorld( const WorldModel & world ) const;
 };
 
 }

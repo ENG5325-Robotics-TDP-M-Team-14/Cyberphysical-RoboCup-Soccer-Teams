@@ -1,7 +1,7 @@
 // -*-c++-*-
 
 /*!
-  \file rcgverconv.cpp
+  \file rcgver.cpp
   \brief rcg version converter source File.
 */
 
@@ -36,10 +36,8 @@
 #include <rcsc/gz.h>
 #include <rcsc/rcg.h>
 
-#include <memory>
 #include <iostream>
 #include <fstream>
-#include <sstream>
 #include <string>
 #include <cmath>
 #include <cstring>
@@ -50,40 +48,49 @@ class VersionConverter
 private:
 
     std::ostream & M_os;
-    int M_target_rcg_version;
+    int M_version;
 
     rcsc::rcg::Serializer::Ptr M_serializer;
 
     // not used
-    VersionConverter() = delete;
+    VersionConverter();
 public:
 
     VersionConverter( std::ostream & os,
                       const int version );
 
-    bool handleLogVersion( const int ver ) override;
+    bool handleLogVersion( const int ver );
 
-    bool handleEOF() override;
+    // v3 or older
+    bool handleDispInfo( const rcsc::rcg::dispinfo_t & disp );
+    bool handleShowInfo( const rcsc::rcg::showinfo_t & show );
+    bool handleShortShowInfo2( const rcsc::rcg::short_showinfo_t2 & show );
+    bool handleMsgInfo( rcsc::rcg::Int16 board,
+                        const std::string & msg );
+    bool handlePlayMode( char playmode );
+    bool handleTeamInfo( const rcsc::rcg::team_t & team_left,
+                         const rcsc::rcg::team_t & team_right );
+    bool handleServerParam( const rcsc::rcg::server_params_t & param );
+    bool handlePlayerParam( const rcsc::rcg::player_params_t & param );
+    bool handlePlayerType( const rcsc::rcg::player_type_t & param );
 
-    bool handleShow( const rcsc::rcg::ShowInfoT & show );
+    // common
+    bool handleEOF();
+
+    // v4 or later
+    bool handleShow( const int time,
+                     const rcsc::rcg::ShowInfoT & show );
     bool handleMsg( const int time,
                     const int board,
-                    const std::string & msg ) override;
-    bool handleDraw( const int time,
-                     const rcsc::rcg::drawinfo_t & draw ) override;
+                    const std::string & msg );
     bool handlePlayMode( const int time,
-                         const rcsc::PlayMode pm ) override;
+                         const rcsc::PlayMode pm );
     bool handleTeam( const int time,
                      const rcsc::rcg::TeamT & team_l,
-                     const rcsc::rcg::TeamT & team_r ) override;
-
-    bool handleServerParam( const rcsc::rcg::ServerParamT & param ) override;
-    bool handlePlayerParam( const rcsc::rcg::PlayerParamT & param ) override;
-    bool handlePlayerType( const rcsc::rcg::PlayerTypeT & param ) override;
-    bool handleTeamGraphic( const char side,
-                            const int x,
-                            const int y,
-                            const std::vector< std::string > & xpm ) override;
+                     const rcsc::rcg::TeamT & team_r );
+    bool handleServerParam( const std::string & msg );
+    bool handlePlayerParam( const std::string & msg );
+    bool handlePlayerType( const std::string & msg );
 };
 
 
@@ -93,8 +100,8 @@ public:
 */
 VersionConverter::VersionConverter( std::ostream & os,
                                     const int version )
-    : M_os( os ),
-      M_target_rcg_version( version )
+    : M_os( os )
+    , M_version( version )
 {
     M_serializer = rcsc::rcg::Serializer::create( version );
 }
@@ -108,11 +115,11 @@ VersionConverter::handleLogVersion( const int ver )
 {
     rcsc::rcg::Handler::handleLogVersion( ver );
 
-    if ( ver == M_target_rcg_version )
+    if ( ver == M_version )
     {
         std::cerr << "The version of input file (" << ver
                   << ") is same as the output version ("
-                  << M_target_rcg_version << ")"
+                  << M_version << ")"
                   << std::endl;
         M_serializer.reset();
         return false;
@@ -126,7 +133,160 @@ VersionConverter::handleLogVersion( const int ver )
         return false;
     }
 
-    M_serializer->serializeBegin( M_os, serverVersion(), timestamp() );
+    M_serializer->serializeHeader( M_os );
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+VersionConverter::handleDispInfo( const rcsc::rcg::dispinfo_t & disp )
+{
+    if ( ! M_serializer )
+    {
+        return false;
+    }
+
+    M_serializer->serialize( M_os, disp );
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+VersionConverter::handleShowInfo( const rcsc::rcg::showinfo_t & show )
+{
+    if ( ! M_serializer )
+    {
+        return false;
+    }
+
+    M_serializer->serialize( M_os, show );
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+VersionConverter::handleShortShowInfo2( const rcsc::rcg::short_showinfo_t2 & show )
+{
+    //static int count = 0;
+
+    if ( ! M_serializer )
+    {
+        return false;
+    }
+
+//     if ( ++count % 10 == 0 )
+//     {
+//         std::printf( "show: %d\r", rcsc::rcg::nstohi( show.time ) );
+//     }
+
+    M_serializer->serialize( M_os, show );
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+VersionConverter::handlePlayMode( char playmode )
+{
+    if ( ! M_serializer )
+    {
+        return false;
+    }
+
+    M_serializer->serialize( M_os, playmode );
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+VersionConverter::handleTeamInfo( const rcsc::rcg::team_t & team_left,
+                                  const rcsc::rcg::team_t & team_right )
+{
+    if ( ! M_serializer )
+    {
+        return false;
+    }
+
+    M_serializer->serialize( M_os, team_left, team_right );
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+VersionConverter::handleServerParam( const rcsc::rcg::server_params_t & param )
+{
+    if ( ! M_serializer )
+    {
+        return false;
+    }
+
+    M_serializer->serialize( M_os, param );
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+VersionConverter::handlePlayerParam( const rcsc::rcg::player_params_t & param )
+{
+    if ( ! M_serializer )
+    {
+        return false;
+    }
+
+    M_serializer->serialize( M_os, param );
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+VersionConverter::handlePlayerType( const rcsc::rcg::player_type_t & param )
+{
+    if ( ! M_serializer )
+    {
+        return false;
+    }
+
+    M_serializer->serialize( M_os, param );
+    return true;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+bool
+VersionConverter::handleMsgInfo( rcsc::rcg::Int16 board,
+                                 const std::string & msg )
+{
+    if ( ! M_serializer )
+    {
+        return false;
+    }
+
+    M_serializer->serialize( M_os, board, msg );
     return true;
 }
 
@@ -137,11 +297,6 @@ VersionConverter::handleLogVersion( const int ver )
 bool
 VersionConverter::handleEOF()
 {
-    if ( M_serializer )
-    {
-        M_serializer->serializeEnd( M_os );
-    }
-
     M_os.flush();
     return true;
 }
@@ -151,7 +306,8 @@ VersionConverter::handleEOF()
 
  */
 bool
-VersionConverter::handleShow( const rcsc::rcg::ShowInfoT & show )
+VersionConverter::handleShow( const int,
+                              const rcsc::rcg::ShowInfoT & show )
 {
     if ( ! M_serializer )
     {
@@ -177,23 +333,6 @@ VersionConverter::handleMsg( const int,
     }
 
     M_serializer->serialize( M_os, board, msg );
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
- */
-bool
-VersionConverter::handleDraw( const int,
-                              const rcsc::rcg::drawinfo_t & draw )
-{
-    if ( ! M_serializer )
-    {
-        return false;
-    }
-
-    M_serializer->serialize( M_os, draw );
     return true;
 }
 
@@ -233,58 +372,53 @@ VersionConverter::handleTeam( const int,
 }
 
 /*-------------------------------------------------------------------*/
+/*!
+
+ */
 bool
-VersionConverter::handleServerParam( const rcsc::rcg::ServerParamT & param )
+VersionConverter::handleServerParam( const std::string & msg )
 {
     if ( ! M_serializer )
     {
         return false;
     }
 
-    M_serializer->serialize( M_os, param );
+    M_serializer->serializeParam( M_os, msg );
     return true;
 }
 
 /*-------------------------------------------------------------------*/
+/*!
+
+ */
 bool
-VersionConverter::handlePlayerParam( const rcsc::rcg::PlayerParamT & param )
+VersionConverter::handlePlayerParam( const std::string & msg )
 {
     if ( ! M_serializer )
     {
         return false;
     }
 
-    M_serializer->serialize( M_os, param );
+    M_serializer->serializeParam( M_os, msg );
     return true;
 }
 
 /*-------------------------------------------------------------------*/
+/*!
+
+ */
 bool
-VersionConverter::handlePlayerType( const rcsc::rcg::PlayerTypeT & param )
+VersionConverter::handlePlayerType( const std::string & msg )
 {
     if ( ! M_serializer )
     {
         return false;
     }
 
-    M_serializer->serialize( M_os, param );
+    M_serializer->serializeParam( M_os, msg );
     return true;
 }
 
-bool
-VersionConverter::handleTeamGraphic( const char side,
-                                     const int x,
-                                     const int y,
-                                     const std::vector< std::string > & xpm )
-{
-    if ( ! M_serializer )
-    {
-        return false;
-    }
-
-    M_serializer->serialize( M_os, side, x, y, xpm );
-    return true;
-}
 
 ///////////////////////////////////////////////////////////
 
@@ -300,7 +434,7 @@ usage( const char * prog )
               << "Available options:\n"
               << "    --help [ -h ]\n"
               << "        print this message.\n"
-              << "    --version [ -v ] <Value> : (DefaultValue=json)\n"
+              << "    --version [ -v ] <Value> : (DefaultValue=4)\n"
               << "        specify the new rcg version.\n"
               << "    --output [ -o ] <Value>\n"
               << "        specify the output file name.\n"
@@ -315,7 +449,7 @@ main( int argc, char** argv )
 {
     std::string input_file;
     std::string output_file;
-    int version = -1;
+    int version = 4;
 
     for ( int i = 1; i < argc; ++i )
     {
@@ -334,15 +468,7 @@ main( int argc, char** argv )
                 usage( argv[0] );
                 return 1;
             }
-
-            if ( std::strncmp( argv[i], "json", 4 ) == 0 )
-            {
-                version = -1;
-            }
-            else
-            {
-                version = std::atoi( argv[i] );
-            }
+            version = std::atoi( argv[i] );
         }
         else if ( ! std::strcmp( argv[i], "--output" )
                   || ! std::strcmp( argv[i], "-o" ) )
@@ -382,12 +508,6 @@ main( int argc, char** argv )
         return 1;
     }
 
-    if ( version == 0 )
-    {
-        std::cerr << "Unsupported game log version = " << version << std::endl;
-        return 1;
-    }
-
     rcsc::gzifstream fin( input_file.c_str() );
 
     if ( ! fin.is_open() )
@@ -396,16 +516,18 @@ main( int argc, char** argv )
         return 1;
     }
 
-    std::shared_ptr< std::ostream > fout;
+    boost::shared_ptr< std::ostream > fout;
 
     if ( output_file.compare( output_file.length() - 3, 3, ".gz" ) == 0 )
     {
-        fout = std::shared_ptr< std::ostream >( new rcsc::gzofstream( output_file.c_str() ) );
+        fout = boost::shared_ptr< std::ostream >
+            ( new rcsc::gzofstream( output_file.c_str() ) );
     }
     else
     {
-        fout = std::shared_ptr< std::ostream >( new std::ofstream( output_file.c_str(),
-                                                                   std::ios_base::out | std::ios_base::binary ) );
+        fout = boost::shared_ptr< std::ostream >
+            ( new std::ofstream( output_file.c_str(),
+                                 std::ios_base::out | std::ios_base::binary ) );
     }
 
     if ( ! fout

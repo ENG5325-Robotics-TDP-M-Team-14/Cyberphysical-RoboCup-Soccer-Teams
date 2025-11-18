@@ -73,7 +73,8 @@ public:
       \brief get current stamina value
       \return const reference to the current stamina value
     */
-    double stamina() const
+    const
+    double & stamina() const
       {
           return M_stamina;
       }
@@ -82,7 +83,8 @@ public:
       \brief get current recovery value
       \return const reference to the current recovery value
     */
-    double recovery() const
+    const
+    double & recovery() const
       {
           return M_recovery;
       }
@@ -91,7 +93,8 @@ public:
       \brief get current effort value
       \return const reference to the current effort value
     */
-    double effort() const
+    const
+    double & effort() const
       {
           return M_effort;
       }
@@ -100,7 +103,8 @@ public:
       \brief get the current remained stamina capacity
       \return stamina capacity value
      */
-    double capacity() const
+    const
+    double & capacity() const
       {
           return M_capacity;
       }
@@ -126,66 +130,22 @@ public:
       \param sensed_capacity stamina capacity value informed by sense_body
       \param current game time that sense_body was received
     */
-    void updateBySenseBody( const double sensed_stamina,
-                            const double sensed_effort,
-                            const double sensed_capacity,
+    void updateBySenseBody( const double & sensed_stamina,
+                            const double & sensed_effort,
+                            const double & sensed_capacity,
                             const GameTime & current );
 
     /*!
-      \brief set all values
-      \param new_stamina new stamina value
-      \param new_effort new effort value
-      \param new_recovery new recovery value
-      \param new_capacity new stamina capacity value
-      \return this
+      \brief update by fullstate information
+      \param fullstate_stamina stamina value informed by fullstate
+      \param fullstate_effort effort value informed by fullstate
+      \param fullstate_recovery recovery value informed by fullstate
+      \param fullstate_capacity stamina capacity value informed by fullstate
      */
-    const StaminaModel & setValues( const double new_stamina,
-                                    const double new_effort,
-                                    const double new_recovery,
-                                    const double new_capacity );
-
-    /*!
-      \brief set new stamina value
-      \param new_stamina new stamina value
-      \return this
-     */
-    const StaminaModel & setStamina( const double new_stamina )
-      {
-          M_stamina = new_stamina;
-          return *this;
-      }
-
-    /*!
-      \brief set new effort value
-      \param new_effort new effort value
-      \return this
-     */
-    const StaminaModel & setEffort( const double new_effort )
-      {
-          M_effort = new_effort;
-          return *this;
-      }
-   /*!
-      \brief set new recovery value
-      \param new_recovery new recovery value
-      \return this
-     */
-    const StaminaModel & setRecovery( const double new_recovery )
-      {
-          M_recovery = new_recovery;
-          return *this;
-      }
-   /*!
-      \brief set new stamina capacity value
-      \param new_capacity new stamina capacity value
-      \return this
-     */
-    const StaminaModel & setCapacity( const double new_capacity )
-      {
-          M_capacity = new_capacity;
-          return *this;
-      }
-
+    void updateByFullstate( const double & fullstate_stamina,
+                            const double & fullstate_effort,
+                            const double & fullstate_recovery,
+                            const double & fullstate_capacity );
 
     //
     // utility for prediction
@@ -214,16 +174,6 @@ public:
                        const double & dash_power );
 
     /*!
-      \brief simulate stamina variables after one dash.
-      \param player_type heterogeneous player type
-      \param left_dash_power dash power for simulation
-      \param right_dash_power dash power for simulation
-     */
-    void simulateDash( const PlayerType & player_type,
-                       const double left_dash_power,
-                       const double right_dash_power );
-
-    /*!
       \brief simulate stamina variables after nr dashes.
       \param player_type heterogeneous player type
       \param n_dash number of dash cycles
@@ -249,12 +199,10 @@ public:
       \brief get dash power to save recovery
       \param player_type heterogeneous player type
       \param dash_power desired dash power
-      \param stamina_buffer try to remain this value of stamina
       \return result dash power
     */
     double getSafetyDashPower( const PlayerType & player_type,
-                               const double dash_power,
-                               const double stamina_buffer = 1.0 ) const;
+                               const double & dash_power ) const;
 };
 
 }

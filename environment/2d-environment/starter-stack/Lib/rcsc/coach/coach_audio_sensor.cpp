@@ -48,9 +48,9 @@ namespace rcsc {
 
  */
 CoachAudioSensor::CoachAudioSensor()
-    : M_teammate_message_time( -1, 0 ),
-      M_opponent_message_time( -1, 0 ),
-      M_trainer_message_time( -1, 0 )
+    : M_teammate_message_time( -1, 0 )
+    , M_opponent_message_time( -1, 0 )
+    , M_trainer_message_time( -1, 0 )
 {
 
 }
@@ -72,7 +72,7 @@ CoachAudioSensor::setTeamName( const std::string & team_name )
 
  */
 void
-CoachAudioSensor::addParser( SayMessageParser::Ptr parser )
+CoachAudioSensor::addParser( boost::shared_ptr< SayMessageParser > parser )
 {
     if ( ! parser )
     {

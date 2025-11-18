@@ -49,15 +49,14 @@ bool SeeState::S_synch_see_mode = false;
 
 */
 SeeState::SeeState()
-    : M_protocol_version( 1.0 ),
-      M_current_time( -1, 0 ),
-      M_last_see_time( -1, 0 ),
-      M_synch_type( SYNCH_NO ),
-      M_last_timing( TIME_NOSYNCH ),
-      M_current_see_count( 0 ),
-      M_cycles_till_next_see( 100 ),
-      M_view_width( ViewWidth::NORMAL ),
-      M_view_quality( ViewQuality::HIGH )
+    : M_current_time( -1, 0 )
+    , M_last_see_time( -1, 0 )
+    , M_synch_type( SYNCH_NO )
+    , M_last_timing( TIME_NOSYNCH )
+    , M_current_see_count( 0 )
+    , M_cycles_till_next_see( 100 )
+    , M_view_width( ViewWidth::NORMAL )
+    , M_view_quality( ViewQuality::HIGH )
 {
     for ( int i = 0; i < HISTORY_SIZE; i++ )
     {
@@ -223,8 +222,11 @@ SeeState::updateBySee( const GameTime & see_time,
     // see timing is synchronized.
     //
 
-    // update M_cycles_till_next_see and M_synch_type according to the current view mode
-    setViewMode( vw, vq );
+    if ( M_cycles_till_next_see > 0 )
+    {
+        M_cycles_till_next_see = 0;
+        setViewMode( vw, vq );
+    }
 
     // update current see arrival timing.
     Timing new_timing = getNextTiming( vw, vq );
@@ -269,7 +271,7 @@ SeeState::setNewCycle( const GameTime & new_time )
 
 #ifdef DEBUG_PRINT
     dlog.addText( Logger::SYSTEM,
-                  __FILE__" (setNewCycle) set new cycle. cycle till next see = %d",
+                  __FILE__" (updateBySee) set new cycle. cycle till next see = %d",
                   M_cycles_till_next_see );
 #endif
 }
@@ -349,38 +351,17 @@ SeeState::isSynchedSeeCountSynchMode() const
 
 */
 bool
-SeeState::canSendChangeView( const ViewWidth & next_width,
-                             const GameTime & current ) const
+SeeState::canChangeViewTo( const ViewWidth & next_width,
+                           const GameTime & current ) const
 {
-    //
-    // synch mode
-    //
-
-    if ( synch_see_mode() )
-    {
-        if ( current == M_last_see_time )
-        {
-            return true;
-        }
-
-        if ( ServerParam::i().synchSeeOffset() > ServerParam::i().synchOffset()
-             && ( M_last_see_time.cycle() + 1 == current.cycle()
-                  || ( M_last_see_time.cycle() == current.cycle()
-                       && M_last_see_time.stopped() + 1 == current.stopped() ) ) )
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    //
-    // no synch mode
-    //
-
     if ( current != M_last_see_time )
     {
         return false;
+    }
+
+    if ( S_synch_see_mode )
+    {
+        return true;
     }
 
     if ( next_width.type() == ViewWidth::NARROW )
@@ -433,10 +414,19 @@ void
 SeeState::setViewMode( const ViewWidth & new_width,
                        const ViewQuality & new_quality )
 {
+    if ( M_last_see_time != M_current_time )
+    {
+#ifdef DEBUG_PRINT
+        dlog.addText( Logger::SYSTEM,
+                      __FILE__" (setViewMode) no current cycle see arrival" );
+#endif
+        return;
+    }
+
     M_view_width = new_width;
     M_view_quality = new_quality;
 
-    if ( synch_see_mode() )
+    if ( S_synch_see_mode )
     {
         switch ( new_width.type() ) {
         case ViewWidth::WIDE:
@@ -466,15 +456,6 @@ SeeState::setViewMode( const ViewWidth & new_width,
         default:
             break;
         }
-
-//         if ( M_protocol_version >= 18.0 )
-//         {
-//             M_cycles_till_next_see = 1;
-// #ifdef DEBUG_PRINT
-//             dlog.addText( Logger::SYSTEM,
-//                           __FILE__" (setViewMode) v18+: cycle = 1" );
-// #endif
-//         }
 
         return;
     }

@@ -32,75 +32,126 @@
 #ifndef RCSC_TIME_TIMER_H
 #define RCSC_TIME_TIMER_H
 
-#include <chrono>
-#include <cstdint>
+#include <iostream>
 
 namespace rcsc {
 
 /*!
   \class TimeStamp
-  \brief wrapper class of the system time point
- */
+  \brief time stamp object
+*/
 class TimeStamp {
-public:
-    typedef std::chrono::system_clock::time_point value_type;
 private:
-    std::chrono::system_clock::time_point M_time_point;
+    long M_sec; //!< tv_sec in struct timeval
+    long M_usec; //!< tv_usec in struct timeval
 
 public:
-
     /*!
-      \brief construct an invalid time stamp instance. time_point is initialized with duration::zero()
+      \brief set 0 to all time values
      */
     TimeStamp()
-        : M_time_point()
+        : M_sec( 0 )
+        , M_usec( 0 )
       { }
 
     /*!
-      \brief construct with the given time point
-      \param tp time point
+      \brief set current time using ::gettimeofday
      */
-    explicit
-    TimeStamp( const value_type & tp )
-        : M_time_point( tp )
-      { }
+    void setCurrent();
 
-    bool isValid() const
+    /*!
+      \brief accessor method
+      \return second value
+     */
+    long sec() const
       {
-          return M_time_point.time_since_epoch().count() > 0;
+          return M_sec;
       }
 
     /*!
-      \brief update to the current time point
+      \brief accessor method
+      \return micro second value
      */
-    void setNow()
+    long usec() const
       {
-          M_time_point = std::chrono::system_clock::now();
+          return M_usec;
       }
 
     /*!
-      \brief get the time point value
-      \return const reference to the time_point instance
+      \brief calculate milli seconds difference from new_time to this
+      \param new_time compared time stamp
+      \return elapsed milli seconds from new_time to this
      */
-    const value_type & timePoint() const
+    long getMSecDiffFrom( const TimeStamp & new_time ) const;
+
+    /*!
+      \brief calculate milli seconds difference from new_time to this
+      \param new_time compared time stamp
+      \return elapsed milli seconds by floating point number from new_time to this
+     */
+    double getRealMSecDiffFrom( const TimeStamp & new_time ) const;
+
+    /*!
+      \brief static utility that calculate milli seconds difference
+      \param old_time compared time stamp
+      \param new_time compared time stamp
+      \param sec_diff reference to the solution variable
+      \param usec_diff reference to the solution variable
+     */
+    static
+    void calc_time_diff( const TimeStamp & old_time,
+                         const TimeStamp & new_time,
+                         long & sec_diff,
+                         long & usec_diff );
+};
+
+/////////////////////////////////////////////////////////////////////
+
+/*!
+  \class MSecTimer
+  \brief milli second stop watch
+ */
+class MSecTimer {
+private:
+    //! started time
+    TimeStamp M_start_time;
+
+public:
+    /*!
+      \brief set started time
+     */
+    MSecTimer()
       {
-          return M_time_point;
+          M_start_time.setCurrent();
       }
 
     /*!
-      \brief get the milliseconds value since the given time stamp
-      \return count value in the order of millisecond
+      \brief reset started time
      */
-    std::int64_t elapsedSince( const TimeStamp & other ) const
+    void restart()
       {
-          return std::chrono::duration_cast< std::chrono::milliseconds >( this->timePoint() - other.timePoint() ).count();
+          M_start_time.setCurrent();
       }
+
+    /*!
+      \brief retuned elapsed time
+      \return elapsed milli seconde by long integer
+     */
+    long elapsed() const;
+
+    /*!
+      \brief retuned elapsed time
+      \return elapsed milli seconde by floating point number
+     */
+    double elapsedReal() const;
 
 };
 
+/////////////////////////////////////////////////////////////////////
+
 /*!
   \class Timer
-  \brief this class enables to measure the elapsed time.
+  \brief more generic stop watch
  */
 class Timer {
 public:
@@ -122,62 +173,46 @@ private:
 
 public:
     /*!
-      \brief construct with the current system clock time
+      \brief set started time
      */
     Timer()
-        : M_start_time( std::chrono::system_clock::now() )
-      { }
+      {
+          M_start_time.setCurrent();
+      }
 
     /*!
-      \brief reset the start time
+      \brief reset started time
      */
     void restart()
       {
-          M_start_time.setNow();
+          M_start_time.setCurrent();
       }
 
     /*!
       \brief elapsed milli seconds since last start time.
       \return elapsed milli seconde by long integer
      */
-    std::int64_t elapsed( const Type type = MSec ) const;
+    long elapsed( const Type type = MSec ) const;
 
     /*!
       \brief elapsed milli seconds since last start time.
       \return elapsed milli seconde by floating point number
      */
     double elapsedReal( const Type type = MSec ) const;
+
+    /*!
+      \brief get elapsed times.
+      \param hour hour part of elapsed time.
+      \param hour minutes part of elapsed time.
+      \param hour seconds  part of elapsed time.
+      \param hour milliseconds part of elapsed time.
+      \return total elapsed milli-seconds
+     */
+    long elapsed( long * hour,
+                  long * minutes,
+                  long * seconds,
+                  long * mseconds ) const;
 };
-
-/*-------------------------------------------------------------------*/
-/*!
-  \brief operator '<' for rcsc::TimeStamp
-  \param lhs left hand side argument
-  \param rhs right hand side argument
-  \return boolean value
-*/
-inline
-bool
-operator<( const rcsc::TimeStamp & lhs,
-           const rcsc::TimeStamp & rhs )
-{
-    return lhs.timePoint() < rhs.timePoint();
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-  \brief operator '>' for rcsc::TimeStamp
-  \param lhs left hand side argument
-  \param rhs right hand side argument
-  \return boolean value
-*/
-inline
-bool
-operator>( const rcsc::TimeStamp & lhs,
-           const rcsc::TimeStamp & rhs )
-{
-    return lhs.timePoint() > rhs.timePoint();
-}
 
 }
 

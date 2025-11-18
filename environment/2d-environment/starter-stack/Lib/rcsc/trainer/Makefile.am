@@ -17,6 +17,6 @@ librcsc_trainerinclude_HEADERS = \
 AM_CPPFLAGS = -I$(top_srcdir)
 AM_CFLAGS = -Wall -W
 AM_CXXFLAGS = -Wall -W
-AM_LDFLAGS =
+AM_LDLAGS =
 
 CLEANFILES = *~

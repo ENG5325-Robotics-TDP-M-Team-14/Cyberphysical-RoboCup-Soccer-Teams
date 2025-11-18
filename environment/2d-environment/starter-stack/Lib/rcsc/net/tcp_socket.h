@@ -32,7 +32,7 @@
 #ifndef RCSC_NET_TCP_SOCKET_H
 #define RCSC_NET_TCP_SOCKET_H
 
-#include <rcsc/net/abstract_socket.h>
+#include <rcsc/net/basic_socket.h>
 
 #include <cstddef>
 
@@ -43,10 +43,10 @@ namespace rcsc {
   \brief TCP/IP connection socket class
 */
 class TCPSocket
-    : public AbstractSocket {
+    : public BasicSocket {
 private:
     //! not used
-    TCPSocket() = delete;
+    TCPSocket();
 
 public:
     /*!
@@ -74,8 +74,8 @@ public:
       \param len the length of data.
       \return the length of sent data if successfuly sent, otherwise -1.
      */
-    int writeToStream( const char * data,
-                       const std::size_t len );
+    int send( const char * data,
+              const std::size_t len );
 
     /*!
       \brief receive stream data from the connected remote host.
@@ -85,8 +85,8 @@ public:
       \retval -1 error occured
       \return the length of received data.
      */
-    int readFromStream( char * buf,
-                        const std::size_t len );
+    int receive( char * buf,
+                 const std::size_t len );
 
 };
 

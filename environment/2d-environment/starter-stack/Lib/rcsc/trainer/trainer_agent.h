@@ -33,18 +33,19 @@
 #define RCSC_TRAINER_TRAINER_AGENT_H
 
 #include <rcsc/trainer/trainer_config.h>
-#include <rcsc/coach/coach_world_model.h>
+#include <rcsc/coach/global_world_model.h>
 #include <rcsc/common/soccer_agent.h>
 #include <rcsc/geom/vector_2d.h>
 #include <rcsc/types.h>
 
-#include <memory>
+#include <boost/scoped_ptr.hpp>
+
 #include <string>
 
 namespace rcsc {
 
 class TrainerCommand;
-class CoachVisualSensor;
+class GlobalVisualSensor;
 
 /*!
   \class TrainerAgent
@@ -55,9 +56,10 @@ class TrainerAgent
 private:
 
     struct Impl; //!< pimpl idiom
+    friend struct Impl;
 
     //! internal implementation object
-    std::unique_ptr< Impl > M_impl;
+    boost::scoped_ptr< Impl > M_impl;
 
 protected:
 
@@ -65,7 +67,7 @@ protected:
     TrainerConfig M_config;
 
     //! internal memory of field status
-    CoachWorldModel M_worldmodel;
+    GlobalWorldModel M_worldmodel;
 
 public:
     /*!
@@ -80,13 +82,6 @@ public:
     ~TrainerAgent();
 
     /*!
-      \brief create a client object (online or offline) according to the command line option.
-      \return client object pointer.
-     */
-    virtual
-    std::shared_ptr< AbstractClient > createConsoleClient();
-
-    /*!
       \brief finalize all things when the process exits
     */
     void finalize();
@@ -95,7 +90,8 @@ public:
       \brief get configuration set
       \return const reference to the configuration class object
     */
-    const TrainerConfig & config() const
+    const
+    TrainerConfig & config() const
       {
           return M_config;
       }
@@ -104,7 +100,8 @@ public:
       \brief get field status
       \return const reference to the worldmodel instance
      */
-    const CoachWorldModel & world() const
+    const
+    GlobalWorldModel & world() const
       {
           return M_worldmodel;
       }
@@ -113,7 +110,8 @@ public:
       \brief get the analyzed visual info
       \return const reference to the visual sensor instance
      */
-    const CoachVisualSensor & visualSensor() const;
+    const
+    GlobalVisualSensor & visualSensor() const;
 
     /*!
       \brief send check_ball command
@@ -185,21 +183,6 @@ public:
                        const int unum,
                        const Vector2D & pos,
                        const AngleDeg & angle );
-
-    /*!
-     * \brief send player move command
-     * \param teamname target player's team name
-     * \param unum target player's uniform number
-     * \param pos new position
-     * \param angle new body angle
-     * \param vel player's velocity after move
-     * \return true if command is generated and set
-     */
-     bool doMovePlayer( const std::string & teamname,
-                        const int unum,
-                        const Vector2D & pos,
-                        const AngleDeg & angle,
-                        const Vector2D & vel );
 
     /*!
       \brief send recover command
@@ -311,40 +294,6 @@ protected:
     */
     virtual
     void actionImpl() = 0;
-
-
-    /*!
-      \brief this method is called just after analyzing init message.
-      Do NOT call this method by yourself.
-     */
-    virtual
-    void handleInitMessage()
-      { }
-
-    /*!
-      \brief this method is called just after analyzing server_param message.
-      Do NOT call this method by yourself.
-     */
-    virtual
-    void handleServerParam()
-      { }
-
-    /*!
-      \brief this method is called just after analyzing player_param message.
-      Do NOT call this method by yourself.
-     */
-    virtual
-    void handlePlayerParam()
-      { }
-
-    /*!
-      \brief this method is called just after analyzing player_type message.
-      Do NOT call this method by yourself.
-     */
-    virtual
-    void handlePlayerType()
-      { }
-
 };
 
 }

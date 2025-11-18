@@ -45,7 +45,7 @@ namespace rcsc {
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 RCSSParamParser::RCSSParamParser( const char * msg )
 {
     if ( ! init( msg ) )
@@ -57,17 +57,10 @@ RCSSParamParser::RCSSParamParser( const char * msg )
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 bool
 RCSSParamParser::parse( ParamMap & param_map )
 {
-    if ( ! param_map.isValid() )
-    {
-        std::cerr << __FILE__ << ": ***ERROR*** detected invalid ParamMap "
-                  << param_map.groupName() << std::endl;
-        return false;
-    }
-
     if ( M_str_pairs.empty() )
     {
         return false;
@@ -79,7 +72,7 @@ RCSSParamParser::parse( ParamMap & param_map )
           ++it )
     {
         // get parameter entry from map
-        ParamEntity::Ptr param_ptr = param_map.findLongName( it->first );
+        ParamPtr param_ptr = param_map.findLongName( it->first );
 
         // analyze value string
         if ( param_ptr
@@ -89,15 +82,16 @@ RCSSParamParser::parse( ParamMap & param_map )
         }
         else
         {
-            std::cerr << __FILE__ << ": ***ERROR*** unknown parameter name or invalid value."
-                      << " name=[" << it->first << "]"
-                      << " value=[" << it->second << "]"
+            std::cerr << "***ERROR*** RCSSParamParser. "
+                      << "unknown parameter name or invalid value. name=["
+                      << it->first << "] value=[" << it->second << "]"
                       << std::endl;
         }
     }
 
 #ifdef DEBUG
-    std::cerr << __FILE__ << ": [" << M_param_name << "] read " << n_params << " params."
+    std::cerr << "RCSSParamParser. [" << M_param_name
+              << "] read " << n_params << " params."
               << std::endl;
 #endif
     return true;
@@ -106,22 +100,22 @@ RCSSParamParser::parse( ParamMap & param_map )
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 std::string
 RCSSParamParser::cleanString( std::string str )
 {
     if( str.empty() )
     {
-        return str;
+				return str;
     }
 
     if ( *str.begin() == '\'' )
     {
-        if( *str.rbegin() == '\''  )
+				if( *str.rbegin() == '\''  )
         {
             str = str.substr( 1, str.length() - 2 );
         }
-        else
+				else
         {
             return str;
         }
@@ -130,18 +124,18 @@ RCSSParamParser::cleanString( std::string str )
         for ( std::string::size_type escape_pos = str.find( "\\'" );
               escape_pos != std::string::npos;
               escape_pos = str.find( "\\'" ) )
-        {
+				{
             // replace "\'" with "'"
             str.replace( escape_pos, 2, "'" );
-        }
+				}
     }
     else if ( *str.begin() == '"' )
     {
-        if ( *str.rbegin() == '"'  )
+				if ( *str.rbegin() == '"'  )
         {
             str = str.substr( 1, str.length() - 2 );
         }
-        else
+				else
         {
             return str;
         }
@@ -150,10 +144,10 @@ RCSSParamParser::cleanString( std::string str )
         for ( std::string::size_type escape_pos = str.find( "\\\"" );
               escape_pos != std::string::npos;
               escape_pos = str.find( "\\\"" ) )
-        {
+				{
             // replace "\"" with """
             str.replace( escape_pos, 2, "\"" );
-        }
+				}
     }
 
     return str;
@@ -163,7 +157,7 @@ RCSSParamParser::cleanString( std::string str )
 /*-------------------------------------------------------------------*/
 /*!
 
- */
+*/
 bool
 RCSSParamParser::init( const char * msg )
 {
@@ -171,8 +165,10 @@ RCSSParamParser::init( const char * msg )
     int n_read = 0;
     if ( std::sscanf( msg, " ( %31s %n", buf, &n_read ) != 1 )
     {
-        std::cerr << __FILE__ << ": ***ERROR*** "
-                  << "Failed to parse parameter type name. " << msg << std::endl;
+        std::cerr << "***ERROR*** RCSSParamParser. "
+                  << "Failed to parse parameter type name. "
+                  << msg
+                  << std::endl;
         return false;
     }
 
@@ -187,8 +183,10 @@ RCSSParamParser::init( const char * msg )
         std::string::size_type end_pos = msg_str.find_first_of( ' ', pos );
         if ( end_pos == std::string::npos )
         {
-            std::cerr << __FILE__ << ": ***ERROR*** "
-                      << "Failed to parse parameter name. " << msg << std::endl;
+            std::cerr << "***ERROR*** RCSSParamParser. "
+                      << "Failed to parse parameter name. "
+                      << msg
+                      << std::endl;
             return false;
         }
 
@@ -200,9 +198,11 @@ RCSSParamParser::init( const char * msg )
         end_pos = msg_str.find_first_of( ")\"", end_pos ); //"
         if ( end_pos == std::string::npos )
         {
-            std::cerr << __FILE__ << ": ***ERROR*** "
-                      << "Failed to parse parameter value for [" << name_str << "] in "
-                      << msg << std::endl;
+            std::cerr << "***ERROR*** RCSSParamParser. "
+                      << "Failed to parse parameter value for ["
+                      << name_str << "] in "
+                      << msg
+                      << std::endl;
             return false;
         }
 
@@ -213,9 +213,11 @@ RCSSParamParser::init( const char * msg )
             end_pos = msg_str.find_first_of( '\"', end_pos + 1 ); //"
             if ( end_pos == std::string::npos )
             {
-                std::cerr << __FILE__ << ": ***ERROR*** "
-                          << "Failed to parse string parameter value for [" << name_str << "] in "
-                          << msg << std::endl;
+                std::cerr << "***ERROR*** RCSSParamParser. "
+                          << "Failed to parse string parameter value for ["
+                          << name_str << "] in "
+                          << msg
+                          << std::endl;
                 return false;
             }
             end_pos += 1; // skip double quatation

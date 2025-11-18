@@ -57,13 +57,20 @@ public:
     /*!
       \brief write header
       \param os reference to the output stream
-      \aram server_version server version string
-      \aram timestamp time stamp string
+      \return serialization result
+    */
+    virtual
+    std::ostream & serializeHeader( std::ostream & os );
+
+    /*!
+      \brief write parameter message
+      \param os reference to the output stream
+      \param msg server parameter message
       \return reference to the output stream
     */
-    std::ostream & serializeBegin( std::ostream & os,
-                                   const std::string & server_version,
-                                   const std::string & timestamp ) override;
+    virtual
+    std::ostream & serializeParam( std::ostream & os,
+                                   const std::string & msg );
 
     /*!
       \brief write server param
@@ -73,7 +80,7 @@ public:
     */
     virtual
     std::ostream & serialize( std::ostream & os,
-                              const server_params_t & param ) override;
+                              const server_params_t & param );
 
     /*!
       \brief write player param
@@ -83,7 +90,7 @@ public:
     */
     virtual
     std::ostream & serialize( std::ostream & os,
-                              const player_params_t & pparam ) override;
+                              const player_params_t & pparam );
 
     /*!
       \brief write player type param
@@ -93,7 +100,7 @@ public:
     */
     virtual
     std::ostream & serialize( std::ostream & os,
-                              const player_type_t & type ) override;
+                              const player_type_t & type );
 
     /*!
       \brief write dispinfo_t.
@@ -103,7 +110,7 @@ public:
      */
     virtual
     std::ostream & serialize( std::ostream & os,
-                              const dispinfo_t & disp ) override;
+                              const dispinfo_t & disp );
 
     /*!
       \brief write showinfo_t.
@@ -113,7 +120,7 @@ public:
      */
     virtual
     std::ostream & serialize( std::ostream & os,
-                              const showinfo_t & show ) override;
+                              const showinfo_t & show );
 
     /*!
       \brief write showinfo_t2
@@ -123,7 +130,7 @@ public:
      */
     virtual
     std::ostream & serialize( std::ostream & os,
-                              const showinfo_t2 & show2 ) override;
+                              const showinfo_t2 & show2 );
 
     /*!
       \brief write short_showinfo_t2.
@@ -133,7 +140,7 @@ public:
      */
     virtual
     std::ostream & serialize( std::ostream & os,
-                              const short_showinfo_t2 & show2 ) override;
+                              const short_showinfo_t2 & show2 );
 
     /*!
       \brief write message info
@@ -143,7 +150,7 @@ public:
     */
     virtual
     std::ostream & serialize( std::ostream & os,
-                              const msginfo_t & msg ) override;
+                              const msginfo_t & msg );
 
     /*!
       \brief write message info
@@ -155,7 +162,7 @@ public:
     virtual
     std::ostream & serialize( std::ostream & os,
                               const Int16 board,
-                              const std::string & msg ) override;
+                              const std::string & msg );
 
    /*!
       \brief write drawinfo_t
@@ -165,7 +172,7 @@ public:
     */
     virtual
     std::ostream & serialize( std::ostream & os,
-                              const drawinfo_t & draw ) override;
+                              const drawinfo_t & draw );
 
     /*!
       \brief write playmode
@@ -175,7 +182,7 @@ public:
     */
     virtual
     std::ostream & serialize( std::ostream & os,
-                              const char playmode ) override;
+                              const char playmode );
 
     /*!
       \brief write team info
@@ -187,7 +194,7 @@ public:
     virtual
     std::ostream & serialize( std::ostream & os,
                               const team_t & team_l,
-                              const team_t & team_r ) override;
+                              const team_t & team_r );
 
     /*!
       \brief write team info
@@ -199,7 +206,7 @@ public:
     virtual
     std::ostream & serialize( std::ostream & os,
                               const TeamT & team_l,
-                              const TeamT & team_r ) override;
+                              const TeamT & team_r );
 
     /*!
       \brief write ShowInfoT
@@ -209,7 +216,7 @@ public:
      */
     virtual
     std::ostream & serialize( std::ostream & os,
-                              const ShowInfoT & show ) override;
+                              const ShowInfoT & show );
 
    /*!
       \brief write DispInfoT
@@ -219,47 +226,8 @@ public:
      */
     virtual
     std::ostream & serialize( std::ostream & os,
-                              const DispInfoT & disp ) override;
+                              const DispInfoT & disp );
 
-    /*!
-      \brief write ServerParamT
-      \param os reference to the output stream
-      \param param data to be written
-      \return reference to the output stream
-     */
-    std::ostream & serialize( std::ostream & os,
-                              const ServerParamT & param ) override;
-
-    /*!
-      \brief write PlayerParamT
-      \param os reference to the output stream
-      \param param data to be written
-      \return reference to the output stream
-     */
-    std::ostream & serialize( std::ostream & os,
-                              const PlayerParamT & param ) override;
-    /*!
-      \brief write PlayerTypeT
-      \param os reference to the output stream
-      \param param data to be written
-      \return reference to the output stream
-     */
-    std::ostream & serialize( std::ostream & os,
-                              const PlayerTypeT & param ) override;
-
-    /*!
-      \brief no output in v2 format.
-      \param os output stream
-      \return output stream
-     */
-    std::ostream & serialize( std::ostream & os,
-                              const char,
-                              const int,
-                              const int,
-                              const std::vector< std::string > & ) override
-      {
-          return os;
-      }
 };
 
 } // end of namespace rcg

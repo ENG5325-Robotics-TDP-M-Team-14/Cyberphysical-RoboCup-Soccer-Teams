@@ -36,9 +36,9 @@
 #include <rcsc/factory.h>
 #include <rcsc/types.h>
 
-#include <memory>
+#include <boost/shared_ptr.hpp>
+
 #include <string>
-#include <vector>
 #include <ostream>
 
 namespace rcsc {
@@ -51,7 +51,7 @@ namespace rcg {
 class Serializer {
 public:
 
-    typedef std::shared_ptr< Serializer > Ptr; //!< rcg serializer pointer type
+    typedef boost::shared_ptr< Serializer > Ptr; //!< rcg serializer pointer type
     typedef Ptr (*Creator)(); //!< rcg serializer creator function
     typedef rcss::Factory< Creator, int > Creators; //!< creator function holder
 
@@ -225,22 +225,224 @@ protected:
     std::ostream & serializeImpl( std::ostream & os,
                                   const dispinfo_t2 & disp2 );
 
-    /*!
-      \brief write team_graphic
-      \param os output stream
-      \param side team side
-      \param x index of the xpm_tile
-      \param y index of the xpm_tile
-      \param xpm xpm tile
-     */
-    std::ostream & serializeAsMsg( std::ostream & os,
-                                   const char side,
-                                   const int x,
-                                   const int y,
-                                   const std::vector< std::string > & xpm );
 
 
 public:
+    /////////////////////////////////////////////////////////////
+    // utility
+
+    /*!
+      \brief convert pos_t to BallT
+      \param from source variable
+      \param to destination variable
+     */
+    static
+    void convert( const pos_t & from,
+                  BallT & to );
+
+    /*!
+      \brief convert ball_t to BallT
+      \param from source variable
+      \param to destination variable
+     */
+    static
+    void convert( const ball_t & from,
+                  BallT & to );
+
+    /*!
+      \brief convert pos_t to player_t
+      \param from source variable
+      \param to destination variable
+     */
+    static
+    void convert( const pos_t & from,
+                  player_t & to );
+
+    /*!
+      \brief convert player_t to pos_t
+      \param side player's side id
+      \param unum uniform number
+      \param from source variable
+      \param to destination variable
+     */
+    static
+    void convert( const SideID side,
+                  const int unum,
+                  const player_t & from,
+                  pos_t & to );
+
+    /*!
+      \brief convert pos_t to PlayerT
+      \param from source variable
+      \param to destination variable
+     */
+    static
+    void convert( const pos_t & from,
+                  PlayerT & to );
+
+    /*!
+      \brief convert player info to player_t
+      \param from source player info
+      \param to destination player_t variable
+     */
+    static
+    void convert( const PlayerT & from,
+                  player_t & to );
+
+    /*!
+      \brief convert player_t to PlayerT
+      \param from source variable
+      \param to destination variable
+     */
+    static
+    void convert( const player_t & from,
+                  PlayerT & to );
+
+    /*!
+      \brief convert team info to team_t
+      \param name source team name string
+      \param score source team score
+      \param to destination team_t variable
+     */
+    static
+    void convert( const std::string & name,
+                  const int score,
+                  team_t & to );
+
+    /*!
+      \brief convert team_t to TeamT
+      \param from source data
+      \param to destination team_t variable
+     */
+    static
+    void convert( const TeamT & from,
+                  team_t & to );
+
+    /*!
+      \brief convert TeamT to team_t
+      \param from source data
+      \param to destination TeamT variable
+     */
+    static
+    void convert( const team_t & from,
+                  TeamT & to );
+
+    /*!
+      \brief convert showinfo_t to showinfo_t2
+      \param from source showinfo_t variable
+      \param to destination showinfo_t2 variable
+     */
+    static
+    void convert( const showinfo_t & from,
+                  showinfo_t2 & to );
+
+    /*!
+      \brief convert showinfo_t to short_showinfo_t2
+      \param from source showinfo_t variable
+      \param to destination short_showinfo_t2 variable
+     */
+    static
+    void convert( const showinfo_t & from,
+                  short_showinfo_t2 & to );
+
+    /*!
+      \brief convert showinfo_t2 to showinfo_t
+      \param from source showinfo_t2 variable
+      \param to destination showinfo_t variable
+     */
+    static
+    void convert( const showinfo_t2 & from,
+                  showinfo_t & to );
+
+    /*!
+      \brief convert short_showinfo_t2 to showinfo_t
+      \param playmode playmode variable
+      \param team_l left team variable
+      \param team_r right team variable
+      \param from source short_showinfo_t2 variable
+      \param to destination showinfo_t variable
+     */
+    static
+    void convert( const char playmode,
+                  const TeamT & team_l,
+                  const TeamT & team_r,
+                  const short_showinfo_t2 & from,
+                  showinfo_t & to );
+
+    /*!
+      \brief convert ShowInfoT to showinfo_t
+      \param playmode playmode variable
+      \param team_l left team variable
+      \param team_r right team variable
+      \param from source ShowInfoT variable
+      \param to destination showinfo_t variable
+     */
+    static
+    void convert( const char playmode,
+                  const TeamT & team_l,
+                  const TeamT & team_r,
+                  const ShowInfoT & from,
+                  showinfo_t & to );
+
+    /*!
+      \brief convert showinfot_t to ShowInfoT
+      \param from source variable
+      \param to destination variable
+     */
+    static
+    void convert( const showinfo_t & from,
+                  ShowInfoT & to );
+
+   /*!
+      \brief convert ShowInfoT to showinfo_t2
+      \param playmode playmode variable
+      \param team_l left team variable
+      \param team_r right team variable
+      \param from source ShowInfoT variable
+      \param to destination showinfo_t2 variable
+     */
+    static
+    void convert( const char playmode,
+                  const TeamT & team_l,
+                  const TeamT & team_r,
+                  const ShowInfoT & from,
+                  showinfo_t2 & to );
+
+    /*!
+      \brief convert showinfot_t2 to ShowInfoT
+      \param from source variable
+      \param to destination variable
+     */
+    static
+    void convert( const showinfo_t2 & from,
+                  ShowInfoT & to );
+
+   /*!
+      \brief convert ShowInfoT to short_showinfo_t2
+      \param from source ShowInfoT variable
+      \param to destination short_showinfo_t2 variable
+     */
+    static
+    void convert( const ShowInfoT & from,
+                  short_showinfo_t2 & to );
+
+    /*!
+      \brief convert short_showinfot_t2 to ShowInfoT
+      \param from source variable
+      \param to destination variable
+     */
+    static
+    void convert( const short_showinfo_t2 & from,
+                  ShowInfoT & to );
+
+    /*!
+      \brief make msginfo_t from string
+      \param from source message string
+      \param to destination msginfo_t variable
+    */
+    static
+    void convert( const std::string & from,
+                  msginfo_t & to );
 
     /////////////////////////////////////////////////////////////
     // interfaces
@@ -248,25 +450,20 @@ public:
     /*!
       \brief write header
       \param os reference to the output stream
-      \aram server_version server version string
-      \aram timestamp time stamp string
       \return reference to the output stream
     */
     virtual
-    std::ostream & serializeBegin( std::ostream & os,
-                                   const std::string & server_version,
-                                   const std::string & timestamp ) = 0;
+    std::ostream & serializeHeader( std::ostream & os ) = 0;
 
     /*!
-      \brief write the end of file
+      \brief write parameter message
       \param os reference to the output stream
+      \param msg server parameter message
       \return reference to the output stream
-     */
+    */
     virtual
-    std::ostream & serializeEnd( std::ostream & os )
-      {
-          return os;
-      }
+    std::ostream & serializeParam( std::ostream & os,
+                                   const std::string & msg ) = 0;
 
     /*!
       \brief write header
@@ -423,50 +620,6 @@ public:
     virtual
     std::ostream & serialize( std::ostream & os,
                               const DispInfoT & disp ) = 0;
-
-    /*!
-      \brief write ServerParamT
-      \param os reference to the output stream
-      \param param data to be written
-      \return reference to the output stream
-     */
-    virtual
-    std::ostream & serialize( std::ostream & os,
-                              const ServerParamT & param ) = 0;
-
-    /*!
-      \brief write PlayerParamT
-      \param os reference to the output stream
-      \param param data to be written
-      \return reference to the output stream
-     */
-    virtual
-    std::ostream & serialize( std::ostream & os,
-                              const PlayerParamT & param ) = 0;
-    /*!
-      \brief write PlayerTypeT
-      \param os reference to the output stream
-      \param param data to be written
-      \return reference to the output stream
-     */
-    virtual
-    std::ostream & serialize( std::ostream & os,
-                              const PlayerTypeT & param ) = 0;
-
-    /*!
-      \brief write team_graphic
-      \param os output stream
-      \param side team side
-      \param x index of the xpm_tile
-      \param y index of the xpm_tile
-      \param xpm xpm tile
-     */
-    virtual
-    std::ostream & serialize( std::ostream & os,
-                              const char side,
-                              const int x,
-                              const int y,
-                              const std::vector< std::string > & xpm ) = 0;
 
 };
 

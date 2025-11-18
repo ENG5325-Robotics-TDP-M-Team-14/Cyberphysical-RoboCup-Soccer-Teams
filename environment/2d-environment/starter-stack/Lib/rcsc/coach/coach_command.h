@@ -62,8 +62,7 @@ public:
 
         CHANGE_PLAYER_TYPE,
         CHANGE_PLAYER_TYPES,
-
-        CLANG_FREEFORM,
+        SAY,
 
         TEAM_GRAPHIC,
         COMPRESSION,
@@ -75,7 +74,7 @@ public:
     /*
     enum CLangType {
     CLANG_META,
-    CLANG_FREEFORM,
+    CLANG_FREE_FORM,
     CLANG_INFO,
     CLANG_ADVICE,
     CLANG_DEFINE,
@@ -112,7 +111,7 @@ public:
       \return reference to the output stream
      */
     virtual
-    std::ostream & toCommandString( std::ostream & to ) const = 0;
+    std::ostream & toStr( std::ostream & to ) const = 0;
 
     /*!
       \brief get command name (pure virtual)
@@ -168,7 +167,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
      */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -215,7 +214,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
      */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -266,7 +265,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
      */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -315,7 +314,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
      */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -364,7 +363,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
      */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -416,7 +415,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
      */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -478,7 +477,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
      */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -553,7 +552,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
      */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -567,10 +566,9 @@ public:
 
 //////////////////////////////////////////////////////////////////////
 /*!
-  \class CoachFreeformCommand
-  \brief freeform message command
+  \class CoachSayCommand
+  \brief say command for CLang
 
-  Old version:
   <pre>
   Format:
   <- (say <msg>)
@@ -580,35 +578,20 @@ public:
   -> (error said_too_many_****_messages)
   -> (warning cannot_say_while_playon) [only v7-]
   </pre>
-
-  New version:
-  <pre>
-  Format:
-  <- (say (freeform "<msg>"))
-  </pre>
 */
-class CoachFreeformCommand
+class CoachSayCommand
     : public CoachCommand {
 private:
-    //! client version
-    const double M_version;
     //! clang message string. ***const reference***
-    const std::string & M_message;
-
-    // not used
-    CoachFreeformCommand() = delete;
-    CoachFreeformCommand( const CoachCommand & ) = delete;
-    CoachFreeformCommand & operator=( const CoachCommand & ) = delete;
+    const std::string & M_clang_msg;
 public:
     /*!
       \brief construct with message string.
       \param clang_msg reference to the clang message instance
      */
-    CoachFreeformCommand( const double & version,
-                          const std::string & message )
-        : CoachCommand(),
-          M_version( version ),
-          M_message( message )
+    explicit
+    CoachSayCommand( const std::string & clang_msg )
+        : M_clang_msg( clang_msg )
       { }
 
     /*!
@@ -617,7 +600,7 @@ public:
      */
     Type type() const
       {
-          return CLANG_FREEFORM;
+          return SAY;
       }
 
     /*!
@@ -625,7 +608,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
      */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -633,7 +616,7 @@ public:
      */
     std::string name() const
       {
-          return std::string( "freeform" );
+          return std::string( "say" );
       }
 };
 
@@ -685,7 +668,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
      */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -738,7 +721,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
      */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -786,7 +769,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
      */
-    std::ostream & toCommandString( std::ostream & to ) const;
+    std::ostream & toStr( std::ostream & to ) const;
 
     /*!
       \brief get command name

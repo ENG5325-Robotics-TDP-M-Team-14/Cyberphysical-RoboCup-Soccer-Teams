@@ -35,6 +35,8 @@
 
 #include "audio_sensor.h"
 
+#include "freeform_parser.h"
+
 #include <rcsc/common/say_message_parser.h>
 #include <rcsc/common/logger.h>
 #include <rcsc/math_util.h>
@@ -49,14 +51,12 @@ namespace rcsc {
 
  */
 AudioSensor::AudioSensor()
-    : M_teammate_message_time( -1, 0 ),
-      M_opponent_message_time( -1, 0 ),
-      M_freeform_message_time( -1, 0 ),
-      M_trainer_message_time( -1, 0 ),
-      M_clang_time( -1, 0 )
+    : M_teammate_message_time( -1, 0 )
+    , M_opponent_message_time( -1, 0 )
+    , M_freeform_message_time( -1, 0 )
+    , M_trainer_message_time( -1, 0 )
 {
     M_freeform_message.reserve( 256 );
-    M_clang_message.reserve( 8192 );
 }
 
 /*-------------------------------------------------------------------*/
@@ -64,17 +64,19 @@ AudioSensor::AudioSensor()
 
  */
 void
-AudioSensor::addSayMessageParser( SayMessageParser::Ptr parser )
+AudioSensor::addParser( boost::shared_ptr< SayMessageParser > parser )
 {
     if ( ! parser )
     {
         std::cerr << __FILE__ << ":" << __LINE__
-                  << " ***ERROR*** (addParser) NULL parser object."
+                  << " ***ERROR*** AudioSensor::addSayMessageParser()"
+                  << " NULL parser object."
                   << std::endl;
         return;
     }
 
-    if ( M_say_message_parsers.find( parser->header() ) != M_say_message_parsers.end() )
+    if ( M_say_message_parsers.find( parser->header() )
+         != M_say_message_parsers.end() )
     {
         std::cerr << __FILE__ << ":" << __LINE__
                   << " ***ERROR*** AudioSensor::addSayMessageParser()"
@@ -93,13 +95,14 @@ AudioSensor::addSayMessageParser( SayMessageParser::Ptr parser )
 
  */
 void
-AudioSensor::removeSayMessageParser( const char header )
+AudioSensor::removeParser( const char header )
 {
     ParserMap::iterator it = M_say_message_parsers.find( header );
     if ( it == M_say_message_parsers.end() )
     {
-        std::cerr << "***WARNING*** (removeParser)"
-                  << " header=[" << header << "] has not been registered."
+        std::cerr << "***WARNING*** AudioSensor::removeParser()"
+                  << " header [" << header
+                  << "] is not registered."
                   << std::endl;
         return;
     }
@@ -112,46 +115,9 @@ AudioSensor::removeSayMessageParser( const char header )
 
  */
 void
-AudioSensor::addFreeformMessageParser( FreeformMessageParser::Ptr parser )
+AudioSensor::setFreeformParser( boost::shared_ptr< FreeformParser > parser )
 {
-    if ( ! parser )
-    {
-        std::cerr << __FILE__ << ":" << __LINE__
-                  << " ***ERROR*** (addFreeformParser) NULL parser object."
-                  << std::endl;
-        return;
-    }
-
-    if ( M_freeform_parsers.find( parser->type() ) != M_freeform_parsers.end() )
-    {
-        std::cerr << __FILE__ << ":" << __LINE__
-                  << " ***ERROR*** AudioSensor::addSayMessageParser()"
-                  << " parser for [" << parser->type()
-                  << "] is already registered."
-                  << std::endl;
-        return;
-    }
-
-    M_freeform_parsers.insert( FreeformParserMap::value_type( parser->type(), parser ) );
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
- */
-void
-AudioSensor::removeFreeformMessageParser( const std::string & type )
-{
-    FreeformParserMap::iterator it = M_freeform_parsers.find( type );
-    if ( it == M_freeform_parsers.end() )
-    {
-        std::cerr << "***WARNING*** (removeFreeformParser)"
-                  << " type=[" << type << "] has not been registered."
-                  << std::endl;
-        return;
-    }
-
-    M_freeform_parsers.erase( it );
+    M_freeform_parser = parser;
 }
 
 /*-------------------------------------------------------------------*/
@@ -272,53 +238,99 @@ AudioSensor::parseCoachMessage( const char * msg,
 
     if ( *msg != '(' )
     {
-        //
-        // old type freeform message
-        //
-        buildFreeformMessage( msg );
-        if ( parseFreeformMessage() )
+        // not a clang message
+        M_freeform_message_time = current;
+        M_freeform_message.assign( msg );
+        if ( ! M_freeform_message.empty()
+             && *M_freeform_message.rbegin() == ')' )
         {
-            M_freeform_message_time = current;
+            M_freeform_message.erase( M_freeform_message.length() - 1 );
         }
+
+        if ( M_freeform_parser )
+        {
+            M_freeform_parser->parse( M_freeform_message.c_str() );
+        }
+
         return;
     }
 
-    //
     // clang message
-    //
 
-    char message_type[32];
+    char msg_type[32];
     int n_read = 0;
 
-    if ( std::sscanf( msg, " ( %31[^ ] %n ",
-                      message_type, &n_read ) != 1 )
+    if ( std::sscanf( msg, "(%31[^ ] %n ",
+                      msg_type, &n_read ) != 1 )
     {
         std::cerr << "***ERROR*** failed to parse clang message type. ["
-                  << msg << ']' << std::endl;
+                  << msg
+                  << std::endl;
+        return;
+    }
+    msg += n_read;
+
+    if ( std::strcmp( msg_type, "freeform" ) != 0 )
+    {
+        // not a freeform message
+        std::cerr << current << ": "
+                  << "recv unsupported clang message. type = "
+                  << msg_type
+                  << std::endl;
         return;
     }
 
-    if ( ! std::strcmp( message_type, "freeform" ) )
-    {
-        msg += n_read; // skip "(freeform "
+    while ( *msg == ' ' ) ++msg;
 
-        buildFreeformMessage( msg );
-        if ( parseFreeformMessage() )
+    bool quated = false;
+    if ( *msg == '\"' )
+    {
+        quated = true;
+        ++msg;
+    }
+
+    M_freeform_message_time = current;
+    M_freeform_message = msg;
+
+    // remove quotation or parenthesis
+    if ( quated )
+    {
+        std::string::size_type pos = M_freeform_message.find_last_of( '\"' );
+        if ( pos == std::string::npos )
         {
-            M_freeform_message_time = current;
+            std::cerr << "***ERROR*** AudioSensor::parseCoachMessage."
+                  << " Illegal quated message. [" << msg << ']'
+                      << std::endl;
+            return;
         }
+        M_freeform_message.erase( pos );
     }
     else
     {
-        buildCLangMessage( msg ); // remove last parenthesis
-        if ( parseCLangMessage() )
+        std::string::size_type pos = M_freeform_message.find_last_not_of( ')' );
+        if ( pos == std::string::npos
+             || pos == M_freeform_message.length() - 1 )
         {
-            // std::cerr << current << " OK parsed clang ["
-            //           << *M_clang_parser.message() << ']' << std::endl;
-            M_clang_time = current;
+            std::cerr << "***ERROR*** AudioSensor::parseCoachMessage."
+                  << " Illegal quated message. [" << msg << ']'
+                      << std::endl;
+            return;
         }
+        M_freeform_message.erase( pos + 1 );
+    }
+
+
+    //std::cerr << current << ": "
+    //          << "recv freeform message. ["
+    //          << M_freeform_message.str_ << ']'
+    //          << std::endl;
+
+    if ( M_freeform_parser )
+    {
+        M_freeform_parser->parse( M_freeform_message.c_str() );
     }
 }
+
 
 /*-------------------------------------------------------------------*/
 /*!
@@ -349,45 +361,28 @@ AudioSensor::parseTrainerMessage( const char * msg,
 
     while ( *msg == ' ' ) ++msg;
 
-    if ( *msg == '\"'
-         || *msg != '(' )
+    char end_char = ')';
+    if ( *msg == '\"' )
     {
-        const char end_char = ( *msg == '\"' ? '\"' : ')' );
-
-        if ( *msg == '\"' )
-        {
-            ++msg;
-        }
-
-        M_trainer_message.erase();
-        M_trainer_message = msg;
-
-        // remove quotation or parenthesis
-        std::string::size_type pos = M_trainer_message.rfind( end_char );
-        if ( pos == std::string::npos )
-        {
-            std::cerr << "***ERROR*** (AudioSensor::parsePlayerMessage)"
-                      << " Illegal quated message. [" << msg << ']'
-                      << std::endl;
-            return;
-        }
-
-        M_trainer_message.erase( pos );
-
-        //
-        // TODO: parse message
-        //
-
-        M_trainer_message_time = current;
+        end_char = '\"';
+        ++msg;
     }
-    else
+
+    M_trainer_message_time = current;
+    M_trainer_message.erase();
+    M_trainer_message = msg;
+
+    // remove quotation or parenthesis
+    std::string::size_type pos = M_trainer_message.rfind( end_char );
+    if ( pos == std::string::npos )
     {
-        buildCLangMessage( msg ); // remove last parenthesis
-        if ( parseCLangMessage() )
-        {
-            M_clang_time = current;
-        }
+        std::cerr << "***ERROR*** CoachAudioSensor::parsePlayerMessage."
+                  << " Illegal quated message. [" << msg << ']'
+                  << std::endl;
+        return;
     }
+
+    M_trainer_message.erase( pos );
 }
 
 /*-------------------------------------------------------------------*/
@@ -410,6 +405,8 @@ AudioSensor::parseTeammateMessage( const HearMessage & message )
     {
         const char tag = *msg;
 
+        int len = 0;
+
         ParserMap::iterator it = M_say_message_parsers.find( tag );
 
         if ( it == end )
@@ -420,8 +417,8 @@ AudioSensor::parseTeammateMessage( const HearMessage & message )
             return;
         }
 
-        int len = it->second->parse( message.unum_, message.dir_, msg,
-                                     M_teammate_message_time );
+        len = it->second->parse( message.unum_, message.dir_, msg,
+                                 M_teammate_message_time );
 
         if ( len < 0 )
         {
@@ -430,164 +427,7 @@ AudioSensor::parseTeammateMessage( const HearMessage & message )
 
         msg += len;
     }
-}
 
-/*-------------------------------------------------------------------*/
-/*!
-
- */
-void
-AudioSensor::buildFreeformMessage( const char * msg )
-{
-    while ( *msg == ' ' ) ++msg;
-
-    bool quated = false;
-    if ( *msg == '\"' )
-    {
-        quated = true;
-        ++msg;
-    }
-
-    M_freeform_message = msg;
-
-    // remove quotation or parenthesis
-    if ( quated )
-    {
-        std::string::size_type pos = M_freeform_message.find_last_of( '\"' );
-        if ( pos == std::string::npos )
-        {
-            std::cerr << "***ERROR*** (AudioSensor::buildFreeformMessage)"
-                      << " no last double quotation [" << msg << ']'
-                      << std::endl;
-            M_freeform_message.clear();
-            return;
-        }
-        M_freeform_message.erase( pos );
-    }
-    else
-    {
-        std::string::size_type pos = M_freeform_message.find_last_not_of( ')' );
-        if ( pos == std::string::npos
-             || pos == M_freeform_message.length() - 1 )
-        {
-            std::cerr << "***ERROR*** (AudioSensor::buildFreeformMessage)"
-                      << " no last parenthesis [" << msg << ']'
-                      << std::endl;
-            M_freeform_message.clear();
-            return;
-        }
-        M_freeform_message.erase( pos + 1 );
-    }
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
- */
-bool
-AudioSensor::parseFreeformMessage()
-{
-    if ( M_freeform_message.empty() )
-    {
-        return false;
-    }
-
-    const FreeformParserMap::iterator end = M_freeform_parsers.end();
-
-    const char * msg = M_freeform_message.c_str();
-
-    char tag[16];
-
-    while ( *msg != '\0' )
-    {
-        int n_read = 0;
-        if ( std::sscanf( msg, " ( %15s %n ",  tag, &n_read ) != 1 )
-        {
-            dlog.addText( Logger::SENSOR,
-                          __FILE__" (parseFreeformMessage) illegal message [%s] in [%s]",
-                          msg, M_freeform_message.c_str() );
-            return false;
-        }
-
-        FreeformParserMap::iterator it = M_freeform_parsers.find( tag );
-
-        if ( it == end )
-        {
-            dlog.addText( Logger::SENSOR,
-                          __FILE__" (parseFreeformMessage) unsupported message [%s] in [%s]",
-                          tag, M_freeform_message.c_str() );
-            return false;
-        }
-
-        int len = it->second->parse( msg );
-
-        if ( len < 0 )
-        {
-            dlog.addText( Logger::SENSOR,
-                          __FILE__" (parseFreeformMessage) failed. tag=[%s] msg=[%s]",
-                          tag, M_freeform_message.c_str() );
-            return false;
-        }
-
-        msg += len;
-
-        while ( *msg == ' ' ) ++msg;
-    }
-
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
- */
-void
-AudioSensor::buildCLangMessage( const char * msg )
-{
-    while ( *msg == ' ' ) ++msg;
-
-    M_clang_message = msg;
-
-    std::string::size_type pos = M_clang_message.find_last_of( ')' );
-    if ( pos == std::string::npos )
-    {
-        std::cerr << "***ERROR*** (AudioSensor::buildCLangMessage)"
-                  << " No last parenthesis. [" << msg << ']'
-                  << std::endl;
-        M_clang_message.clear();
-        return;
-    }
-
-    M_clang_message.erase( pos );
-
-    dlog.addText( Logger::SENSOR,
-                  __FILE__" (buildCLangMessage) msg=[%s]",
-                  M_clang_message.c_str() );
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
- */
-bool
-AudioSensor::parseCLangMessage()
-{
-    if ( M_clang_parser.parse( M_clang_message )
-         && M_clang_parser.message() )
-    {
-        dlog.addText( Logger::SENSOR,
-                      __FILE__": (parseCLangMessage) ok message type = %s",
-                      M_clang_parser.message()->typeName() );
-        return true;
-    }
-
-    dlog.addText( Logger::SENSOR,
-                  __FILE__": (parseCLangMessage) failed to parse clang [%s]",
-                  M_clang_message.c_str() );
-    std::cerr << __FILE__ << ": ***ERROR*** (parseCLangMessage) failed."
-              << std::endl;
-    M_clang_parser.clear();
-    return false;
 }
 
 }

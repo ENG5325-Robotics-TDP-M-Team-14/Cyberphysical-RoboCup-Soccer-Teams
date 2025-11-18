@@ -70,12 +70,12 @@ public:
     Body_KickOneStep( const Vector2D & target_point,
                       const double & first_speed,
                       const bool force_mode = false )
-        : M_target_point( target_point ),
-          M_first_speed( first_speed ),
-          M_force_mode( force_mode ),
-          M_ball_result_pos( Vector2D::INVALIDATED ),
-          M_ball_result_vel( Vector2D::INVALIDATED ),
-          M_kick_step( 0 )
+        : M_target_point( target_point )
+        , M_first_speed( first_speed )
+        , M_force_mode( force_mode )
+        , M_ball_result_pos( Vector2D::INVALIDATED )
+        , M_ball_result_vel( Vector2D::INVALIDATED )
+        , M_kick_step( 0 )
       { }
 
     /*!
@@ -89,7 +89,8 @@ public:
       \brief get the result ball position
       \return ball position after kick
      */
-    const Vector2D & ballResultPos() const
+    const
+    Vector2D & ballResultPos() const
       {
           return M_ball_result_pos;
       }
@@ -98,7 +99,8 @@ public:
       \brief get the result ball velocity
       \return ball velocity after kick
      */
-    const Vector2D & ballResultVel() const
+    const
+    Vector2D & ballResultVel() const
       {
           return M_ball_result_vel;
       }
@@ -111,11 +113,10 @@ public:
       \param kick_rate current kick rate
       \param ball_vel current ball velocity
     */
-    // static
-    // Vector2D get_max_possible_vel( const AngleDeg & target_angle,
-    //                                const double & kick_rate,
-    //                                const Vector2D & ball_vel );
-
+    static
+    Vector2D get_max_possible_vel( const AngleDeg & target_angle,
+                                   const double & kick_rate,
+                                   const Vector2D & ball_vel );
 };
 
 }

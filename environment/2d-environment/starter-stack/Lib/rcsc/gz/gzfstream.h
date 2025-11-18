@@ -32,11 +32,14 @@
 #ifndef RCSC_GZ_GZFSTREAM_H
 #define RCSC_GZ_GZFSTREAM_H
 
-#include <memory>
+#include <boost/scoped_ptr.hpp>
+
 #include <iostream>
 #include <string>
 
 namespace rcsc {
+
+struct gzfilebuf_impl;
 
 /*!
   \class gzfilebuf
@@ -86,11 +89,8 @@ public:
 
 private:
 
-    //! Pimpl ideom
-    struct Impl;
-
     //! Pimpl ideom. the instance of a file buffer.
-    std::unique_ptr< Impl > M_impl;
+    boost::scoped_ptr< gzfilebuf_impl > M_impl;
 
     //! buffer size (default: 8192)
     std::size_t M_buf_size;
@@ -104,15 +104,15 @@ private:
 
 
     //! not used
-    gzfilebuf( const gzfilebuf & ) = delete;
+    gzfilebuf( const gzfilebuf & );
     //! not used
-    gzfilebuf & operator=( const gzfilebuf & ) = delete;
+    gzfilebuf & operator=( const gzfilebuf & );
 
 public:
     /*!
       \brief default constructor.
 
-      Default constructor creates an internal file buffer using std::unique_ptr.
+      Default constructor creates an internal file buffer using boost::scoped_ptr.
       This buffer is deleted automatically.
      */
     gzfilebuf();

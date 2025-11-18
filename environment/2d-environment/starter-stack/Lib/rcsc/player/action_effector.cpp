@@ -53,41 +53,32 @@ namespace rcsc {
 
 */
 ActionEffector::ActionEffector( const PlayerAgent & agent )
-    : M_agent( agent ),
-      M_command_body( nullptr ),
-      // M_command_left_leg( nullptr ),
-      // M_command_right_leg( nullptr ),
-      M_command_turn_neck( nullptr ),
-      M_command_change_view( nullptr ),
-      M_command_change_focus( nullptr ),
-      M_command_say( nullptr ),
-      M_command_pointto( nullptr ),
-      M_command_attentionto( nullptr ),
-      M_last_action_time( 0, 0 ),
-      M_done_turn_neck( false ),
-      M_kick_accel( 0.0, 0.0 ),
-      M_kick_accel_error( 0.0, 0.0 ),
-      M_turn_actual( 0.0 ),
-      M_turn_error( 0.0 ),
-      M_dash_power( 0.0 ),
-      M_left_dash_power( 0.0 ),
-      M_right_dash_power( 0.0 ),
-      M_dash_accel( 0.0, 0.0 ),
-      M_dash_rotation( 0.0 ),
-      M_move_pos( 0.0, 0.0 ),
-      M_catch_time( 0, 0 ),
-      M_tackle_power( 0.0 ),
-      M_tackle_dir( 0.0 ),
-      M_tackle_foul( false ),
-      M_turn_neck_moment( 0.0 ),
-      M_say_message( "" ),
-      M_pointto_pos( 0.0, 0.0 )
+    : M_agent( agent )
+    , M_command_body( static_cast< PlayerBodyCommand * >( 0 ) )
+    , M_command_turn_neck( static_cast< PlayerTurnNeckCommand * >( 0 ) )
+    , M_command_change_view( static_cast< PlayerChangeViewCommand * >( 0 ) )
+    , M_command_say( static_cast< PlayerSayCommand * >( 0 ) )
+    , M_command_pointto( static_cast< PlayerPointtoCommand * >( 0 ) )
+    , M_command_attentionto( static_cast< PlayerAttentiontoCommand * >( 0 ) )
+    , M_last_action_time( 0, 0 )
+    , M_last_body_command_type( PlayerCommand::ILLEGAL )
+    , M_done_turn_neck( false )
+    , M_kick_accel( 0.0, 0.0 )
+    , M_kick_accel_error( 0.0, 0.0 )
+    , M_turn_actual( 0.0 )
+    , M_turn_error( 0.0 )
+    , M_dash_accel( 0.0, 0.0 )
+    //, M_dash_accel_error(0.0, 0.0)
+    , M_dash_power( 0.0 )
+    , M_move_pos( 0.0, 0.0 )
+    , M_catch_time( 0, 0 )
+    , M_tackle_power( 0.0 )
+    , M_tackle_dir( 0.0 )
+    , M_tackle_foul( false )
+    , M_turn_neck_moment( 0.0 )
+    , M_say_message( "" )
+    , M_pointto_pos( 0.0, 0.0 )
 {
-    for ( int i = 0; i < 2; ++i )
-    {
-        M_last_body_command_type[i] = PlayerCommand::ILLEGAL;
-    }
-
     for ( int i = PlayerCommand::INIT;
           i <= PlayerCommand::ILLEGAL;
           ++i )
@@ -105,43 +96,37 @@ ActionEffector::~ActionEffector()
     if ( M_command_body )
     {
         delete M_command_body;
-        M_command_body = nullptr;
+        M_command_body = static_cast< PlayerBodyCommand * >( 0 );
     }
 
     if ( M_command_turn_neck )
     {
         delete M_command_turn_neck;
-        M_command_turn_neck = nullptr;
+        M_command_turn_neck = static_cast< PlayerTurnNeckCommand * >( 0 );
     }
 
     if ( M_command_change_view )
     {
         delete M_command_change_view;
-        M_command_change_view = nullptr;
-    }
-
-    if ( M_command_change_focus )
-    {
-        delete M_command_change_focus;
-        M_command_change_focus = nullptr;
+        M_command_change_view = static_cast< PlayerChangeViewCommand * >( 0 );
     }
 
     if ( M_command_say )
     {
         delete M_command_say;
-        M_command_say = nullptr;
+        M_command_say = static_cast< PlayerSayCommand * >( 0 );;
     }
 
     if ( M_command_pointto )
     {
         delete M_command_pointto;
-        M_command_pointto = nullptr;
+        M_command_pointto = static_cast< PlayerPointtoCommand * >( 0 );;
     }
 
     if ( M_command_attentionto )
     {
         delete M_command_attentionto;
-        M_command_attentionto = nullptr;
+        M_command_attentionto = static_cast< PlayerAttentiontoCommand * >( 0 );;
     }
 }
 
@@ -157,30 +142,25 @@ ActionEffector::reset()
     //             and before action decision.
     //  Do NOT update change_viwe info for adjustment of see arrival timing
 
-    for ( int i = 0; i < 2; ++i )
-    {
-        M_last_body_command_type[i] = PlayerCommand::ILLEGAL;
-    }
-
+    M_last_body_command_type = PlayerCommand::ILLEGAL;
     M_done_turn_neck = false;
-    M_say_message.erase();
+    M_say_message = "";
 
-    M_kick_accel.assign( 0.0, 0.0 );
-    M_kick_accel_error.assign( 0.0, 0.0 );
-    M_turn_actual = M_turn_error = 0.0;
-    M_dash_accel.assign( 0.0, 0.0 );
-    M_dash_rotation = 0.0;
-    M_dash_power = 0.0;
-    M_left_dash_power = 0.0;
-    M_right_dash_power = 0.0;
-    M_left_dash_power = 0.0;
-    M_right_dash_power = 0.0;
-    M_move_pos.assign( 0.0, 0.0 );
-    M_catch_time.assign( 0, 0 );
-    M_tackle_power = 0.0;
-    M_tackle_dir = 0.0;
-    M_turn_neck_moment = 0.0;
-    M_pointto_pos.assign( 0.0, 0.0 );
+    // it is not necesarry to reset these value,
+    // because value is selected by last command type specifier in updator function.
+
+    //M_kick_accel.assign(0.0, 0.0);
+    //M_kick_accel_error.assign(0.0, 0.0);
+    //M_turn_actual =  M_turn_error = 0.0;
+    //M_dash_accel.assign(0.0, 0.0);
+    //M_dash_accel_error.assign(0.0, 0.0);
+    //M_dash_power = 0.0;
+    //M_move_pos.assign(0.0, 0.0);
+    //M_catch_time
+    //M_tackle_power = 0.0;
+    //M_tackle_dir = 0.0;
+    //M_turnneck_moment = 0.0;
+    //M_pointto_pos.assign(0.0, 0.0);
 }
 
 /*-------------------------------------------------------------------*/
@@ -218,35 +198,18 @@ ActionEffector::checkCommandCount( const BodySensor & sense )
 
     if ( sense.kickCount() != M_command_counter[PlayerCommand::KICK] )
     {
-        if ( sense.chargedExpires() == 0 )
-        {
-            std::cout << M_agent.config().teamName() << ' '
-                      << M_agent.world().self().unum() << ": "
-                      << M_agent.world().time()
-                      << " lost kick? at " << M_last_action_time
-                      << " sense=" << sense.kickCount()
-                      << " internal=" << M_command_counter[PlayerCommand::KICK]
-                      << std::endl;
-            dlog.addText( Logger::SYSTEM,
-                          __FILE__": lost kick? sense= %d internal= %d",
-                          sense.kickCount(),
-                          M_command_counter[PlayerCommand::KICK] );
-        }
-        else
-        {
-            std::cout << M_agent.config().teamName() << ' '
-                      << M_agent.world().self().unum() << ": "
-                      << M_agent.world().time()
-                      << " lost kick by foul at " << M_last_action_time
-                      << " sense=" << sense.kickCount()
-                      << " internal=" << M_command_counter[PlayerCommand::KICK]
-                      << std::endl;
-            dlog.addText( Logger::SYSTEM,
-                          __FILE__": lost kick by foul sense= %d internal= %d",
-                          sense.kickCount(),
-                          M_command_counter[PlayerCommand::KICK] );
-        }
-        M_last_body_command_type[0] = PlayerCommand::ILLEGAL;
+        std::cout << M_agent.config().teamName() << ' '
+                  << M_agent.world().self().unum() << ": "
+                  << M_agent.world().time()
+                  << " lost kick? at " << M_last_action_time
+                  << " sense=" << sense.kickCount()
+                  << " internal=" << M_command_counter[PlayerCommand::KICK]
+                  << std::endl;
+        dlog.addText( Logger::SYSTEM,
+                       __FILE__": lost kick? sense= %d internal= %d",
+                      sense.kickCount(),
+                      M_command_counter[PlayerCommand::KICK] );
+        M_last_body_command_type = PlayerCommand::ILLEGAL;
         M_kick_accel.assign( 0.0, 0.0 );
         M_kick_accel_error.assign( 0.0, 0.0 );
         M_command_counter[PlayerCommand::KICK] = sense.kickCount();
@@ -254,21 +217,18 @@ ActionEffector::checkCommandCount( const BodySensor & sense )
 
     if ( sense.turnCount() != M_command_counter[PlayerCommand::TURN] )
     {
-        if ( sense.chargedExpires() == 0 )
-        {
-            std::cout << M_agent.config().teamName() << ' '
-                      << M_agent.world().self().unum() << ": "
-                      << M_agent.world().time()
-                      << " lost turn? at " << M_last_action_time
-                      << " sense=" << sense.turnCount()
-                      << " internal=" << M_command_counter[PlayerCommand::TURN]
-                      << std::endl;
-            dlog.addText( Logger::SYSTEM,
-                          __FILE__": lost turn? sense= %d internal= %d",
-                          sense.turnCount(),
-                          M_command_counter[PlayerCommand::TURN] );
-        }
-        M_last_body_command_type[0] = PlayerCommand::ILLEGAL;
+        std::cout << M_agent.config().teamName() << ' '
+                  << M_agent.world().self().unum() << ": "
+                  << M_agent.world().time()
+                  << " lost turn? at " << M_last_action_time
+                  << " sense=" << sense.turnCount()
+                  << " internal=" << M_command_counter[PlayerCommand::TURN]
+                  << std::endl;
+        dlog.addText( Logger::SYSTEM,
+                       __FILE__": lost turn? sense= %d internal= %d",
+                      sense.turnCount(),
+                      M_command_counter[PlayerCommand::TURN] );
+        M_last_body_command_type = PlayerCommand::ILLEGAL;
         M_turn_actual = 0.0;
         M_turn_error = 0.0;
         M_command_counter[PlayerCommand::TURN] = sense.turnCount();
@@ -276,88 +236,74 @@ ActionEffector::checkCommandCount( const BodySensor & sense )
 
     if ( sense.dashCount() != M_command_counter[PlayerCommand::DASH] )
     {
-        if ( sense.chargedExpires() == 0 )
-        {
-            std::cout << M_agent.config().teamName() << ' '
-                      << M_agent.world().self().unum() << ": "
-                      << M_agent.world().time()
-                      << " lost dash? at " << M_last_action_time
-                      << " sense=" << sense.dashCount()
-                      << " internal=" << M_command_counter[PlayerCommand::DASH]
-                      << std::endl;
-            dlog.addText( Logger::SYSTEM,
-                          __FILE__": lost dash? sense= %d internal= %d",
-                          sense.dashCount(),
-                          M_command_counter[PlayerCommand::DASH] );
-        }
-        M_last_body_command_type[0] = PlayerCommand::ILLEGAL;
+        std::cout << M_agent.config().teamName() << ' '
+                  << M_agent.world().self().unum() << ": "
+                  << M_agent.world().time()
+                  << " lost dash? at " << M_last_action_time
+                  << " sense=" << sense.dashCount()
+                  << " internal=" << M_command_counter[PlayerCommand::DASH]
+                  << std::endl;
+        dlog.addText( Logger::SYSTEM,
+                       __FILE__": lost dash? sense= %d internal= %d",
+                      sense.dashCount(),
+                      M_command_counter[PlayerCommand::DASH] );
+        M_last_body_command_type = PlayerCommand::ILLEGAL;
         M_dash_accel.assign( 0.0, 0.0 );
-        M_dash_rotation = 0.0;
+        //M_dash_accel_error.assign( 0.0, 0.0 );
         M_dash_power = 0.0;
-        M_left_dash_power = 0.0;
-        M_right_dash_power = 0.0;
         M_command_counter[PlayerCommand::DASH] = sense.dashCount();
     }
 
     if ( sense.moveCount() != M_command_counter[PlayerCommand::MOVE] )
     {
-        if ( sense.chargedExpires() == 0 )
-        {
-            std::cout << M_agent.config().teamName() << ' '
-                      << M_agent.world().self().unum() << ": "
-                      << M_agent.world().time()
-                      << " lost move? at " << M_last_action_time
-                      << " sense=" << sense.moveCount()
-                      << " internal=" << M_command_counter[PlayerCommand::MOVE]
-                      << std::endl;
-            dlog.addText( Logger::SYSTEM,
-                          __FILE__": lost move? sense= %d internal= %d",
-                          sense.moveCount(),
-                          M_command_counter[PlayerCommand::MOVE] );
-        }
-        M_last_body_command_type[0] = PlayerCommand::ILLEGAL;
+        std::cout << M_agent.config().teamName() << ' '
+                  << M_agent.world().self().unum() << ": "
+                  << M_agent.world().time()
+                  << " lost move? at " << M_last_action_time
+                  << " sense=" << sense.moveCount()
+                  << " internal=" << M_command_counter[PlayerCommand::MOVE]
+                  << std::endl;
+        dlog.addText( Logger::SYSTEM,
+                       __FILE__": lost move? sense= %d internal= %d",
+                      sense.moveCount(),
+                      M_command_counter[PlayerCommand::MOVE] );
+        M_last_body_command_type = PlayerCommand::ILLEGAL;
         M_move_pos.invalidate();
         M_command_counter[PlayerCommand::MOVE] = sense.moveCount();
     }
 
     if ( sense.catchCount() != M_command_counter[PlayerCommand::CATCH] )
     {
-        if ( sense.chargedExpires() == 0 )
-        {
-            std::cout << M_agent.config().teamName() << ' '
-                      << M_agent.world().self().unum() << ": "
-                      << M_agent.world().time()
-                      << " lost catch? at " << M_last_action_time
-                      << " sense=" << sense.catchCount()
-                      << " internal=" << M_command_counter[PlayerCommand::CATCH]
-                      << std::endl;
-            dlog.addText( Logger::SYSTEM,
-                          __FILE__": lost catch? sense= %d internal= %d",
-                          sense.catchCount(),
-                          M_command_counter[PlayerCommand::CATCH] );
-        }
-        M_last_body_command_type[0] = PlayerCommand::ILLEGAL;
-        //M_catch_time.assign( 0, 0 ); // Do *NOT* reset the time
+        std::cout << M_agent.config().teamName() << ' '
+                  << M_agent.world().self().unum() << ": "
+                  << M_agent.world().time()
+                  << " lost catch? at " << M_last_action_time
+                  << " sense=" << sense.catchCount()
+                  << " internal=" << M_command_counter[PlayerCommand::CATCH]
+                  << std::endl;
+        dlog.addText( Logger::SYSTEM,
+                       __FILE__": lost catch? sense= %d internal= %d",
+                      sense.catchCount(),
+                      M_command_counter[PlayerCommand::CATCH] );
+        M_last_body_command_type = PlayerCommand::ILLEGAL;
+        M_catch_time.assign( 0, 0 );
         M_command_counter[PlayerCommand::CATCH] = sense.catchCount();
     }
 
     if ( sense.tackleCount() != M_command_counter[PlayerCommand::TACKLE] )
     {
-        if ( sense.chargedExpires() == 0 )
-        {
-            std::cout << M_agent.config().teamName() << ' '
-                      << M_agent.world().self().unum() << ": "
-                      << M_agent.world().time()
-                      << " lost tackle? at " << M_last_action_time
-                      << " sense=" << sense.tackleCount()
-                      << " internal=" << M_command_counter[PlayerCommand::TACKLE]
-                      << std::endl;
-            dlog.addText( Logger::SYSTEM,
-                          __FILE__": lost tackle? sense= %d internal= %d",
-                          sense.tackleCount(),
-                          M_command_counter[PlayerCommand::TACKLE] );
-        }
-        M_last_body_command_type[0] = PlayerCommand::ILLEGAL;
+        std::cout << M_agent.config().teamName() << ' '
+                  << M_agent.world().self().unum() << ": "
+                  << M_agent.world().time()
+                  << " lost tackle? at " << M_last_action_time
+                  << " sense=" << sense.tackleCount()
+                  << " internal=" << M_command_counter[PlayerCommand::TACKLE]
+                  << std::endl;
+        dlog.addText( Logger::SYSTEM,
+                       __FILE__": lost tackle? sense= %d internal= %d",
+                      sense.tackleCount(),
+                      M_command_counter[PlayerCommand::TACKLE] );
+        M_last_body_command_type = PlayerCommand::ILLEGAL;
         M_tackle_power = 0.0;
         M_tackle_dir = 0.0;
         M_tackle_foul = false;
@@ -396,22 +342,6 @@ ActionEffector::checkCommandCount( const BodySensor & sense )
                       sense.changeViewCount(),
                       M_command_counter[PlayerCommand::CHANGE_VIEW] );
         M_command_counter[PlayerCommand::CHANGE_VIEW] = sense.changeViewCount();
-    }
-
-    if ( sense.changeFocusCount() != M_command_counter[PlayerCommand::CHANGE_FOCUS] )
-    {
-        std::cout << M_agent.config().teamName() << ' '
-                  << M_agent.world().self().unum() << ": "
-                  << M_agent.world().time()
-                  << " lost change_focus? at " << M_last_action_time
-                  << " sense=" << sense.changeViewCount()
-                  << " internal=" << M_command_counter[PlayerCommand::CHANGE_FOCUS]
-                  << std::endl;
-        dlog.addText( Logger::SYSTEM,
-                       __FILE__": lost change_focus? sense= %d internal= %d",
-                      sense.changeFocusCount(),
-                      M_command_counter[PlayerCommand::CHANGE_FOCUS] );
-        M_command_counter[PlayerCommand::CHANGE_FOCUS] = sense.changeFocusCount();
     }
 
     if ( sense.sayCount() != M_command_counter[PlayerCommand::SAY] )
@@ -470,21 +400,19 @@ ActionEffector::checkCommandCount( const BodySensor & sense )
 std::ostream &
 ActionEffector::makeCommand( std::ostream & to )
 {
-    M_last_body_command_type[1] = M_last_body_command_type[0];
-
     M_last_action_time = M_agent.world().time();
 
     if ( M_command_body )
     {
-        M_last_body_command_type[0] = M_command_body->type();
-        if ( M_last_body_command_type[0] == PlayerCommand::CATCH )
+        M_last_body_command_type = M_command_body->type();
+        if ( M_last_body_command_type == PlayerCommand::CATCH )
         {
             M_catch_time = M_agent.world().time();
         }
-        M_command_body->toCommandString( to );
+        M_command_body->toStr( to );
         incCommandCount( M_command_body->type() );
         delete M_command_body;
-        M_command_body = nullptr;
+        M_command_body = static_cast< PlayerBodyCommand * >( 0 );
     }
     else
     {
@@ -498,7 +426,7 @@ ActionEffector::makeCommand( std::ostream & to )
                       << "  WARNING. no body command." << std::endl;
             // register dummy command
             PlayerTurnCommand turn( 0 );
-            turn.toCommandString( to );
+            turn.toStr( to );
             incCommandCount( PlayerCommand::TURN );
         }
     }
@@ -506,54 +434,46 @@ ActionEffector::makeCommand( std::ostream & to )
     if ( M_command_turn_neck )
     {
         M_done_turn_neck = true;
-        M_command_turn_neck->toCommandString( to );
+        M_command_turn_neck->toStr( to );
         incCommandCount( PlayerCommand::TURN_NECK );
         delete M_command_turn_neck;
-        M_command_turn_neck = nullptr;
+        M_command_turn_neck = static_cast< PlayerTurnNeckCommand * >( 0 );
     }
 
     if ( M_command_change_view )
     {
-        M_command_change_view->toCommandString( to );
+        M_command_change_view->toStr( to );
         incCommandCount( PlayerCommand::CHANGE_VIEW );
         delete M_command_change_view;
-        M_command_change_view = nullptr;
-    }
-
-    if ( M_command_change_focus )
-    {
-        M_command_change_focus->toCommandString( to );
-        incCommandCount( PlayerCommand::CHANGE_FOCUS );
-        delete M_command_change_focus;
-        M_command_change_focus = nullptr;
+        M_command_change_view = static_cast< PlayerChangeViewCommand * >( 0 );
     }
 
     if ( M_command_pointto )
     {
-        M_command_pointto->toCommandString( to );
+        M_command_pointto->toStr( to );
         incCommandCount( PlayerCommand::POINTTO );
         delete M_command_pointto;
-        M_command_pointto = nullptr;
+        M_command_pointto = static_cast< PlayerPointtoCommand * >( 0 );
     }
 
     if ( M_command_attentionto )
     {
-        M_command_attentionto->toCommandString( to );
+        M_command_attentionto->toStr( to );
         incCommandCount( PlayerCommand::ATTENTIONTO );
         delete M_command_attentionto;
-        M_command_attentionto = nullptr;
+        M_command_attentionto = static_cast< PlayerAttentiontoCommand * >( 0 );
     }
 
     if ( ServerParam::i().synchMode() )
     {
         PlayerDoneCommand done_com;
-        done_com.toCommandString( to );
+        done_com.toStr( to );
     }
 
     makeSayCommand();
     if ( M_command_say )
     {
-        M_command_say->toCommandString( to );
+        M_command_say->toStr( to );
         incCommandCount( PlayerCommand::SAY );
     }
 
@@ -571,46 +491,39 @@ ActionEffector::clearAllCommands()
     if ( M_command_body )
     {
         delete M_command_body;
-        M_command_body = nullptr;
+        M_command_body = static_cast< PlayerBodyCommand * >( 0 );
     }
 
     if ( M_command_turn_neck )
     {
         delete M_command_turn_neck;
-        M_command_turn_neck = nullptr;
+        M_command_turn_neck = static_cast< PlayerTurnNeckCommand * >( 0 );
     }
 
     if ( M_command_change_view )
     {
         delete M_command_change_view;
-        M_command_change_view = nullptr;
-    }
-
-    if ( M_command_change_focus )
-    {
-        delete M_command_change_focus;
-        M_command_change_focus = nullptr;
+        M_command_change_view = static_cast< PlayerChangeViewCommand * >( 0 );
     }
 
     if ( M_command_pointto )
     {
         delete M_command_pointto;
-        M_command_pointto = nullptr;
+        M_command_pointto = static_cast< PlayerPointtoCommand * >( 0 );
     }
 
     if ( M_command_attentionto )
     {
         delete M_command_attentionto;
-        M_command_attentionto = nullptr;
+        M_command_attentionto = static_cast< PlayerAttentiontoCommand * >( 0 );
     }
 
     if ( M_command_say )
     {
         delete M_command_say;
-        M_command_say = nullptr;
+        M_command_say = static_cast< PlayerSayCommand * >( 0 );
     }
-
-    M_say_message_cont.clear();
+    clearSayMessages();
 }
 
 /*-------------------------------------------------------------------*/
@@ -664,7 +577,7 @@ ActionEffector::setKick( const double & power,
     if ( M_command_body )
     {
         delete M_command_body;
-        M_command_body = nullptr;
+        M_command_body = static_cast< PlayerBodyCommand * >( 0 );
     }
     M_command_body = new PlayerKickCommand( command_power, rel_dir.degree() );
 
@@ -695,6 +608,7 @@ ActionEffector::setKick( const double & power,
                   M_kick_accel.x, M_kick_accel.y,
                   M_kick_accel_error.x, M_kick_accel_error.y );
 }
+
 
 namespace {
 /*-------------------------------------------------------------------*/
@@ -855,7 +769,7 @@ ActionEffector::setDash( const double & power,
     if ( M_command_body )
     {
         delete M_command_body;
-        M_command_body = nullptr;
+        M_command_body = static_cast< PlayerBodyCommand * >( 0 );
     }
     M_command_body = new PlayerDashCommand( command_power, command_dir );
 
@@ -882,10 +796,7 @@ ActionEffector::setDash( const double & power,
      */
 
     M_dash_power = command_power;
-    M_left_dash_power = command_power;
-    M_right_dash_power = command_power;
-
-    M_dash_rotation = 0.0;
+    M_dash_dir = command_dir;
     M_dash_accel.setPolar( accel_mag, accel_angle );
 
 #if 0
@@ -918,158 +829,6 @@ ActionEffector::setDash( const double & power,
                   command_power, command_dir,
                   M_dash_accel.x, M_dash_accel.y,
                   accel_mag, accel_angle.degree() );
-}
-
-/*-------------------------------------------------------------------*/
-namespace {
-
-/*-------------------------------------------------------------------*/
-double
-check_and_normalize_dash_power( const WorldModel & wm,
-                                double power )
-
-{
-    const ServerParam & param = ServerParam::i();
-
-    if ( power < param.minDashPower() - 0.001
-         || param.maxDashPower() + 0.001 < power )
-    {
-        dlog.addText( Logger::ACTION,
-                      __FILE__" (setDash) exceeding the dash power range %.1f", power );
-        std::cerr << wm.teamName() << ' ' << wm.self().unum() << ": " << wm.time()
-                  << " exceeding the dash power range [left]: " << power
-                  << std::endl;
-        power = param.normalizeDashPower( power );
-    }
-
-    return power;
-}
-
-/*-------------------------------------------------------------------*/
-double
-check_and_normalize_dash_dir( const WorldModel & wm,
-                              double dir )
-
-{
-    const ServerParam & param = ServerParam::i();
-
-    if ( dir < param.minDashAngle() - 0.001
-         || param.maxDashAngle() + 0.001 < dir )
-    {
-        dlog.addText( Logger::ACTION,
-                      __FILE__" (setDash) exceeding the dash angle range %.1f", dir );
-        std::cerr << wm.teamName() << ' ' << wm.self().unum() << ": " << wm.time()
-                  << " exceeding the dash angle range: " << dir
-                  << std::endl;
-        dir = param.normalizeDashAngle( dir );
-    }
-
-    return param.discretizeDashAngle( dir );
-}
-
-/*-------------------------------------------------------------------*/
-void
-check_stamina_for_two_legs_dash( const WorldModel & wm,
-                                 double * left_power,
-                                 double * right_power )
-{
-    // required stamina
-    double left_stamina = ( *left_power < 0.0 ? *left_power * -1.0 : *left_power * 0.5 );
-    double right_stamina = ( *right_power < 0.0 ? *right_power * -1.0 : *right_power * 0.5 );
-
-    double consumed_stamina = std::min( left_stamina + right_stamina,
-                                        wm.self().stamina() + wm.self().playerType().extraStamina() );
-
-    if ( consumed_stamina < 1.0e-5 )
-    {
-        *left_power = 0.0;
-        *right_power = 0.0;
-        return;
-    }
-
-    left_stamina = consumed_stamina * left_stamina / ( left_stamina + right_stamina );
-    right_stamina = consumed_stamina * right_stamina / ( left_stamina + right_stamina );
-
-    *left_power = ( *left_power < 0.0 ? left_stamina * -1.0 : left_stamina * 2.0 );
-    *right_power = ( *right_power < 0.0 ? right_stamina * -1.0 : right_stamina * 2.0 );
-}
-
-}
-
-/*-------------------------------------------------------------------*/
-void
-ActionEffector::setDash( const double left_power,
-                         const AngleDeg left_dir,
-                         const double right_power,
-                         const AngleDeg right_dir )
-{
-    const WorldModel & wm = M_agent.world();
-
-    dlog.addText( Logger::ACTION,
-                   __FILE__" (setDash) register dash for 2 legs. left=(%.1f %.1f) right=(%.1f %.1f)",
-                  left_power, left_dir.degree(), right_power, right_dir.degree() );
-
-    // normalize command argument : power
-    double left_command_power = check_and_normalize_dash_power( wm, left_power );
-    double right_command_power = check_and_normalize_dash_power( wm, right_power );
-
-    check_stamina_for_two_legs_dash( wm, &left_command_power, &right_command_power );
-
-    left_command_power = std::round( left_command_power * 1000.0 ) * 0.001;
-    right_command_power = std::round( right_command_power * 1000.0 ) * 0.001;
-
-    // normalize command argument: direction
-    double left_command_dir = check_and_normalize_dash_dir( wm, left_dir.degree() );
-    double right_command_dir = check_and_normalize_dash_dir( wm, right_dir.degree() );
-
-    // create command object
-    if ( M_command_body )
-    {
-        delete M_command_body;
-        M_command_body = nullptr;
-    }
-    M_command_body = new PlayerDashCommand( left_command_power, left_command_dir,
-                                            right_command_power, right_command_dir );
-
-    // estimate command effect
-    double left_dir_rate = ServerParam::i().dashDirRate( left_command_dir );
-    double right_dir_rate = ServerParam::i().dashDirRate( right_command_dir );
-
-    double left_accel_mag = std::fabs( left_command_power * left_dir_rate * wm.self().dashRate() );
-    double right_accel_mag = std::fabs( right_command_power * right_dir_rate * wm.self().dashRate() );
-
-    AngleDeg left_accel_angle = wm.self().body() + left_command_dir;
-    AngleDeg right_accel_angle = wm.self().body() + right_command_dir;
-
-    if ( left_power < 0.0 ) left_accel_angle += 180.0;
-    if ( right_power < 0.0 ) right_accel_angle += 180.0;
-
-    const Vector2D left_accel = Vector2D::from_polar( left_accel_mag, left_accel_angle );
-    const Vector2D right_accel = Vector2D::from_polar( right_accel_mag, right_accel_angle );
-
-    const Vector2D body_unit = Vector2D::from_polar( 1.0, wm.self().body() );
-    const Vector2D vel_l = wm.self().vel() + left_accel;
-    const Vector2D vel_r = wm.self().vel() + right_accel;
-
-    const double vel_l_body = body_unit.x * vel_l.x + body_unit.y * vel_l.y;
-    const double vel_r_body = body_unit.x * vel_r.x + body_unit.y * vel_r.y;
-
-    const double omega = ( vel_l_body - vel_r_body ) / ( wm.self().playerType().playerSize() * 2.0 );
-    const Vector2D new_vel = ( vel_r + vel_l ) * 0.5;
-
-    M_dash_power = ( left_command_power < 0.0 ? -left_command_power : left_command_power*0.5
-                     + right_command_power < 0.0 ? -right_command_power : left_command_power*0.5 );
-    M_left_dash_power = left_command_power;
-    M_right_dash_power = right_command_power;
-
-    M_dash_rotation = AngleDeg::rad2deg( omega );
-    M_dash_accel = new_vel - wm.self().vel();
-
-    const double actual_accel_mag = M_dash_accel.r();
-    if ( actual_accel_mag > ServerParam::i().playerAccelMax() )
-    {
-        M_dash_accel *= ServerParam::i().playerAccelMax() / actual_accel_mag;
-    }
 }
 
 /*-------------------------------------------------------------------*/
@@ -1115,7 +874,7 @@ ActionEffector::setTurn( const AngleDeg & moment )
     if ( M_command_body )
     {
         delete M_command_body;
-        M_command_body = nullptr;
+        M_command_body = static_cast< PlayerBodyCommand * >( 0 );
     }
 
     // moment is a command param, not a real moment.
@@ -1257,7 +1016,7 @@ ActionEffector::setMove( const double & x,
     if ( M_command_body )
     {
         delete M_command_body;
-        M_command_body = nullptr;
+        M_command_body = static_cast< PlayerBodyCommand * >( 0 );
     }
     M_command_body = new PlayerMoveCommand( command_x, command_y );
 
@@ -1280,32 +1039,18 @@ ActionEffector::setCatch()
         = AngleDeg::atan2_deg( ServerParam::i().catchAreaWidth() * 0.5,
                                ServerParam::i().catchAreaLength() );
 
-    const AngleDeg ball_rel_angle = M_agent.world().ball().angleFromSelf() - M_agent.world().self().body();
+    // relative angle
+    AngleDeg ball_rel_angle = M_agent.world().ball().angleFromSelf() - M_agent.world().self().body();
     // add diagonal angle
-    AngleDeg catch_angle = ( ball_rel_angle.degree() > 0.0
-                             ? ball_rel_angle - diagonal_angle
-                             : ball_rel_angle + diagonal_angle );
+    AngleDeg catch_angle = ball_rel_angle + diagonal_angle;
 
     dlog.addText( Logger::ACTION,
-                   __FILE__" (setCatch) (raw) ball_angle=%.1f diagonal_angle=%.1f catch_angle=%.1f",
+                   __FILE__" (setCatch) ball_dir=%.1f diagonal_angle=%.1f -> catch_angle=%.1f(gloabl=%.1f)",
                   ball_rel_angle.degree(),
                   diagonal_angle,
-                  catch_angle.degree() );
-
-    if ( catch_angle.degree() < ServerParam::i().minCatchAngle() )
-    {
-        catch_angle = ServerParam::i().minCatchAngle();
-    }
-
-    if ( catch_angle.degree() > ServerParam::i().maxCatchAngle() )
-    {
-        catch_angle = ServerParam::i().maxCatchAngle();
-    }
-
-    dlog.addText( Logger::ACTION,
-                   __FILE__" (setCatch) (result) catch_angle=%.1f(gloabl=%.1f)",
                   catch_angle.degree(),
                   ( catch_angle + M_agent.world().self().body() ).degree() );
+
 
 
     //////////////////////////////////////////////////
@@ -1313,7 +1058,7 @@ ActionEffector::setCatch()
     if ( M_command_body )
     {
         delete M_command_body;
-        M_command_body = nullptr;
+        M_command_body = static_cast< PlayerBodyCommand * >( 0 );
     }
     M_command_body = new PlayerCatchCommand( catch_angle.degree() );
 }
@@ -1385,7 +1130,7 @@ ActionEffector::setTackle( const double & power_or_dir,
     if ( M_command_body )
     {
         delete M_command_body;
-        M_command_body = nullptr;
+        M_command_body = static_cast< PlayerBodyCommand * >( 0 );
     }
     M_command_body = new PlayerTackleCommand( actual_power_or_dir, foul );
 
@@ -1474,7 +1219,7 @@ ActionEffector::setTurnNeck( const AngleDeg & moment )
     if ( M_command_turn_neck )
     {
         delete M_command_turn_neck;
-        M_command_turn_neck = nullptr;
+        M_command_turn_neck = static_cast< PlayerTurnNeckCommand * >( 0 );
     }
     M_command_turn_neck = new PlayerTurnNeckCommand( command_moment );
 
@@ -1498,62 +1243,56 @@ ActionEffector::setChangeView( const ViewWidth & width )
     if ( M_command_change_view )
     {
         delete M_command_change_view;
-        M_command_change_view = nullptr;
+        M_command_change_view = static_cast< PlayerChangeViewCommand * >( 0 );
     }
 
     M_command_change_view = new PlayerChangeViewCommand( width,
-                                                         ViewQuality::HIGH );
+                                                         ViewQuality::HIGH,
+                                                         M_agent.config().version() );
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
 */
-void
-ActionEffector::setChangeFocus( const double moment_dist,
-                                const AngleDeg & moment_dir )
-{
-    dlog.addText( Logger::ACTION,
-                   __FILE__" (setChangeFocus) register change_focus. moment_dist=%lf moment_dir=%lf",
-                  moment_dist, moment_dir );
+// void
+// ActionEffector::setSay( const std::string & msg,
+//                         const double & version )
+// {
+//     dlog.addText( Logger::ACTION,
+//                   "register say. [%s]",
+//                   msg.c_str() );
 
-    //////////////////////////////////////////////////
-    // create command object
-    if ( M_command_change_focus )
-    {
-        delete M_command_change_focus;
-        M_command_change_focus = nullptr;
-    }
+//     M_protocl_version = version;
 
-    double command_moment_dist = rint( moment_dist * 1000.0 ) * 0.001;
-    double command_moment_dir = rint( moment_dir.degree() * 1000.0 ) * 0.001;
+//     //////////////////////////////////////////////////
+//     // create command object
+//     if ( M_command_say )
+//     {
+//         //delete M_command_say;
+//         //M_command_say = static_cast< PlayerSayCommand * >( 0 );
+//         M_command_say->assign( msg );
+//     }
+//     else
+//     {
+//         M_command_say = new PlayerSayCommand( msg, version );
+//     }
 
-    M_command_change_focus = new PlayerChangeFocusCommand( command_moment_dist, command_moment_dir );
-}
+//     M_say_message = msg;
+// }
 
 /*-------------------------------------------------------------------*/
 /*!
 
 */
 void
-ActionEffector::addSayMessage( SayMessage * message )
+ActionEffector::addSayMessage( const SayMessage * message )
 {
-    if ( ! message )
-    {
-        dlog.addText( Logger::ACTION,
-                      __FILE__" (addSayMessage) NULL message" );
-        std::cerr << __FILE__ << ' '<< __LINE__
-                  << ": (addSayMessage) NULL message." << std::endl;
-        return;
-    }
-
     dlog.addText( Logger::ACTION,
                   __FILE__" (addSayMessage) add new say message.[%c]",
                   message->header() );
 
-    SayMessage::Ptr ptr( message );
-
-    M_say_message_cont.push_back( ptr );
+    M_say_messages.push_back( message );
 }
 
 /*-------------------------------------------------------------------*/
@@ -1568,13 +1307,14 @@ ActionEffector::removeSayMessage( const char header )
 
     bool removed = false;
 
-    std::vector< SayMessage::Ptr >::iterator it = M_say_message_cont.begin();
+    std::vector< const SayMessage * >::iterator it = M_say_messages.begin();
 
-    while ( it != M_say_message_cont.end() )
+    while ( it != M_say_messages.end() )
     {
         if ( (*it)->header() == header )
         {
-            it = M_say_message_cont.erase( it );
+            delete *it;
+            it = M_say_messages.erase( it );
             removed = true;
             dlog.addText( Logger::ACTION,
                           __FILE__" (removeSayMessage) removed" );
@@ -1586,16 +1326,6 @@ ActionEffector::removeSayMessage( const char header )
     }
 
     return removed;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-void
-ActionEffector::clearSayMessage()
-{
-    M_say_message_cont.clear();
 }
 
 /*-------------------------------------------------------------------*/
@@ -1619,7 +1349,7 @@ ActionEffector::setPointto( const double & x,
     if ( M_command_pointto )
     {
         delete M_command_pointto;
-        M_command_pointto = nullptr;
+        M_command_pointto = static_cast< PlayerPointtoCommand * >( 0 );
     }
     M_command_pointto = new PlayerPointtoCommand( target_rel.r(),
                                                   target_rel.th().degree() );
@@ -1643,7 +1373,7 @@ ActionEffector::setPointtoOff()
     if ( M_command_pointto )
     {
         delete M_command_pointto;
-        M_command_pointto = nullptr;
+        M_command_pointto = static_cast< PlayerPointtoCommand * >( 0 );
     }
     M_command_pointto = new PlayerPointtoCommand();
 
@@ -1668,7 +1398,7 @@ ActionEffector::setAttentionto( const SideID side,
     if ( M_command_attentionto )
     {
         delete M_command_attentionto;
-        M_command_attentionto = nullptr;
+        M_command_attentionto = static_cast< PlayerAttentiontoCommand * >( 0 );
     }
 
     M_command_attentionto
@@ -1693,7 +1423,7 @@ ActionEffector::setAttentiontoOff()
     if ( M_command_attentionto )
     {
         delete M_command_attentionto;
-        M_command_attentionto = nullptr;
+        M_command_attentionto = static_cast< PlayerAttentiontoCommand * >( 0 );
     }
     M_command_attentionto = new PlayerAttentiontoCommand();
 }
@@ -1707,9 +1437,12 @@ ActionEffector::getSayMessageLength() const
 {
     int len = 0;
 
-    for ( const SayMessage::Ptr & i : M_say_message_cont )
+    const std::vector< const SayMessage * >::const_iterator end = M_say_messages.end();
+    for ( std::vector< const SayMessage * >::const_iterator it = M_say_messages.begin();
+          it != end;
+          ++it )
     {
-        len += i->length();
+        len += (*it)->length();
     }
 
     return len;
@@ -1725,22 +1458,24 @@ ActionEffector::makeSayCommand()
     if ( M_command_say )
     {
         delete M_command_say;
-        M_command_say = nullptr;
+        M_command_say = static_cast< PlayerSayCommand * >( 0 );
     }
 
     M_say_message.erase();
 
-    // std::sort( M_say_message_cont.begin(), M_say_message_cont.end(),
+    // std::sort( M_say_messages.begin(), M_say_messages.end(),
     //            SayMessagePtrSorter() );
 
-    for ( const SayMessage::Ptr & i : M_say_message_cont )
+    const std::vector< const SayMessage * >::const_iterator end = M_say_messages.end();
+    for ( std::vector< const SayMessage * >::const_iterator it = M_say_messages.begin();
+          it != end;
+          ++it )
     {
-        if ( ! i->appendTo( M_say_message ) )
+        if ( ! (*it)->toStr( M_say_message ) )
         {
-            std::cerr << M_agent.world().teamName() << ' '
-                      << M_agent.world().self().unum() << " : "
+            std::cerr << M_agent.world().self().unum() << " : "
                       << M_agent.world().time() << " Error say message builder. type=["
-                      << i->header() << ']'
+                      << (*it)->header() << ']'
                       << std::endl;
             dlog.addText( Logger::ACTION,
                           __FILE__" (makeSayCommand) error occured." );
@@ -1760,6 +1495,24 @@ ActionEffector::makeSayCommand()
                   M_say_message.c_str() );
 }
 
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+void
+ActionEffector::clearSayMessages()
+{
+    const std::vector< const SayMessage * >::const_iterator end = M_say_messages.end();
+    for ( std::vector< const SayMessage * >::const_iterator it = M_say_messages.begin();
+          it != end;
+          ++it )
+    {
+        delete *it;
+    }
+
+    M_say_messages.clear();
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 /*-------------------------------------------------------------------*/
@@ -1770,21 +1523,12 @@ AngleDeg
 ActionEffector::queuedNextSelfBody() const
 {
     AngleDeg next_angle = M_agent.world().self().body();
-
     if ( M_command_body
          && M_command_body->type() == PlayerCommand::TURN )
     {
         double moment = 0.0;
         getTurnInfo( &moment, NULL );
         next_angle += moment;
-    }
-
-    if ( M_command_body
-         && M_command_body->type() == PlayerCommand::TURN )
-    {
-        double dash_rotation = 0.0;
-        getDashInfo( nullptr, &dash_rotation, nullptr, nullptr );
-        next_angle += dash_rotation;
     }
 
     return next_angle;
@@ -1802,7 +1546,7 @@ ActionEffector::queuedNextSelfPos() const
          && M_command_body->type() == PlayerCommand::DASH )
     {
         Vector2D accel( 0.0, 0.0 );
-        getDashInfo( &accel, nullptr, nullptr, nullptr );
+        getDashInfo( &accel, NULL );
         vel += accel;
 
         double tmp = vel.r();

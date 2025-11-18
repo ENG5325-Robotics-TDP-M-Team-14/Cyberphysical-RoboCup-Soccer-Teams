@@ -113,7 +113,7 @@ public:
 };
 
 //! RegHolder type
-typedef std::unique_ptr< RegHolderImpl > RegHolder;
+typedef std::auto_ptr< RegHolderImpl > RegHolder;
 
 
 /*!

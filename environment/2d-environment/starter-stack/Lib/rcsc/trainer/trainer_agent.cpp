@@ -37,12 +37,9 @@
 
 #include "trainer_command.h"
 
-#include <rcsc/coach/coach_visual_sensor.h>
+#include <rcsc/coach/global_visual_sensor.h>
 
-#include <rcsc/common/abstract_client.h>
-#include <rcsc/common/online_client.h>
-#include <rcsc/common/offline_client.h>
-#include <rcsc/common/logger.h>
+#include <rcsc/common/basic_client.h>
 #include <rcsc/common/server_param.h>
 #include <rcsc/common/player_param.h>
 #include <rcsc/common/player_type.h>
@@ -54,7 +51,6 @@
 #include <rcsc/version.h>
 
 #include <sstream>
-#include <cstdio>
 #include <cstring>
 
 namespace rcsc {
@@ -85,7 +81,7 @@ struct TrainerAgent::Impl {
     GameMode game_mode_;
 
     //! visual sensor data
-    CoachVisualSensor visual_;
+    GlobalVisualSensor visual_;
 
     /*!
       \brief initialize all members
@@ -99,37 +95,12 @@ struct TrainerAgent::Impl {
       { }
 
     /*!
-      \brief initialize debug resources
-     */
-    void initDebug();
-
-    /*!
-      \brief open offline client log file.
-    */
-    bool openOfflineLog();
-
-    /*!
-      \brief open debug log file.
-    */
-    bool openDebugLog();
-
-    /*!
-      \brief set debug output flags to logger
-     */
-    void setDebugFlags();
-
-    /*!
       \brief send init or reconnect command to server
 
-      init commad is sent in AbstractClient's run() method
+      init commad is sent in BasicClient's run() method
       Do not call this method yourself!
     */
     void sendInitCommand();
-
-    /*!
-      \brief send client setting commands(compression...) to server
-     */
-    void sendSettingCommands();
 
     /*!
       \brief send disconnection command message to server
@@ -229,7 +200,7 @@ struct TrainerAgent::Impl {
       \param new_time analyzed time value
       \param by_see_global true if called after see_global message
     */
-    void updateCurrentTime( const long new_time,
+    void updateCurrentTime( const long & new_time,
                             const bool by_see_global );
 
     /*!
@@ -243,135 +214,9 @@ struct TrainerAgent::Impl {
 /*-------------------------------------------------------------------*/
 /*!
 
- */
-void
-TrainerAgent::Impl::initDebug()
-{
-    if ( ! agent_.config().offlineClientMode() )
-    {
-        if ( agent_.config().offlineLogging() )
-        {
-            openOfflineLog();
-        }
-    }
-
-    if ( agent_.config().debug() )
-    {
-        openDebugLog();
-    }
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-TrainerAgent::Impl::openOfflineLog()
-{
-    std::string filepath = agent_.config().logDir();
-
-    if ( ! filepath.empty() )
-    {
-        if ( *filepath.rbegin() != '/' )
-        {
-            filepath += '/';
-        }
-    }
-
-    filepath += agent_.config().teamName();
-    filepath += "-trainer";
-    filepath += agent_.config().offlineLogExt();
-
-    if ( ! agent_.M_client->openOfflineLog( filepath ) )
-    {
-        std::cerr << agent_.config().teamName() << " trainer: "
-                  << "Failed to open the offline client log file ["
-                  << filepath << "]" << std::endl;
-        agent_.M_client->setServerAlive( false );
-        return false;
-    }
-
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-TrainerAgent::Impl::openDebugLog()
-{
-    std::string filepath = agent_.config().logDir();
-
-    if ( ! filepath.empty() )
-    {
-        if ( *filepath.rbegin() != '/' )
-        {
-            filepath += '/';
-        }
-    }
-
-    filepath += agent_.config().teamName();
-    filepath += "-trainer";
-    filepath += agent_.config().debugLogExt();
-
-    dlog.open( filepath );
-
-    if ( ! dlog.isOpen() )
-    {
-        std::cerr << agent_.config().teamName() << " trainer: "
-                  << " Failed to open the debug log file [" << filepath << "]"
-                  << std::endl;
-        agent_.M_client->setServerAlive( false );
-        return false;
-    }
-
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
 */
 void
-TrainerAgent::Impl::setDebugFlags()
-{
-    const TrainerConfig & c = agent_.config();
-
-    if ( ! c.debug() )
-    {
-        return;
-    }
-
-    dlog.setLogFlag( &current_time_, Logger::SYSTEM, c.debugSystem() );
-    dlog.setLogFlag( &current_time_, Logger::SENSOR, c.debugSensor() );
-    dlog.setLogFlag( &current_time_, Logger::WORLD, c.debugWorld() );
-    dlog.setLogFlag( &current_time_, Logger::ACTION, c.debugAction() );
-    dlog.setLogFlag( &current_time_, Logger::INTERCEPT, c.debugIntercept() );
-    dlog.setLogFlag( &current_time_, Logger::KICK, c.debugKick() );
-    dlog.setLogFlag( &current_time_, Logger::HOLD, c.debugHold() );
-    dlog.setLogFlag( &current_time_, Logger::DRIBBLE, c.debugDribble() );
-    dlog.setLogFlag( &current_time_, Logger::PASS, c.debugPass() );
-    dlog.setLogFlag( &current_time_, Logger::CROSS, c.debugCross() );
-    dlog.setLogFlag( &current_time_, Logger::SHOOT, c.debugShoot() );
-    dlog.setLogFlag( &current_time_, Logger::CLEAR, c.debugClear() );
-    dlog.setLogFlag( &current_time_, Logger::BLOCK, c.debugBlock() );
-    dlog.setLogFlag( &current_time_, Logger::MARK, c.debugMark() );
-    dlog.setLogFlag( &current_time_, Logger::POSITIONING, c.debugPositioning() );
-    dlog.setLogFlag( &current_time_, Logger::ROLE, c.debugRole() );
-    dlog.setLogFlag( &current_time_, Logger::PLAN, c.debugPlan() );
-    dlog.setLogFlag( &current_time_, Logger::TEAM, c.debugTeam() );
-    dlog.setLogFlag( &current_time_, Logger::COMMUNICATION, c.debugCommunication() );
-    dlog.setLogFlag( &current_time_, Logger::ANALYZER, c.debugAnalyzer() );
-    dlog.setLogFlag( &current_time_, Logger::ACTION_CHAIN, c.debugActionChain() );
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-void
-TrainerAgent::Impl::updateCurrentTime( const long new_time,
+TrainerAgent::Impl::updateCurrentTime( const long & new_time,
                                        const bool by_see_global )
 {
     if ( server_cycle_stopped_ )
@@ -434,13 +279,13 @@ TrainerAgent::Impl::updateServerStatus()
 
 */
 TrainerAgent::TrainerAgent()
-    : SoccerAgent(),
-      M_impl( new Impl( *this ) ),
-      M_config()
+    : SoccerAgent()
+    , M_impl( new Impl( *this ) )
+    , M_config()
 {
-    M_worldmodel.init( M_config.teamName(), NEUTRAL, 999 );
+    M_worldmodel.init( NEUTRAL, 999 );
 
-    std::shared_ptr< AudioMemory > audio_memory( new AudioMemory );
+    boost::shared_ptr< AudioMemory > audio_memory( new AudioMemory );
 
     M_worldmodel.setAudioMemory( audio_memory );
 }
@@ -457,30 +302,9 @@ TrainerAgent::~TrainerAgent()
 /*-------------------------------------------------------------------*/
 /*!
 
- */
-std::shared_ptr< AbstractClient >
-TrainerAgent::createConsoleClient()
-{
-    std::shared_ptr< AbstractClient > ptr;
-
-    if ( config().offlineClientMode() )
-    {
-        ptr = std::shared_ptr< AbstractClient >( new OfflineClient() );
-    }
-    else
-    {
-        ptr = std::shared_ptr< AbstractClient >( new OnlineClient() );
-    }
-
-    return ptr;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
 */
 const
-CoachVisualSensor &
+GlobalVisualSensor &
 TrainerAgent::visualSensor() const
 {
     return M_impl->visual_;
@@ -501,35 +325,36 @@ TrainerAgent::initImpl( CmdLineParser & cmd_parser )
         ( "help" , "", BoolSwitch( &help ), "print help message.")
         ( "trainer-config", "", &trainer_config_file, "specifies trainer config file." );
 
+    ParamMap trainer_param_map( "Trainer options" );
+    M_config.createParamMap( trainer_param_map );
+
     // analyze command line for system options.
     cmd_parser.parse( system_param_map );
     if ( help )
     {
         std::cout << copyright() << std::endl;
         system_param_map.printHelp( std::cout );
-        config().printHelp( std::cout );
+        trainer_param_map.printHelp( std::cout );
         return false;
     }
 
-    // parse config file
+    // analyze config file for trainer config options
     if ( ! trainer_config_file.empty() )
     {
         ConfFileParser conf_parser( trainer_config_file.c_str() );
-        M_config.parse( conf_parser );
+        conf_parser.parse( trainer_param_map );
     }
 
-    // parse command line
-    M_config.parse( cmd_parser );
+    // analyze command line for trainer options.
+    cmd_parser.parse( trainer_param_map );
 
     if ( config().version() < 1.0
-         || MAX_PROTOCOL_VERSION < config().version() )
+         || 15.0 <= config().version() )
     {
-        std::cerr << "(TrainerAgent::initImpl) Unsupported client version: " << config().version()
+        std::cerr << "Unsupported client version: " << config().version()
                   << std::endl;
         return false;
     }
-
-    M_impl->setDebugFlags();
 
     return true;
 }
@@ -555,19 +380,17 @@ TrainerAgent::handleStart()
     }
 
     // just create a connection. init command is automaticcaly sent
-    // by AbstractClient's run() method.
+    // by BasicClient's run() method.
     if ( ! M_client->connectTo( config().host().c_str(),
-                                config().port() ) )
+                                config().port(),
+                                static_cast< long >( ServerParam::i().simulatorStep() ) ) )
     {
         std::cerr << "trainer: ***ERROR*** failed to connect." << std::endl;
         M_client->setServerAlive( false );
         return false;
     }
 
-    M_client->setIntervalMSec( config().intervalMSec() );
-
     M_impl->sendInitCommand();
-
     return true;
 }
 
@@ -587,7 +410,7 @@ TrainerAgent::handleMessage()
 
     // start parse process
 
-    while ( M_client->receiveMessage() > 0 )
+    while ( M_client->recvMessage() > 0 )
     {
         parse( M_client->message() );
     }
@@ -735,12 +558,26 @@ TrainerAgent::Impl::analyzeInit( const char * msg )
         return;
     }
 
-    sendSettingCommands();
+    // initialization commands....
+    if ( agent_.config().useEye() )
+    {
+        agent_.doEye( true );
+    }
 
-    //
-    // call init message event handler
-    //
-    agent_.handleInitMessage();
+    if ( agent_.config().useEar() )
+    {
+        agent_.doEar( true );
+    }
+
+    // set compression level
+    if ( 0 < agent_.config().compression()
+         && agent_.config().compression() <= 9 )
+    {
+        TrainerCompressionCommand com( agent_.config().compression() );
+        agent_.sendCommand( com );
+    }
+
+    agent_.M_client->setIntervalMSec( ServerParam::i().simulatorStep() );
 }
 
 /*-------------------------------------------------------------------*/
@@ -874,9 +711,12 @@ TrainerAgent::Impl::analyzeHearReferee( const char * msg )
                           << std::endl;
             }
 
-            agent_.M_worldmodel.setCard( ( side == 'l' ? LEFT : side == 'r' ? RIGHT : NEUTRAL ),
-                                         unum,
-                                         YELLOW );
+            agent_.M_worldmodel.setYellowCard( ( side == 'l'
+                                                 ? LEFT
+                                                 : side == 'r'
+                                                 ? RIGHT
+                                                 : NEUTRAL ),
+                                               unum );
         }
         else if ( ! std::strncmp( mode, "red_card", std::strlen( "red_card" ) ) )
         {
@@ -891,9 +731,12 @@ TrainerAgent::Impl::analyzeHearReferee( const char * msg )
                           << std::endl;
             }
 
-            agent_.M_worldmodel.setCard( ( side == 'l' ? LEFT : side == 'r' ? RIGHT : NEUTRAL ),
-                                         unum,
-                                         RED );
+            agent_.M_worldmodel.setRedCard( ( side == 'l'
+                                              ? LEFT
+                                              : side == 'r'
+                                              ? RIGHT
+                                              : NEUTRAL ),
+                                            unum );
         }
         else if ( ! std::strncmp( mode, "training", std::strlen( "training" ) ) )
         {
@@ -965,23 +808,23 @@ TrainerAgent::Impl::analyzeChangePlayerType( const char * msg )
 
     if ( agent_.world().teamNameLeft() == teamname )
     {
-        agent_.M_worldmodel.changePlayerType( LEFT, unum, type );
+        agent_.M_worldmodel.setPlayerType( LEFT, unum, type );
     }
     else if ( agent_.world().teamNameRight() == teamname )
     {
-        agent_.M_worldmodel.changePlayerType( RIGHT, unum, type );
+        agent_.M_worldmodel.setPlayerType( RIGHT, unum, type );
     }
     else if ( agent_.world().teamNameLeft().empty()
               && std::strlen( teamname ) != 0 )
     {
         agent_.M_worldmodel.setTeamName( LEFT, teamname );
-        agent_.M_worldmodel.changePlayerType( LEFT, unum, type );
+        agent_.M_worldmodel.setPlayerType( LEFT, unum, type );
     }
     else if ( agent_.world().teamNameRight().empty()
               && std::strlen( teamname ) != 0 )
     {
         agent_.M_worldmodel.setTeamName( RIGHT, teamname );
-        agent_.M_worldmodel.changePlayerType( RIGHT, unum, type );
+        agent_.M_worldmodel.setPlayerType( RIGHT, unum, type );
     }
 }
 
@@ -992,10 +835,10 @@ TrainerAgent::Impl::analyzeChangePlayerType( const char * msg )
 void
 TrainerAgent::Impl::analyzePlayerType( const char * msg )
 {
+    //std::cerr << "trainer: parsed player_type " << std::endl;
+
     PlayerType player_type( msg, agent_.config().version() );
     PlayerTypeSet::instance().insert( player_type );
-
-    agent_.handlePlayerType();
 }
 
 /*-------------------------------------------------------------------*/
@@ -1006,8 +849,6 @@ void
 TrainerAgent::Impl::analyzePlayerParam( const char * msg )
 {
     PlayerParam::instance().parse( msg, agent_.config().version() );
-
-    agent_.handlePlayerParam();
 }
 
 /*-------------------------------------------------------------------*/
@@ -1028,8 +869,6 @@ TrainerAgent::Impl::analyzeServerParam( const char * msg )
                           * ServerParam::i().slowDownFactor() );
         agent_.M_client->setIntervalMSec( interval );
     }
-
-    agent_.handleServerParam();
 }
 
 /*-------------------------------------------------------------------*/
@@ -1150,7 +989,7 @@ bool
 TrainerAgent::sendCommand( const TrainerCommand & com )
 {
     std::ostringstream os;
-    com.toCommandString( os );
+    com.toStr( os );
 
     std::string str = os.str();
     if ( str.length() == 0 )
@@ -1194,31 +1033,6 @@ TrainerAgent::Impl::sendInitCommand()
     }
 
     std::cerr << "trainer: send init" << std::endl;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-void
-TrainerAgent::Impl::sendSettingCommands()
-{
-    if ( agent_.config().useEye() )
-    {
-        agent_.doEye( true );
-    }
-
-    if ( agent_.config().useEar() )
-    {
-        agent_.doEar( true );
-    }
-
-    if ( 0 < agent_.config().compression()
-         && agent_.config().compression() <= 9 )
-    {
-        TrainerCompressionCommand com( agent_.config().compression() );
-        agent_.sendCommand( com );
-    }
 }
 
 /*-------------------------------------------------------------------*/
@@ -1342,21 +1156,6 @@ TrainerAgent::doMovePlayer( const std::string & teamname,
 
 */
 bool
-TrainerAgent::doMovePlayer( const std::string & teamname,
-                            const int unum,
-                            const Vector2D & pos,
-                            const AngleDeg & angle,
-                            const Vector2D & vel )
-{
-    TrainerMovePlayerCommand com( teamname, unum, pos, angle, vel );
-    return sendCommand( com );
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
 TrainerAgent::doRecover()
 {
     TrainerRecoverCommand com;
@@ -1407,8 +1206,6 @@ TrainerAgent::action()
 {
     if ( M_impl->last_decision_time_ != M_impl->current_time_ )
     {
-        M_worldmodel.updateJustBeforeDecision( M_impl->current_time_ );
-
         actionImpl();
         M_impl->last_decision_time_ = M_impl->current_time_;
     }
