@@ -87,7 +87,8 @@ using namespace rcsc;
  */
 SamplePlayer::SamplePlayer()
 : PlayerAgent(),
-M_communication()
+M_communication(),
+M_config_file( "" )
 {
     boost::shared_ptr< AudioMemory > audio_memory( new AudioMemory );
 
@@ -159,6 +160,14 @@ SamplePlayer::~SamplePlayer()
 bool
 SamplePlayer::initImpl( CmdLineParser & cmd_parser )
 {
+    // Extract config file name from command line before parsing
+    std::string player_config_file;
+    rcsc::ParamMap system_param_map( "System options" );
+    system_param_map.add()
+        ( "player-config", "", &player_config_file, "specifies player config file." );
+    cmd_parser.parse( system_param_map );
+    M_config_file = player_config_file;
+    
     bool result = PlayerAgent::initImpl( cmd_parser );
 
     rcsc::ParamMap my_params( "Additional options" );
@@ -457,18 +466,36 @@ SamplePlayer::doPreprocess()
     {
         dlog.addText( Logger::TEAM,
         __FILE__": before_kick_off" );
+        
+        // Get formation type based on config file name
         std::vector<Vector2D> KickOffPosition(12);
-        KickOffPosition[1] = Vector2D(-52,0);
-        KickOffPosition[2] = Vector2D(-30,-10);
-        KickOffPosition[3] = Vector2D(-30,10);
-        KickOffPosition[4] = Vector2D(-30,-20);
-        KickOffPosition[5] = Vector2D(-30,20);
-        KickOffPosition[6] = Vector2D(-17,0);
-        KickOffPosition[7] = Vector2D(-15,-15);
-        KickOffPosition[8] = Vector2D(-15,15);
-        KickOffPosition[9] = Vector2D(-11,0);
-        KickOffPosition[10] = Vector2D(-5,-20);
-        KickOffPosition[11] = Vector2D(-5,20);
+        
+        // Check if this is a 4-player configuration
+        if ( M_config_file.find("4players") != std::string::npos )
+        {
+            // 1-2-1 formation for 4 players (1 goalie, 1 defender, 2 midfielders)
+            KickOffPosition[1] = Vector2D(-52,0);    // Goalie
+            KickOffPosition[2] = Vector2D(-30,0);    // Defender (central)
+            KickOffPosition[3] = Vector2D(-17,-10);  // Midfielder (left)
+            KickOffPosition[4] = Vector2D(-17,10);   // Midfielder/Forward (right)
+            // Players 5-11 not used in 4-player games
+        }
+        else
+        {
+            // Default 11v11 formation
+            KickOffPosition[1] = Vector2D(-52,0);
+            KickOffPosition[2] = Vector2D(-30,-10);
+            KickOffPosition[3] = Vector2D(-30,10);
+            KickOffPosition[4] = Vector2D(-30,-20);
+            KickOffPosition[5] = Vector2D(-30,20);
+            KickOffPosition[6] = Vector2D(-17,0);
+            KickOffPosition[7] = Vector2D(-15,-15);
+            KickOffPosition[8] = Vector2D(-15,15);
+            KickOffPosition[9] = Vector2D(-11,0);
+            KickOffPosition[10] = Vector2D(-5,-20);
+            KickOffPosition[11] = Vector2D(-5,20);
+        }
+        
         Vector2D move_point =  KickOffPosition.at( wm.self().unum() );
         Bhv_CustomBeforeKickOff( move_point ).execute( this );
         return true;

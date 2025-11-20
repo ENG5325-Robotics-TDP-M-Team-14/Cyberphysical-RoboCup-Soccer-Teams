@@ -30,6 +30,7 @@
 #include "communication.h"
 
 #include <rcsc/player/player_agent.h>
+#include <string>
 #include <vector>
 
 class SamplePlayer
@@ -37,6 +38,7 @@ class SamplePlayer
 private:
 
     Communication::Ptr M_communication;
+    std::string M_config_file; //!< player config file name
 
 public:
 

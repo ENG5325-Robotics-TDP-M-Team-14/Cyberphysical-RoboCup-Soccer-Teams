@@ -134,10 +134,80 @@ rcsc::Vector2D Bhv_BasicMove::getPosition(const rcsc::WorldModel & wm, int self_
                   ball_step );
 
     std::vector<Vector2D> positions(12);
-    double min_x_rectengle[12]={0,-52,-52,-52,-52,-52,-30,-30,-30,0,0,0};
-    double max_x_rectengle[12]={0,-48,-10,-10,-10,-10,15,15,15,50,50,50};
-    double min_y_rectengle[12]={0,-2,-20,-10,-30,10,-20,-30, 0,-20,-30, 0};
-    double max_y_rectengle[12]={0,+2, 10, 20,-10,30, 20, 0,30, 20, 0, 30};
+    
+    // Detect if this is a 4-player game by checking max teammate uniform number
+    bool is_4player_game = false;
+    int max_teammate_unum = 1;
+    for ( const auto & p : wm.teammates() )
+    {
+        if ( p.unum() > max_teammate_unum )
+        {
+            max_teammate_unum = p.unum();
+        }
+    }
+    if ( self_unum <= 4 && max_teammate_unum <= 4 )
+    {
+        is_4player_game = true;
+    }
+    
+    double min_x_rectengle[12];
+    double max_x_rectengle[12];
+    double min_y_rectengle[12];
+    double max_y_rectengle[12];
+    
+    if ( is_4player_game )
+    {
+        // 1-2-1 formation for 4 players (1 goalie, 1 defender, 2 midfielders/forwards)
+        // Position 0 (not used)
+        min_x_rectengle[0] = 0; max_x_rectengle[0] = 0;
+        min_y_rectengle[0] = 0; max_y_rectengle[0] = 0;
+        // Position 1: Goalie
+        min_x_rectengle[1] = -52; max_x_rectengle[1] = -48;
+        min_y_rectengle[1] = -2; max_y_rectengle[1] = +2;
+        // Position 2: Defender (central, defensive)
+        min_x_rectengle[2] = -35; max_x_rectengle[2] = -20;
+        min_y_rectengle[2] = -10; max_y_rectengle[2] = 10;
+        // Position 3: Midfielder/Forward (left, more offensive)
+        min_x_rectengle[3] = -20; max_x_rectengle[3] = 5;
+        min_y_rectengle[3] = -25; max_y_rectengle[3] = -5;
+        // Position 4: Midfielder/Forward (right, more offensive)
+        min_x_rectengle[4] = -20; max_x_rectengle[4] = 5;
+        min_y_rectengle[4] = 5; max_y_rectengle[4] = 25;
+        // Positions 5-11: Not used in 4-player games
+        for ( int i = 5; i <= 11; ++i )
+        {
+            min_x_rectengle[i] = -52; max_x_rectengle[i] = -48;
+            min_y_rectengle[i] = -2; max_y_rectengle[i] = +2;
+        }
+    }
+    else
+    {
+        // Default 11v11 formation
+        min_x_rectengle[0] = 0; max_x_rectengle[0] = 0;
+        min_y_rectengle[0] = 0; max_y_rectengle[0] = 0;
+        min_x_rectengle[1] = -52; max_x_rectengle[1] = -48;
+        min_y_rectengle[1] = -2; max_y_rectengle[1] = +2;
+        min_x_rectengle[2] = -52; max_x_rectengle[2] = -10;
+        min_y_rectengle[2] = -20; max_y_rectengle[2] = 10;
+        min_x_rectengle[3] = -52; max_x_rectengle[3] = -10;
+        min_y_rectengle[3] = -10; max_y_rectengle[3] = 20;
+        min_x_rectengle[4] = -52; max_x_rectengle[4] = -10;
+        min_y_rectengle[4] = -30; max_y_rectengle[4] = -10;
+        min_x_rectengle[5] = -52; max_x_rectengle[5] = -10;
+        min_y_rectengle[5] = 10; max_y_rectengle[5] = 30;
+        min_x_rectengle[6] = -30; max_x_rectengle[6] = 15;
+        min_y_rectengle[6] = -20; max_y_rectengle[6] = 20;
+        min_x_rectengle[7] = -30; max_x_rectengle[7] = 15;
+        min_y_rectengle[7] = -30; max_y_rectengle[7] = 0;
+        min_x_rectengle[8] = -30; max_x_rectengle[8] = 15;
+        min_y_rectengle[8] = 0; max_y_rectengle[8] = 30;
+        min_x_rectengle[9] = 0; max_x_rectengle[9] = 50;
+        min_y_rectengle[9] = -20; max_y_rectengle[9] = 20;
+        min_x_rectengle[10] = 0; max_x_rectengle[10] = 50;
+        min_y_rectengle[10] = -30; max_y_rectengle[10] = 0;
+        min_x_rectengle[11] = 0; max_x_rectengle[11] = 50;
+        min_y_rectengle[11] = 0; max_y_rectengle[11] = 30;
+    }
 
     for(int i=1; i<=11; i++){
           double xx_rectengle = max_x_rectengle[i] - min_x_rectengle[i];
