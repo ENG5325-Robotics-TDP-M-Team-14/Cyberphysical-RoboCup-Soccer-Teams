@@ -22,19 +22,18 @@ DIR=`dirname $0`
 
 player="${DIR}/sample_player"
 coach="${DIR}/sample_coach"
-teamname="std_base"
+teamname="std_4players"
 host="localhost"
 port=6000
 coach_port=""
 debug_server_host=""
 debug_server_port=""
 
-player_conf="${DIR}/player.conf"
+player_conf="${DIR}/player-4players.conf"
 
 coach_conf="${DIR}/coach.conf"
 team_graphic="--use_team_graphic off"
 
-# *** CHANGED: default number of players from 11 to 4 ***
 number=4
 
 usecoach="true"
