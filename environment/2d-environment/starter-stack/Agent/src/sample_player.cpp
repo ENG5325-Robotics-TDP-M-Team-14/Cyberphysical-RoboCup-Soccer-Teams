@@ -81,6 +81,81 @@
 
 using namespace rcsc;
 
+StrategyConfig
+StrategyConfig::baseline()
+{
+    StrategyConfig config;
+    config.formation_id = FormationId::BASELINE;
+    config.press_threshold = 3;
+    config.shoot_range = 25.0;
+    return config;
+}
+
+StrategyConfig
+StrategyConfig::fromTeamName( const std::string & team )
+{
+    if ( team == "S0_NOISE" )
+    {
+        return StrategyConfig::baseline();
+    }
+
+    if ( team == "S1_DEF_LOCK" )
+    {
+        StrategyConfig config;
+        config.formation_id = FormationId::DEF_121;
+        config.press_threshold = 2;
+        config.shoot_range = 20.0;
+        return config;
+    }
+
+    if ( team == "S2_HIGH_PRESS" )
+    {
+        StrategyConfig config;
+        config.formation_id = FormationId::DEF_121;
+        config.press_threshold = 4;
+        config.shoot_range = 20.0;
+        return config;
+    }
+
+    if ( team == "S3_DIRECT_ATTACK" )
+    {
+        StrategyConfig config;
+        config.formation_id = FormationId::OFF_112;
+        config.press_threshold = 2;
+        config.shoot_range = 30.0;
+        return config;
+    }
+
+    if ( team == "S4_FULL_AGGRO" )
+    {
+        StrategyConfig config;
+        config.formation_id = FormationId::OFF_112;
+        config.press_threshold = 4;
+        config.shoot_range = 30.0;
+        return config;
+    }
+
+    if ( team == "BASIC" )
+    {
+        return StrategyConfig::baseline();
+    }
+
+    return StrategyConfig::baseline();
+}
+
+const StrategyConfig &
+getStrategyConfig( const rcsc::PlayerAgent & agent )
+{
+    const SamplePlayer * sample = dynamic_cast< const SamplePlayer * >( &agent );
+    if ( sample )
+    {
+        return sample->strategyConfig();
+    }
+
+    static StrategyConfig fallback = StrategyConfig::baseline();
+    return fallback;
+}
+
 /*-------------------------------------------------------------------*/
 /*!
 
@@ -88,7 +163,8 @@ using namespace rcsc;
 SamplePlayer::SamplePlayer()
 : PlayerAgent(),
 M_communication(),
-M_config_file( "" )
+M_config_file( "" ),
+M_strategy_config( StrategyConfig::baseline() )
 {
     boost::shared_ptr< AudioMemory > audio_memory( new AudioMemory );
 
@@ -197,6 +273,8 @@ SamplePlayer::initImpl( CmdLineParser & cmd_parser )
         return false;
     }
 
+    M_strategy_config = StrategyConfig::fromTeamName( config().teamName() );
+
     if ( KickTable::instance().read( config().configDir() + "/kick-table" ) )
     {
         std::cerr << "Loaded the kick table: ["
@@ -205,6 +283,12 @@ SamplePlayer::initImpl( CmdLineParser & cmd_parser )
     }
 
     return true;
+}
+
+const StrategyConfig &
+SamplePlayer::strategyConfig() const
+{
+    return M_strategy_config;
 }
 
 /*-------------------------------------------------------------------*/
@@ -654,5 +738,4 @@ SamplePlayer::doHeardPassReceive()
 
     return true;
 }
-
 

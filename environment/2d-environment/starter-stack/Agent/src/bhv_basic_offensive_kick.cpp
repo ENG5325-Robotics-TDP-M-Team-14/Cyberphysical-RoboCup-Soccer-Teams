@@ -36,6 +36,8 @@
 
 #include "bhv_basic_offensive_kick.h"
 
+#include "sample_player.h"
+
 #include <rcsc/action/body_hold_ball.h>
 #include <rcsc/action/body_smart_kick.h>
 #include <rcsc/action/body_stop_ball.h>
@@ -102,10 +104,11 @@ Bhv_BasicOffensiveKick::execute( PlayerAgent * agent )
 }
 
 bool Bhv_BasicOffensiveKick::shoot( rcsc::PlayerAgent * agent ){
+    const StrategyConfig & strategy = getStrategyConfig( *agent );
 	const WorldModel & wm = agent->world();
 	Vector2D ball_pos = wm.ball().pos();
 	Vector2D center_goal = Vector2D(52.5,0);
-	if(ball_pos.dist(center_goal) > 25)
+	if(ball_pos.dist(center_goal) > strategy.shoot_range)
             return false;
 	Vector2D left_goal = Vector2D(52.5,6);
 	Vector2D right_goal = Vector2D(52.5,-6);
