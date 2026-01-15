@@ -738,4 +738,3 @@ SamplePlayer::doHeardPassReceive()
 
     return true;
 }
-
