@@ -37,6 +37,7 @@
 #include "bhv_basic_move.h"
 
 #include "bhv_basic_tackle.h"
+#include "sample_player.h"
 
 #include <rcsc/action/basic_actions.h>
 #include <rcsc/action/body_go_to_point.h>
@@ -64,6 +65,8 @@ Bhv_BasicMove::execute( PlayerAgent * agent )
     dlog.addText( Logger::TEAM,
                   __FILE__": Bhv_BasicMove" );
 
+    const StrategyConfig & strategy = getStrategyConfig( *agent );
+
     //-----------------------------------------------
     // tackle
     if ( Bhv_BasicTackle( 0.8, 80.0 ).execute( agent ) )
@@ -79,9 +82,9 @@ Bhv_BasicMove::execute( PlayerAgent * agent )
     const int opp_min = wm.interceptTable()->opponentReachCycle();
 
     if ( ! wm.existKickableTeammate()
-         && ( self_min <= 3
+         && ( self_min <= strategy.press_threshold
               || ( self_min <= mate_min
-                   && self_min < opp_min + 3 )
+                   && self_min < opp_min + strategy.press_threshold )
               )
          )
     {
@@ -92,7 +95,7 @@ Bhv_BasicMove::execute( PlayerAgent * agent )
         return true;
     }
 
-    const Vector2D target_point = getPosition( wm, wm.self().unum() );
+    const Vector2D target_point = getPosition( wm, wm.self().unum(), strategy );
     const double dash_power = get_normal_dash_power( wm );
 
     double dist_thr = wm.ball().distFromSelf() * 0.1;
@@ -116,7 +119,7 @@ Bhv_BasicMove::execute( PlayerAgent * agent )
     return true;
 }
 
-rcsc::Vector2D Bhv_BasicMove::getPosition(const rcsc::WorldModel & wm, int self_unum){
+rcsc::Vector2D Bhv_BasicMove::getPosition(const rcsc::WorldModel & wm, int self_unum, const StrategyConfig & config){
     int ball_step = 0;
     if ( wm.gameMode().type() == GameMode::PlayOn
          || wm.gameMode().type() == GameMode::GoalKick_ )
@@ -178,6 +181,27 @@ rcsc::Vector2D Bhv_BasicMove::getPosition(const rcsc::WorldModel & wm, int self_
         {
             min_x_rectengle[i] = -52; max_x_rectengle[i] = -48;
             min_y_rectengle[i] = -2; max_y_rectengle[i] = +2;
+        }
+
+        if ( config.formation_id == FormationId::DEF_121 )
+        {
+            // Deeper, more compact defensive shape
+            min_x_rectengle[2] = -42; max_x_rectengle[2] = -26;
+            min_y_rectengle[2] = -8; max_y_rectengle[2] = 8;
+            min_x_rectengle[3] = -28; max_x_rectengle[3] = -8;
+            min_y_rectengle[3] = -22; max_y_rectengle[3] = -6;
+            min_x_rectengle[4] = -28; max_x_rectengle[4] = -8;
+            min_y_rectengle[4] = 6; max_y_rectengle[4] = 22;
+        }
+        else if ( config.formation_id == FormationId::OFF_112 )
+        {
+            // Higher line with two forwards
+            min_x_rectengle[2] = -30; max_x_rectengle[2] = -12;
+            min_y_rectengle[2] = -8; max_y_rectengle[2] = 8;
+            min_x_rectengle[3] = -5; max_x_rectengle[3] = 20;
+            min_y_rectengle[3] = -30; max_y_rectengle[3] = -5;
+            min_x_rectengle[4] = -5; max_x_rectengle[4] = 20;
+            min_y_rectengle[4] = 5; max_y_rectengle[4] = 30;
         }
     }
     else
@@ -309,4 +333,3 @@ double Bhv_BasicMove::get_normal_dash_power( const WorldModel & wm )
 
     return dash_power;
 }
-

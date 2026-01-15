@@ -33,12 +33,30 @@
 #include <string>
 #include <vector>
 
+enum class FormationId {
+    BASELINE,
+    DEF_121,
+    OFF_112
+};
+
+struct StrategyConfig {
+    FormationId formation_id;
+    int press_threshold;
+    double shoot_range;
+
+    static StrategyConfig baseline();
+    static StrategyConfig fromTeamName( const std::string & team );
+};
+
+const StrategyConfig & getStrategyConfig( const rcsc::PlayerAgent & agent );
+
 class SamplePlayer
     : public rcsc::PlayerAgent {
 private:
 
     Communication::Ptr M_communication;
     std::string M_config_file; //!< player config file name
+    StrategyConfig M_strategy_config;
 
 public:
 
@@ -84,6 +102,7 @@ private:
     bool doHeardPassReceive();
 
 public:
+    const StrategyConfig & strategyConfig() const;
 };
 
 #endif

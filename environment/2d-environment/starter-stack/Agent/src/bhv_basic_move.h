@@ -31,6 +31,8 @@
 #include <rcsc/player/soccer_action.h>
 #include <rcsc/player/player_agent.h>
 
+struct StrategyConfig;
+
 class Bhv_BasicMove
     : public rcsc::SoccerBehavior {
 public:
@@ -38,7 +40,7 @@ public:
       { }
 
     bool execute( rcsc::PlayerAgent * agent );
-    rcsc::Vector2D getPosition(const rcsc::WorldModel & wm, int unum);
+    rcsc::Vector2D getPosition(const rcsc::WorldModel & wm, int unum, const StrategyConfig & config);
     double get_normal_dash_power( const rcsc::WorldModel & wm );
 
 

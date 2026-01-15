@@ -37,6 +37,7 @@
 #include "bhv_set_play.h"
 
 #include "bhv_basic_move.h"
+#include "sample_player.h"
 
 #include "bhv_basic_offensive_kick.h"
 #include "bhv_goalie_free_kick.h"
@@ -107,7 +108,8 @@ Bhv_SetPlay::doMove( PlayerAgent * agent )
 {
     const WorldModel & wm = agent->world();
 
-    Vector2D target_point = Bhv_BasicMove().getPosition( wm, wm.self().unum() );
+    const StrategyConfig & strategy = getStrategyConfig( *agent );
+    Vector2D target_point = Bhv_BasicMove().getPosition( wm, wm.self().unum(), strategy );
     if(target_point.x > wm.offsideLineX())
         target_point.x = wm.offsideLineX() - 1.0;
 
@@ -323,7 +325,8 @@ Bhv_SetPlay::get_set_play_dash_power( const PlayerAgent * agent )
 
     if ( ! wm.gameMode().isOurSetPlay( wm.ourSide() ) )
     {
-        Vector2D target_point = Bhv_BasicMove().getPosition( wm, wm.self().unum() );
+        const StrategyConfig & strategy = getStrategyConfig( *agent );
+        Vector2D target_point = Bhv_BasicMove().getPosition( wm, wm.self().unum(), strategy );
         if ( target_point.x > wm.self().pos().x )
         {
             if ( wm.ball().pos().x < -30.0
@@ -537,7 +540,8 @@ Bhv_SetPlay::is_kicker( const PlayerAgent * agent )
     {
         if ( unum == wm.ourGoalieUnum() ) continue;
 
-        Vector2D home_pos = Bhv_BasicMove().getPosition( wm, unum );
+        const StrategyConfig & strategy = getStrategyConfig( *agent );
+        Vector2D home_pos = Bhv_BasicMove().getPosition( wm, unum, strategy );
         if ( ! home_pos.isValid() ) continue;
 
         double d2 = home_pos.dist2( wm.ball().pos() );
