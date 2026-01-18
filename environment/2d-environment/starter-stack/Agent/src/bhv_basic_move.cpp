@@ -51,6 +51,7 @@
 #include <rcsc/common/server_param.h>
 
 #include <vector>
+#include <iostream>
 #include <cstdio>
 
 using namespace rcsc;
@@ -66,6 +67,15 @@ Bhv_BasicMove::execute( PlayerAgent * agent )
                   __FILE__": Bhv_BasicMove" );
 
     const StrategyConfig & strategy = getStrategyConfig( *agent );
+    static bool s_logged = false;
+    if ( ! s_logged )
+    {
+        s_logged = true;
+        std::cerr << "StrategyConfig team=" << agent->world().teamName()
+                  << " unum=" << agent->world().self().unum()
+                  << " press_threshold=" << strategy.press_threshold
+                  << std::endl;
+    }
 
     //-----------------------------------------------
     // tackle

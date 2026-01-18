@@ -37,7 +37,16 @@ The baseline agent is in StarterAgent2D:
 - 4v4 config: `environment/2d-environment/starter-stack/Agent/src/player-4players.conf`
 - 4v4 launch script: `environment/2d-environment/starter-stack/Agent/src/start-4players.sh`
 
+Canonical strategy team names (<= 12 chars):
+- `BASIC` (baseline)
+- `NOISE` (baseline, control)
+- `DEFLOCK` (DEF_121, low press, conservative shoot)
+- `HIPRESS` (DEF_121, high press, conservative shoot)
+- `DIRECT` (OFF_112, low press, aggressive shoot)
+- `AGGRO` (OFF_112, high press, aggressive shoot)
+
 ## Notes
 
 - The 2D stack is vendored third-party code; keep the original licenses in place.
 - The imitation learning project is research-oriented and currently separate from the agent runtime.
+- Team names must be <= 12 chars due to RCSS2D protocol limits.
