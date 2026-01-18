@@ -94,12 +94,12 @@ StrategyConfig::baseline()
 StrategyConfig
 StrategyConfig::fromTeamName( const std::string & team )
 {
-    if ( team == "S0_NOISE" )
+    if ( team == "NOISE" )
     {
         return StrategyConfig::baseline();
     }
 
-    if ( team == "S1_DEF_LOCK" )
+    if ( team == "DEFLOCK" )
     {
         StrategyConfig config;
         config.formation_id = FormationId::DEF_121;
@@ -108,7 +108,7 @@ StrategyConfig::fromTeamName( const std::string & team )
         return config;
     }
 
-    if ( team == "S2_HIGH_PRESS" )
+    if ( team == "HIPRESS" )
     {
         StrategyConfig config;
         config.formation_id = FormationId::DEF_121;
@@ -117,7 +117,7 @@ StrategyConfig::fromTeamName( const std::string & team )
         return config;
     }
 
-    if ( team == "S3_DIRECT_ATTACK" )
+    if ( team == "DIRECT" )
     {
         StrategyConfig config;
         config.formation_id = FormationId::OFF_112;
@@ -126,7 +126,7 @@ StrategyConfig::fromTeamName( const std::string & team )
         return config;
     }
 
-    if ( team == "S4_FULL_AGGRO" )
+    if ( team == "AGGRO" )
     {
         StrategyConfig config;
         config.formation_id = FormationId::OFF_112;
