@@ -8,7 +8,7 @@ RCSSSERVER_BIN="${ENV2D_DIR}/rcssserver-19.0.0/build/rcssserver"
 RESULTS_CSV="${SCRIPT_DIR}/strategy_benchmark_results.csv"
 LOG_DIR="${SCRIPT_DIR}/strategy_benchmark_log"
 
-MATCH_TIMEOUT_SECONDS="${MATCH_TIMEOUT_SECONDS:-900}"
+MATCH_TIMEOUT_SECONDS="${MATCH_TIMEOUT_SECONDS:-300}"
 START_DELAY="${START_DELAY:-2}"
 SIDE_DELAY="${SIDE_DELAY:-2}"
 
@@ -25,6 +25,7 @@ cleanup_match() {
 
 cleanup() {
   cleanup_match
+
 }
 
 trap cleanup EXIT INT TERM
@@ -51,15 +52,24 @@ run_match() {
   local pair_id="$1"
   local left_team="$2"
   local right_team="$3"
+  local side_idx="${4:-}"
+  local rep_idx="${5:-}"
+  local meta=""
+  if [[ -n "${side_idx}" && -n "${rep_idx}" ]]; then
+    meta=" side=${side_idx} rep=${rep_idx}"
+  fi
   local log_file
   log_file="$(mktemp)"
 
   cleanup_match
 
+  echo "START ${pair_id}: ${left_team} (L) vs ${right_team} (R)${meta} @ $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
   "${RCSSSERVER_BIN}" \
     server::auto_mode=on \
     server::synch_mode=off \
     server::slow_down_factor=1 \
+    server::half_time=150 \
     server::game_log_dir="${LOG_DIR}" \
     server::text_log_dir="${LOG_DIR}" \
     > "${log_file}" 2>&1 &
@@ -98,6 +108,7 @@ run_match() {
   local timestamp
   timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   echo "${pair_id},${left_team},${right_team},${left_goals},${right_goals},${timestamp}" >> "${RESULTS_CSV}"
+  echo "END   ${pair_id}: ${left_team} ${left_goals} - ${right_goals} ${right_team}${meta} @ ${timestamp}"
 
   rm -f "${log_file}"
 }
@@ -119,9 +130,9 @@ for pair in "${pairs[@]}"; do
   for side in 0 1; do
     for rep in 1 2 3 4 5; do
       if [[ "${side}" -eq 0 ]]; then
-        run_match "${pair_id}" "${left}" "${right}"
+        run_match "${pair_id}" "${left}" "${right}" "${side}" "${rep}"
       else
-        run_match "${pair_id}" "${right}" "${left}"
+        run_match "${pair_id}" "${right}" "${left}" "${side}" "${rep}"
       fi
     done
   done
