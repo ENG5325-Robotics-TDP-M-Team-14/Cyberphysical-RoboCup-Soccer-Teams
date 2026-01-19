@@ -6,8 +6,9 @@ ENV2D_DIR=$(cd "${SCRIPT_DIR}/.." && pwd)
 AGENT_DIR="${SCRIPT_DIR}/Agent/src"
 RCSSSERVER_BIN="${ENV2D_DIR}/rcssserver-19.0.0/build/rcssserver"
 RESULTS_CSV="${SCRIPT_DIR}/strategy_benchmark_results.csv"
+LOG_DIR="${SCRIPT_DIR}/strategy_benchmark_log"
 
-MATCH_SECONDS="${MATCH_SECONDS:-420}"
+MATCH_TIMEOUT_SECONDS="${MATCH_TIMEOUT_SECONDS:-900}"
 START_DELAY="${START_DELAY:-2}"
 SIDE_DELAY="${SIDE_DELAY:-2}"
 
@@ -42,6 +43,10 @@ if [[ ! -f "${RESULTS_CSV}" ]]; then
   echo "pair_id,left_team,right_team,left_goals,right_goals,timestamp" > "${RESULTS_CSV}"
 fi
 
+if [[ ! -d "${LOG_DIR}" ]]; then
+  mkdir -p "${LOG_DIR}"
+fi
+
 run_match() {
   local pair_id="$1"
   local left_team="$2"
@@ -51,7 +56,13 @@ run_match() {
 
   cleanup_match
 
-  "${RCSSSERVER_BIN}" server::auto_mode=on > "${log_file}" 2>&1 &
+  "${RCSSSERVER_BIN}" \
+    server::auto_mode=on \
+    server::synch_mode=off \
+    server::slow_down_factor=1 \
+    server::game_log_dir="${LOG_DIR}" \
+    server::text_log_dir="${LOG_DIR}" \
+    > "${log_file}" 2>&1 &
   SERVER_PID=$!
 
   sleep "${START_DELAY}"
@@ -59,8 +70,16 @@ run_match() {
   sleep "${SIDE_DELAY}"
   "${AGENT_DIR}/start-4players.sh" -t "${right_team}" >/dev/null 2>&1
 
-  sleep "${MATCH_SECONDS}"
-  kill -INT "${SERVER_PID}" >/dev/null 2>&1 || true
+  local start_ts
+  start_ts="$(date +%s)"
+  while kill -0 "${SERVER_PID}" >/dev/null 2>&1; do
+    if (( $(date +%s) - start_ts > MATCH_TIMEOUT_SECONDS )); then
+      echo "Match timeout after ${MATCH_TIMEOUT_SECONDS}s, forcing shutdown" >&2
+      kill -INT "${SERVER_PID}" >/dev/null 2>&1 || true
+      break
+    fi
+    sleep 1
+  done
   wait "${SERVER_PID}" >/dev/null 2>&1 || true
   SERVER_PID=""
 
