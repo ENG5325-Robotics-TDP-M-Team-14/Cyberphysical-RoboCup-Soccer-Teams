@@ -51,7 +51,7 @@ run_match() {
 
   cleanup_match
 
-  "${RCSSSERVER_BIN}" > "${log_file}" 2>&1 &
+  "${RCSSSERVER_BIN}" server::auto_mode=on > "${log_file}" 2>&1 &
   SERVER_PID=$!
 
   sleep "${START_DELAY}"
