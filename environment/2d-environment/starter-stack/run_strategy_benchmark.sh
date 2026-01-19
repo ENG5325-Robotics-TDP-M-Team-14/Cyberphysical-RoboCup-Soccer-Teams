@@ -7,7 +7,7 @@ AGENT_DIR="${SCRIPT_DIR}/Agent/src"
 RCSSSERVER_BIN="${ENV2D_DIR}/rcssserver-19.0.0/build/rcssserver"
 RESULTS_CSV="${SCRIPT_DIR}/strategy_benchmark_results.csv"
 
-MATCH_SECONDS="${MATCH_SECONDS:-90}"
+MATCH_SECONDS="${MATCH_SECONDS:-420}"
 START_DELAY="${START_DELAY:-2}"
 SIDE_DELAY="${SIDE_DELAY:-2}"
 
