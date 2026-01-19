@@ -8,7 +8,7 @@ echo " Copyright 2007-2012.  Hidehisa Akiyama and Hiroki Shimora"
 echo " All rights reserved."
 echo "******************************************************************"
 
-LIBPATH=/Users/nathan.sidib/Code/Robotics-TDP-M-ENG5325-Team-14/Cyberphysical-RoboCup-Soccer-Teams/environment/2d-environment/starter-stack/Agent/Lib//lib
+LIBPATH=/Users/nathan.sidib/Code/ENG5325-Robotics-TDP-M-Team-14/Cyberphysical-RoboCup-Soccer-Teams/environment/2d-environment/starter-stack/Agent/Lib//lib
 if [ x"$LIBPATH" != x ]; then
   if [ x"$LD_LIBRARY_PATH" = x ]; then
     LD_LIBRARY_PATH=$LIBPATH
