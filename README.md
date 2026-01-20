@@ -13,19 +13,71 @@ Team 14's workspace for the Cyberphysical RoboCup Soccer Teams project. This rep
 
 From the 2D stack, you can run a 4v4 match where both teams use the current "basic" agent.
 
+Build the agent (once, or after changes):
+- `./makeAgent.sh` from `environment/2d-environment/starter-stack`
+
 1. Start the server:
    - `./rcssserver` from `environment/2d-environment/rcssserver-19.0.0/build`
 2. Start the monitor:
    - `./rcssmonitor` from `environment/2d-environment/rcssmonitor-19.0.1/build`
 3. Start the left team:
-   - `./start-4players.sh -t LEFT` from `environment/2d-environment/starter-stack/Agent/src`
+   - `./start-4players.sh -t BASIC` from `environment/2d-environment/starter-stack/Agent/src`
 4. Start the right team:
-   - `./start-4players.sh -t RIGHT` from `environment/2d-environment/starter-stack/Agent/src`
+   - `./start-4players.sh -t BASIC` from `environment/2d-environment/starter-stack/Agent/src`
 
 Stop a match with Ctrl+C or:
 - `killall sample_player`
 - `killall sample_coach`
 - `killall rcssserver`
+
+## Strategy switching (team name -> config)
+
+Strategy is selected solely by the team name passed via `-t`. Behaviors do not parse names directly; they read a `StrategyConfig` created once in `sample_player.cpp`.
+
+Strategy parameters in `StrategyConfig`:
+- `formation_id`: `DEF_121` or `OFF_112` (baseline uses the existing formation path).
+- `press_threshold`: integer (low/high press).
+- `shoot_range`: distance threshold (conservative/aggressive).
+
+Where these are wired:
+- Strategy mapping: `environment/2d-environment/starter-stack/Agent/src/sample_player.cpp`
+- Formation hook: `environment/2d-environment/starter-stack/Agent/src/bhv_basic_move.cpp`
+- Press threshold hook: `environment/2d-environment/starter-stack/Agent/src/bhv_basic_move.cpp`
+- Shooting range hook: `environment/2d-environment/starter-stack/Agent/src/bhv_basic_offensive_kick.cpp`
+
+Canonical strategy team names (<= 12 chars):
+- `BASIC` (baseline)
+- `NOISE` (baseline, control)
+- `DEFLOCK` (DEF_121, low press, conservative shoot)
+- `HIPRESS` (DEF_121, high press, conservative shoot)
+- `DIRECT` (OFF_112, low press, aggressive shoot)
+- `AGGRO` (OFF_112, high press, aggressive shoot)
+
+## Strategy benchmark (DoE runner)
+
+Script: `environment/2d-environment/starter-stack/run_strategy_benchmark.sh`
+
+Design:
+- Pairs: BASIC vs NOISE/DEFLOCK/HIPRESS/DIRECT/AGGRO
+- Sides: swap left/right
+- Replicates: 5 per side
+- Total matches: 50
+
+Output:
+- CSV: `environment/2d-environment/starter-stack/strategy_benchmark_results.csv`
+  - Columns: `pair_id,left_team,right_team,left_goals,right_goals,timestamp`
+- Logs: `environment/2d-environment/starter-stack/strategy_benchmark_log/` (`.rcg`, `.rcl`)
+
+Defaults in the runner:
+- Headless server (no monitor required)
+- `server::auto_mode=on`
+- `server::half_time=150` (~3000 cycles total, ~5 min sim time)
+- Hard timeout: 300s wall-clock (set `MATCH_TIMEOUT_SECONDS=...` to override)
+
+Example run (from `environment/2d-environment/starter-stack`):
+```bash
+./run_strategy_benchmark.sh
+```
 
 ## Where to change behavior (strategy)
 
@@ -36,14 +88,6 @@ The baseline agent is in StarterAgent2D:
 - Goalie behavior: `environment/2d-environment/starter-stack/Agent/src/bhv_goalie_basic_move.cpp`
 - 4v4 config: `environment/2d-environment/starter-stack/Agent/src/player-4players.conf`
 - 4v4 launch script: `environment/2d-environment/starter-stack/Agent/src/start-4players.sh`
-
-Canonical strategy team names (<= 12 chars):
-- `BASIC` (baseline)
-- `NOISE` (baseline, control)
-- `DEFLOCK` (DEF_121, low press, conservative shoot)
-- `HIPRESS` (DEF_121, high press, conservative shoot)
-- `DIRECT` (OFF_112, low press, aggressive shoot)
-- `AGGRO` (OFF_112, high press, aggressive shoot)
 
 ## Notes
 
