@@ -6,7 +6,7 @@ Team 14's workspace for the Cyberphysical RoboCup Soccer Teams project. This rep
 
 - `environment/2d-environment/`: Full 2D stack (rcssserver, rcssmonitor, StarterAgent2D).
 - `behaviour_algorithm/rcss2d-opp-imitation-main/`: Python/Poetry pipeline for imitation learning (not wired into the agent yet).
-- `environment/3d-environment/`: Placeholder (empty currently).
+- `environment/3d-environment/`: FCP 3D codebase (`FCPCodebase`) plus SimSpark server.
 - `model/`: Placeholder (empty currently).
 
 ## Quickstart (2D, 4v4)
@@ -52,6 +52,16 @@ Canonical strategy team names (<= 12 chars):
 - `HIPRESS` (DEF_121, high press, conservative shoot)
 - `DIRECT` (OFF_112, low press, aggressive shoot)
 - `AGGRO` (OFF_112, high press, aggressive shoot)
+
+## 3D strategy levers (2D -> 3D mapping)
+
+3D currently hardcodes these choices in the decision layer. The table below lists the closest knobs for DoE-style strategy variants.
+
+| 2D lever | 3D equivalent knob(s) | Where in 3D | What it controls |
+| --- | --- | --- | --- |
+| `shoot_range` | Kick feasibility gates: `ball_x_limits`, `ball_y_limits`, `ang_diff < 5`, `dist_to_final_target < 0.03`, `t - w.ball_abs_pos_last_update < 100`, `t - self.reset_time > 500` | `environment/3d-environment/FCPCodebase/behaviors/custom/Basic_Kick/Basic_Kick.py` | When a kick is allowed based on ball window, alignment, recency, and gait timing (not distance-to-goal). |
+| `press_threshold` | Engage/defend margin: `self.min_opponent_ball_dist + 0.5 < self.min_teammate_ball_dist`; slow-ball anchor: `w.get_predicted_ball_pos(0.5)` | `environment/3d-environment/FCPCodebase/agent/Agent.py`, `environment/3d-environment/FCPCodebase/world/World.py` | Who presses the ball and when defenders step in (distance-to-ball comparison using a predicted slow ball). |
+| `formation_id` | Home positions: `self.init_pos = (...)`; ball-based x-shift: `new_x` with possession bump `+3.5` | `environment/3d-environment/FCPCodebase/agent/Agent.py` | Baseline formation layout and how it slides with ball position/possession. |
 
 ## Strategy benchmark (DoE runner)
 
