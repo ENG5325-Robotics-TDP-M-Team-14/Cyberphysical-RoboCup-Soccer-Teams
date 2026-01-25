@@ -221,6 +221,7 @@ public class ServerComm implements DrawCommListener
 		}
 		logfileOutput.write(msg);
 		logfileOutput.write("\n");
+		logfileOutput.flush();
 	}
 
 	public ServerComm(WorldModel world, Mode viewerMode)
