@@ -85,7 +85,7 @@ hdr = struct.pack("!I", len(data))
 with socket.create_connection((host, port), timeout=2) as s:
     s.sendall(hdr + data)
 PY
-  echo "[SMOKE] trainer_sent=${name} raw=${payload}"
+  echo "[BENCH] trainer_sent=${name} raw=${payload}"
 }
 
 get_match_score() {
@@ -145,8 +145,13 @@ PY
 
 agent_pids=()
 launcher_pid=""
+cleanup_done=0
 
 cleanup() {
+  if [ "$cleanup_done" -eq 1 ]; then
+    return
+  fi
+  cleanup_done=1
   set +e
   for pid in "${agent_pids[@]}"; do
     terminate_pid "$pid"
@@ -161,7 +166,8 @@ cleanup() {
   kill_pid "$launcher_pid"
 }
 
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
+trap 'cleanup; exit 130' INT TERM
 
 mkdir -p "${log_dir}"
 if [[ ! -f "${results_csv}" ]]; then
@@ -172,55 +178,67 @@ start_cmd "$launcher"
 launcher_pid=$last_pid
 
 if ! wait_for_port 3200; then
-  echo "[SMOKE] warning: monitor port 3200 not detected; proceeding"
+  echo "[BENCH] warning: monitor port 3200 not detected; proceeding"
 else
-  echo "[SMOKE] monitor port 3200 open"
+  echo "[BENCH] monitor port 3200 open"
 fi
 
-strategies=(BASIC NOISE DEFLOCK HIPRESS DIRECT AGGRO)
-match_total=$(( ${#strategies[@]} * ${#strategies[@]} ))
+base_left="BASIC"
+opponents=(NOISE DEFLOCK HIPRESS DIRECT AGGRO)
+match_reps=5
+match_total=$(( ${#opponents[@]} * 2 * match_reps ))
 match_index=0
 
-for left in "${strategies[@]}"; do
-  for right in "${strategies[@]}"; do
-    match_index=$((match_index + 1))
-    pair_id="${left}_${right}"
-    echo "[MATCH START] pair_id=${pair_id} index=${match_index}/${match_total}"
+for opponent in "${opponents[@]}"; do
+  for side in 0 1; do
+    for rep in $(seq 1 "${match_reps}"); do
+      if [[ "${side}" -eq 0 ]]; then
+        left="${base_left}"
+        right="${opponent}"
+      else
+        left="${opponent}"
+        right="${base_left}"
+      fi
 
-    agent_pids=()
-    for u in 1 2 3 4; do
-      start_cmd bash -c "cd \"${fcp_dir}\" && source \"${venv_activate}\" && python Run_Player.py -t ${left} -u ${u} --strategy ${left}"
-      agent_pids+=("$last_pid")
-      sleep 0.3
-    done
-    sleep 0.5
-    for u in 1 2 3 4; do
-      start_cmd bash -c "cd \"${fcp_dir}\" && source \"${venv_activate}\" && python Run_Player.py -t ${right} -u ${u} --strategy ${right}"
-      agent_pids+=("$last_pid")
-      sleep 0.3
-    done
+      match_index=$((match_index + 1))
+      pair_id="${left}_${right}"
+      echo "[MATCH START] pair_id=${pair_id} index=${match_index}/${match_total}"
 
-    sleep 1
-    send_trainer_cmd "drop_ball" "(dropBall)"
+      agent_pids=()
+      for u in 1 2 3 4; do
+        start_cmd bash -c "cd \"${fcp_dir}\" && source \"${venv_activate}\" && python Run_Player.py -t ${left} -u ${u} --strategy ${left}"
+        agent_pids+=("$last_pid")
+        sleep 0.3
+      done
+      sleep 0.5
+      for u in 1 2 3 4; do
+        start_cmd bash -c "cd \"${fcp_dir}\" && source \"${venv_activate}\" && python Run_Player.py -t ${right} -u ${u} --strategy ${right}"
+        agent_pids+=("$last_pid")
+        sleep 0.3
+      done
 
-    sleep 300
-    score_line="$(get_match_score || true)"
-    if [[ -z "${score_line}" ]]; then
-      score_line="0,0"
-    fi
-    left_goals="${score_line%,*}"
-    right_goals="${score_line#*,}"
-    timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-    echo "${pair_id},${left},${right},${left_goals},${right_goals},${timestamp}" >> "${results_csv}"
-    echo "[MATCH END] pair_id=${pair_id}"
+      sleep 1
+      send_trainer_cmd "drop_ball" "(dropBall)"
 
-    for pid in "${agent_pids[@]}"; do
-      terminate_pid "$pid"
+      sleep 300
+      score_line="$(get_match_score || true)"
+      if [[ -z "${score_line}" ]]; then
+        score_line="0,0"
+      fi
+      left_goals="${score_line%,*}"
+      right_goals="${score_line#*,}"
+      timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+      echo "${pair_id},${left},${right},${left_goals},${right_goals},${timestamp}" >> "${results_csv}"
+      echo "[MATCH END] pair_id=${pair_id}"
+
+      for pid in "${agent_pids[@]}"; do
+        terminate_pid "$pid"
+      done
+      sleep 1
+      for pid in "${agent_pids[@]}"; do
+        kill_pid "$pid"
+      done
+      agent_pids=()
     done
-    sleep 1
-    for pid in "${agent_pids[@]}"; do
-      kill_pid "$pid"
-    done
-    agent_pids=()
   done
 done
