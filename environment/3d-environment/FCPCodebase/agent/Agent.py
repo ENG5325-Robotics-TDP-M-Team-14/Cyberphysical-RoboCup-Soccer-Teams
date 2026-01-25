@@ -30,6 +30,9 @@ class Agent(Base_Agent):
         self.kick_guard_max_speed = kick_guard_max_speed
         self.safe_kick_enabled = safe_kick_enabled
         self.safe_kick_cmd = None
+        self.last_safe_kick_ms = -1000000
+        self.safe_kick_power = 50.0
+        self.safe_kick_angle_deg = 5.0
 
         self.init_pos = list(get_home_pos(strategy_formation_id, unum))
         print(
@@ -42,7 +45,8 @@ class Agent(Base_Agent):
         )
         print(
             f"[SAFE_KICK] enabled={1 if self.safe_kick_enabled else 0} "
-            f"mode={'proxy' if self.safe_kick_enabled else 'physical'}"
+            f"mode={'kick_effector' if self.safe_kick_enabled else 'physical'} "
+            f"power={self.safe_kick_power} angle_deg={self.safe_kick_angle_deg}"
         )
 
 
@@ -135,6 +139,8 @@ class Agent(Base_Agent):
         self.kick_direction = self.kick_direction if kick_direction is None else kick_direction
         self.kick_distance = self.kick_distance if kick_distance is None else kick_distance
 
+        if self.safe_kick_enabled:
+            return self.behavior.execute("Basic_Kick", self.kick_direction, abort)
         if self.fat_proxy_cmd is None: # normal behavior
             return self.behavior.execute("Basic_Kick", self.kick_direction, abort) # Basic_Kick has no kick distance control
         else: # fat proxy behavior
@@ -275,12 +281,32 @@ class Agent(Base_Agent):
         my_head_pos_2d = r.loc_head_position[:2]
         current_speed = (r.loc_head_velocity[0] ** 2 + r.loc_head_velocity[1] ** 2) ** 0.5
 
+        now_ms = w.time_local_ms
+        if now_ms - self.last_safe_kick_ms < 800:
+            return False
+
         if np.linalg.norm(ball_2d - my_head_pos_2d) < 0.25 and current_speed <= self.kick_guard_max_speed:
-            rel_dir = M.normalize_deg(self.kick_direction - r.imu_torso_orientation)
-            self.safe_kick_cmd = f"(proxy kick 10 {rel_dir:.2f} 20)".encode()
-            return True
+            power, kick_angle_deg = self.clamp_kick_params(
+                self.safe_kick_power,
+                self.safe_kick_angle_deg,
+            )
+            if self.safe_kick_cmd is None:
+                cmd_str = f"(kick {power:.1f} {kick_angle_deg:.1f})"
+                self.safe_kick_cmd = cmd_str.encode()
+                self.last_safe_kick_ms = now_ms
+                print(
+                    f"[SAFE_KICK_CMD] Team={self.world.team_name} Uniform={r.unum} "
+                    f"power={power:.1f} angle={kick_angle_deg:.1f} cmd=\"{cmd_str}\""
+                )
+                return True
 
         return False
+
+
+    def clamp_kick_params(self, power: float, kick_angle_deg: float) -> tuple[float, float]:
+        power = max(0.0, min(100.0, power))
+        kick_angle_deg = max(0.0, min(50.0, kick_angle_deg))
+        return power, kick_angle_deg
 
 
     def fat_proxy_kick(self):

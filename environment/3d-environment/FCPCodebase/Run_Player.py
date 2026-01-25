@@ -55,7 +55,7 @@ if a.D: # debug mode
             strategy_config.formation_id,
             press_margin,
             goal_shot_dist_thresh_m,
-            safe_kick_enabled,
+            safe_kick_enabled=safe_kick_enabled,
         )
 else:
     if a.P:
@@ -74,7 +74,7 @@ else:
             strategy_config.formation_id,
             press_margin,
             goal_shot_dist_thresh_m,
-            safe_kick_enabled,
+            safe_kick_enabled=safe_kick_enabled,
         )
 
 player.strategy_config = strategy_config

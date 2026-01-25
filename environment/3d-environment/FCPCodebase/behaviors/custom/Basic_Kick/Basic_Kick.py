@@ -40,6 +40,9 @@ class Basic_Kick():
         if reset:
             self.phase = 0
             self.reset_time = t
+            self.kick_diag_count = 0
+            self.kick_diag_last_ms = 0
+            self.kick_diag_started = False
 
         if self.phase == 0: 
             biased_dir = M.normalize_deg(direction + self.bias_dir) # add bias to rectify direction
@@ -50,6 +53,16 @@ class Basic_Kick():
             
             max_speed = getattr(self.behavior.base_agent, "kick_guard_max_speed", 0.05)
             current_speed = (r.loc_head_velocity[0] ** 2 + r.loc_head_velocity[1] ** 2) ** 0.5
+            stability_ok = True
+            if r.type == 1:
+                max_torso_tilt_deg = 7.0
+                max_gyro_deg_s = 30.0
+                if abs(r.imu_torso_pitch) > max_torso_tilt_deg or abs(r.imu_torso_roll) > max_torso_tilt_deg:
+                    stability_ok = False
+                else:
+                    gyro_norm = (r.gyro[0] ** 2 + r.gyro[1] ** 2 + r.gyro[2] ** 2) ** 0.5
+                    if gyro_norm > max_gyro_deg_s:
+                        stability_ok = False
             safe_kick_enabled = getattr(self.behavior.base_agent, "safe_kick_enabled", False)
             ready_to_kick = (
                 w.ball_last_seen > t - w.VISUALSTEP_MS and ang_diff < 5 and       # ball is visible & aligned
@@ -59,6 +72,7 @@ class Basic_Kick():
                 dist_to_final_target < 0.03 and                                   # if absolute ball position is updated
                 not gait.state_is_left_active and gait.state_current_ts == 2 and  # walk gait phase is adequate
                 current_speed <= max_speed and                                    # avoid kicking while moving
+                stability_ok and                                                  # avoid kicking while unstable
                 t - self.reset_time > 500                                         # avoid immediate kick without stability
             )
 
@@ -67,6 +81,19 @@ class Basic_Kick():
                     if self.behavior.base_agent.queue_safe_kick():
                         return True
                 else:
+                    if not self.kick_diag_started:
+                        self.kick_diag_started = True
+                        gyro_norm = (r.gyro[0] ** 2 + r.gyro[1] ** 2 + r.gyro[2] ** 2) ** 0.5
+                        print(
+                            f"[KICK_DIAG_START] Team={self.world.team_name} Uniform={r.unum} "
+                            f"t={t} pitch={r.imu_torso_pitch:.2f} roll={r.imu_torso_roll:.2f} "
+                            f"gyro={gyro_norm:.2f} speed={current_speed:.3f} "
+                            f"gait_left={1 if gait.state_is_left_active else 0} gait_ts={gait.state_current_ts}"
+                        )
+                    print(
+                        f"[PHYSICAL_KICK_PATH] Team={self.world.team_name} "
+                        f"Uniform={self.world.robot.unum} reached_physical_kick=1"
+                    )
                     self.phase += 1
                     return self.behavior.execute_sub_behavior("Kick_Motion", True)
 
@@ -76,6 +103,16 @@ class Basic_Kick():
             return abort # abort only if self.phase == 0
 
         else: # define kick parameters and execute 
+            if self.kick_diag_count < 3 and (self.kick_diag_last_ms == 0 or t - self.kick_diag_last_ms >= 100):
+                self.kick_diag_last_ms = t
+                self.kick_diag_count += 1
+                gyro_norm = (r.gyro[0] ** 2 + r.gyro[1] ** 2 + r.gyro[2] ** 2) ** 0.5
+                current_speed = (r.loc_head_velocity[0] ** 2 + r.loc_head_velocity[1] ** 2) ** 0.5
+                print(
+                    f"[KICK_DIAG_PHASE] Team={self.world.team_name} Uniform={r.unum} "
+                    f"t={t} sample={self.kick_diag_count} pitch={r.imu_torso_pitch:.2f} "
+                    f"roll={r.imu_torso_roll:.2f} gyro={gyro_norm:.2f} speed={current_speed:.3f}"
+                )
             return self.behavior.execute_sub_behavior("Kick_Motion", False)
 
       
