@@ -15,7 +15,11 @@ fi
 
 if [[ "${BENCH_PG_ACTIVE:-0}" != "1" ]]; then
   if command -v setsid >/dev/null 2>&1; then
-    exec setsid env BENCH_PG_ACTIVE=1 "$0" "$@"
+    setsid env BENCH_PG_ACTIVE=1 "$0" "$@" &
+    worker_pid=$!
+    trap 'kill -TERM -- "-${worker_pid}" 2>/dev/null || true; wait "${worker_pid}" 2>/dev/null || true; exit 130' INT TERM
+    wait "${worker_pid}"
+    exit $?
   fi
 fi
 
@@ -124,6 +128,22 @@ wait_for_port() {
   local tries=40
   while [ "$tries" -gt 0 ]; do
     if ss -lnt 2>/dev/null | grep -q ":${port}"; then
+      return 0
+    fi
+    sleep 0.25
+    tries=$((tries - 1))
+  done
+  return 1
+}
+
+wait_for_port_close() {
+  local port="$1"
+  if ! command -v ss >/dev/null 2>&1; then
+    return 0
+  fi
+  local tries=40
+  while [ "$tries" -gt 0 ]; do
+    if ! ss -lnt 2>/dev/null | grep -q ":${port}"; then
       return 0
     fi
     sleep 0.25
@@ -304,6 +324,14 @@ cleanup_match() {
     kill_pid "$pid"
   done
   kill_pid "$launcher_pid"
+  if [ -n "${launcher_pid}" ]; then
+    for _ in $(seq 1 20); do
+      if ! kill -0 "${launcher_pid}" 2>/dev/null; then
+        break
+      fi
+      sleep 0.1
+    done
+  fi
   launcher_log=""
 }
 
@@ -492,6 +520,9 @@ for opponent in "${opponents[@]}"; do
       echo "[MATCH START] pair_id=${pair_id} index=${match_index}/${match_total}"
 
       cleanup_match
+      if ! wait_for_port_close 3200; then
+        echo "[BENCH] warning: monitor port still open after cleanup"
+      fi
       kill_stale_processes
       start_launcher
 
