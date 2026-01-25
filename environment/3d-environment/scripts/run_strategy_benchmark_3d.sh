@@ -34,6 +34,7 @@ current_right=""
 current_match_id=""
 current_row_written=1
 bench_pgid=""
+cpp_checked=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -446,6 +447,19 @@ start_launcher() {
   fi
 }
 
+ensure_cpp_modules() {
+  if [ "${cpp_checked}" -eq 1 ]; then
+    return
+  fi
+  cpp_checked=1
+  echo "[BENCH] checking C++ modules (one-time)..."
+  (cd "${fcp_dir}" && source "${venv_activate}" && python - <<'PY'
+from scripts.commons.Script import Script
+Script.build_cpp_modules(exit_on_build=False)
+PY
+  )
+}
+
 kill_stale_processes
 
 mkdir -p "${log_dir}"
@@ -561,6 +575,7 @@ for opponent in "${opponents[@]}"; do
         echo "[BENCH] warning: monitor port still open after cleanup"
       fi
       kill_stale_processes
+      ensure_cpp_modules
       start_launcher
 
       agent_pids=()

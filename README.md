@@ -53,15 +53,47 @@ Canonical strategy team names (<= 12 chars):
 - `DIRECT` (OFF_112, low press, aggressive shoot)
 - `AGGRO` (OFF_112, high press, aggressive shoot)
 
-## 3D strategy levers (2D -> 3D mapping)
+## 3D simulator stack (current)
 
-3D currently hardcodes these choices in the decision layer. The table below lists the closest knobs for DoE-style strategy variants.
+- Linux stack using SimSpark/rcssserver3d plus RoboViz.
+- Server + monitor launcher: `environment/3d-environment/scripts/run_rcssserver3d_and_RoboViz.sh`.
+- RoboViz config: `environment/3d-environment/RoboViz/config.txt` (log recording enabled to the 3D benchmark log directory).
 
-| 2D lever | 3D equivalent knob(s) | Where in 3D | What it controls |
-| --- | --- | --- | --- |
-| `shoot_range` | Kick feasibility gates: `ball_x_limits`, `ball_y_limits`, `ang_diff < 5`, `dist_to_final_target < 0.03`, `t - w.ball_abs_pos_last_update < 100`, `t - self.reset_time > 500` | `environment/3d-environment/FCPCodebase/behaviors/custom/Basic_Kick/Basic_Kick.py` | When a kick is allowed based on ball window, alignment, recency, and gait timing (not distance-to-goal). |
-| `press_threshold` | Engage/defend margin: `self.min_opponent_ball_dist + 0.5 < self.min_teammate_ball_dist`; slow-ball anchor: `w.get_predicted_ball_pos(0.5)` | `environment/3d-environment/FCPCodebase/agent/Agent.py`, `environment/3d-environment/FCPCodebase/world/World.py` | Who presses the ball and when defenders step in (distance-to-ball comparison using a predicted slow ball). |
-| `formation_id` | Home positions: `self.init_pos = (...)`; ball-based x-shift: `new_x` with possession bump `+3.5` | `environment/3d-environment/FCPCodebase/agent/Agent.py` | Baseline formation layout and how it slides with ball position/possession. |
+## 3D strategy selection (current)
+
+- Agents are launched with `--strategy` (e.g., `BASIC`, `NOISE`, `DEFLOCK`, `HIPRESS`, `DIRECT`, `AGGRO`).
+- Strategy config is defined in `environment/3d-environment/FCPCodebase/strategy/strategy_registry.py` and attached to the player at startup.
+- Lever mappings:
+  - Formation: `environment/3d-environment/FCPCodebase/world/commons/formations.py` and `environment/3d-environment/FCPCodebase/agent/Agent.py`.
+  - Press threshold: `environment/3d-environment/FCPCodebase/strategy/press_mapping.py` and the engage decision in `environment/3d-environment/FCPCodebase/agent/Agent.py`.
+  - Shoot range: `environment/3d-environment/FCPCodebase/strategy/shoot_mapping.py` and the goal-directed kick decision in `environment/3d-environment/FCPCodebase/agent/Agent.py`.
+
+## Strategy benchmark (3D, current)
+
+Script: `environment/3d-environment/scripts/run_strategy_benchmark_3d.sh`
+
+Design:
+- BASIC vs NOISE/DEFLOCK/HIPRESS/DIRECT/AGGRO
+- Sides swapped
+- Replicates per side: 5 (configurable via `--repeats`)
+
+Execution notes:
+- Each match starts a fresh rcssserver3d + RoboViz instance.
+- Match end is detected by parsing RoboViz logs (half-time reached).
+- Key options: `--repeats`, `--half-time-timeout-sec`, `MATCH_WALL_TIMEOUT_SEC`, `PROGRESS_INTERVAL_SEC`.
+
+## 3D results & logs
+
+- CSV: `environment/3d-environment/strategy_benchmark_logs_3d/strategy_benchmark_results_3d.csv`
+  - Columns: `match_id,pair_id,left_team,right_team,left_goals,right_goals,timestamp,status,error_reason`
+- RoboViz logs: `environment/3d-environment/strategy_benchmark_logs_3d/match_logs/`
+- Parser: `scripts/utils/parse_roboviz_log.py` (reads `score_left/score_right` from world-state lines).
+
+## Known limitations (3D)
+
+- Physical kick motion is unstable; robots can fall during kicks.
+- RoboViz logging can be heavy; log parsing is required for match timing.
+- VM environments often emit OpenGL/llvmpipe warnings and may run slower than real time.
 
 ## Strategy benchmark (DoE runner)
 
