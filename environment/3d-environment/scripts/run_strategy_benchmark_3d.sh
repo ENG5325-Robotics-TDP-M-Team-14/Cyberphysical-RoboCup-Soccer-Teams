@@ -9,7 +9,8 @@ EOF
 
 match_reps=5
 results_csv_override=""
-half_time_timeout_sec=1200
+half_time_timeout_sec=420
+progress_interval_sec="${PROGRESS_INTERVAL_SEC:-60}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -178,11 +179,19 @@ wait_for_logfile() {
   return 1
 }
 
+format_elapsed() {
+  local total="$1"
+  printf "%02d:%02d" $((total / 60)) $((total % 60))
+}
+
 wait_for_half_time() {
   local pair_id="$1"
   local logfile="$2"
+  local match_start_epoch="$3"
   local deadline=$((SECONDS + half_time_timeout_sec))
-  local last_progress=0
+  local last_progress_bucket=-1
+  local last_sim_time=""
+  local diag_checked=0
   while [ "$SECONDS" -lt "$deadline" ]; do
     if ! server_alive; then
       return 1
@@ -191,9 +200,37 @@ wait_for_half_time() {
     snapshot="$(get_log_snapshot "${logfile}")"
     local sim_time sim_half sim_mode sim_left sim_right
     IFS='|' read -r sim_time sim_half sim_mode sim_left sim_right <<< "${snapshot}"
-    if [ $((SECONDS - last_progress)) -ge 10 ]; then
-      echo "[MATCH PROGRESS] pair_id=${pair_id} sim_time=${sim_time} half=${sim_half} play_mode=${sim_mode}"
-      last_progress=$SECONDS
+    local now_epoch wall_elapsed progress_bucket wall_fmt sim_display
+    now_epoch="$(date +%s)"
+    wall_elapsed=$((now_epoch - match_start_epoch))
+    progress_bucket=$((wall_elapsed / progress_interval_sec))
+    if [ "${diag_checked}" -eq 0 ] && [ "${wall_elapsed}" -ge 20 ]; then
+      diag_checked=1
+      local time_token time_value
+      if command -v rg >/dev/null 2>&1; then
+        time_token="$(rg -o "\\(time [0-9]+(\\.[0-9]+)?\\)" "${logfile}" | tail -n 1 || true)"
+      else
+        time_token="$(grep -Eo "\\(time [0-9]+(\\.[0-9]+)?\\)" "${logfile}" | tail -n 1 || true)"
+      fi
+      time_value="${time_token#(time }"
+      time_value="${time_value%)}"
+      if [ -z "${time_value}" ]; then
+        echo "[BENCH] sim_time not advancing in log; using wall_elapsed"
+      else
+        if ! awk "BEGIN {exit !(${time_value} > 0)}"; then
+          echo "[BENCH] sim_time not advancing in log; using wall_elapsed"
+        fi
+      fi
+    fi
+    if [ "${progress_bucket}" -ne "${last_progress_bucket}" ] || [ "${sim_time}" != "${last_sim_time}" ]; then
+      wall_fmt="$(format_elapsed "${wall_elapsed}")"
+      sim_display="${sim_time}"
+      if [ -z "${sim_display}" ] || [ "${sim_display}" = "NOT_FOUND" ]; then
+        sim_display="NA"
+      fi
+      echo "[MATCH PROGRESS] pair_id=${pair_id} wall_elapsed=${wall_fmt} sim_time=${sim_display} half=${sim_half} play_mode=${sim_mode}"
+      last_progress_bucket="${progress_bucket}"
+      last_sim_time="${sim_time}"
     fi
     if [ "${sim_half}" = "2" ]; then
       return 0
@@ -322,6 +359,7 @@ for opponent in "${opponents[@]}"; do
 
       match_index=$((match_index + 1))
       pair_id="${left}_${right}"
+      match_start_epoch="$(date +%s)"
       echo "[SIM RESET] restarting server+roboviz for next match"
       echo "[MATCH START] pair_id=${pair_id} index=${match_index}/${match_total}"
 
@@ -363,7 +401,7 @@ for opponent in "${opponents[@]}"; do
       left_goals="NA"
       right_goals="NA"
       if [[ "${status}" == "ok" ]]; then
-        if wait_for_half_time "${pair_id}" "${log_file}"; then
+        if wait_for_half_time "${pair_id}" "${log_file}" "${match_start_epoch}"; then
           sleep 1
           snapshot="$(get_log_snapshot "${log_file}")"
           IFS='|' read -r _ _ _ sim_left sim_right <<< "${snapshot}"
