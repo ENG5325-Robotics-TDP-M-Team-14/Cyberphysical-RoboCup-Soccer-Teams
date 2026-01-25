@@ -44,13 +44,13 @@ repo_root="$(cd "${env_root}/../.." && pwd)"
 fcp_dir="${env_root}/FCPCodebase"
 venv_activate="${fcp_dir}/.venv/bin/activate"
 launcher="${env_root}/scripts/run_rcssserver3d_and_RoboViz.sh"
-log_dir="${repo_root}/environment/benchmark_logs_3d"
+log_dir="${env_root}/strategy_benchmark_logs_3d"
 results_csv="${log_dir}/strategy_benchmark_results_3d.csv"
 if [[ -n "${results_csv_override}" ]]; then
   results_csv="${results_csv_override}"
 fi
 roboviz_disable="${ROBOVIZ_DISABLE:-1}"
-roboviz_log_dir="${repo_root}/environment/benchmark_logs_3d/match_logs"
+roboviz_log_dir="${log_dir}/match_logs"
 parser="${repo_root}/scripts/utils/parse_roboviz_log.py"
 half_eps="0.5"
 

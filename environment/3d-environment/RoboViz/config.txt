@@ -38,7 +38,7 @@ Server               : localhost:3200
 
 # General Settings
 Record Logfiles      : true
-Logfile Directory    : /home/nathan_sidib/Code/ENG5325-Robotics-TDP-M-Team-14/Cyberphysical-RoboCup-Soccer-Teams/environment/benchmark_logs_3d/match_logs
+Logfile Directory    : /home/nathan_sidib/Code/ENG5325-Robotics-TDP-M-Team-14/Cyberphysical-RoboCup-Soccer-Teams/environment/3d-environment/strategy_benchmark_logs_3d/match_logs
 # Possible values for "Look and Feel" are: "system", "darcula", "intellij", "solarized_light" and "solarized_dark"
 Look and Feel        : system
 

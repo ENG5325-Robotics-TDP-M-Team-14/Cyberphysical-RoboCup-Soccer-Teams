@@ -38,11 +38,11 @@ env_root="${repo_root}/environment/3d-environment"
 fcp_dir="${env_root}/FCPCodebase"
 venv_activate="${fcp_dir}/.venv/bin/activate"
 launcher="${env_root}/scripts/run_rcssserver3d_and_RoboViz.sh"
-log_dir="${repo_root}/environment/benchmark_logs_3d/match_logs"
+log_dir="${env_root}/strategy_benchmark_logs_3d/match_logs"
 parser="${repo_root}/scripts/utils/parse_roboviz_log.py"
 
 if [[ -z "${out_csv}" ]]; then
-  out_csv="${repo_root}/environment/benchmark_logs_3d/strategy_benchmark_results.csv"
+  out_csv="${env_root}/strategy_benchmark_logs_3d/strategy_benchmark_results.csv"
 fi
 
 mkdir -p "$(dirname "${out_csv}")"
