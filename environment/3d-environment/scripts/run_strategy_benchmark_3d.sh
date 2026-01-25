@@ -2,9 +2,9 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-repo_root="$(cd "${script_dir}/.." && pwd)"
+env_root="$(cd "${script_dir}/.." && pwd)"
+repo_root="$(cd "${env_root}/.." && pwd)"
 
-env_root="${repo_root}/environment/3d-environment"
 fcp_dir="${env_root}/FCPCodebase"
 venv_activate="${fcp_dir}/.venv/bin/activate"
 launcher="${env_root}/scripts/run_rcssserver3d_and_RoboViz.sh"
