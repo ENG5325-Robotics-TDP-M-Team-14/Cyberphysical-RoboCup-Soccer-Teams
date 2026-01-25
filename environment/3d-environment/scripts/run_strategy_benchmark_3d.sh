@@ -9,6 +9,7 @@ EOF
 
 match_reps=5
 results_csv_override=""
+half_time_timeout_sec=1200
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -18,6 +19,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --out-csv)
       results_csv_override="$2"
+      shift 2
+      ;;
+    --half-time-timeout-sec)
+      half_time_timeout_sec="$2"
       shift 2
       ;;
     -h|--help)
@@ -136,6 +141,24 @@ parse_log_field() {
   python3 "${parser}" "${logfile}" 2>/dev/null | awk -F= -v k="${key}" '$1==k {print $2; exit}'
 }
 
+get_log_snapshot() {
+  local logfile="$1"
+  python3 "${parser}" "${logfile}" 2>/dev/null | awk -F= '
+    $1=="latest_time"{t=$2}
+    $1=="latest_half"{h=$2}
+    $1=="latest_play_mode"{p=$2}
+    $1=="latest_score_left"{sl=$2}
+    $1=="latest_score_right"{sr=$2}
+    END{
+      if (t=="") t="NOT_FOUND";
+      if (h=="") h="NOT_FOUND";
+      if (p=="") p="NOT_FOUND";
+      if (sl=="") sl="NOT_FOUND";
+      if (sr=="") sr="NOT_FOUND";
+      print t "|" h "|" p "|" sl "|" sr
+    }'
+}
+
 wait_for_logfile() {
   local launcher_log="$1"
   local timeout=30
@@ -156,18 +179,24 @@ wait_for_logfile() {
 }
 
 wait_for_half_time() {
-  local logfile="$1"
-  local deadline=$((SECONDS + 420))
+  local pair_id="$1"
+  local logfile="$2"
+  local deadline=$((SECONDS + half_time_timeout_sec))
+  local last_progress=0
   while [ "$SECONDS" -lt "$deadline" ]; do
     if ! server_alive; then
       return 1
     fi
-    local half_time
-    half_time="$(parse_log_field "${logfile}" "half_time_time")"
-    if [ -n "${half_time}" ] && [ "${half_time}" != "NOT_FOUND" ]; then
-      if awk "BEGIN {exit !(${half_time} >= (300.0 - ${half_eps}))}"; then
-        return 0
-      fi
+    local snapshot
+    snapshot="$(get_log_snapshot "${logfile}")"
+    local sim_time sim_half sim_mode sim_left sim_right
+    IFS='|' read -r sim_time sim_half sim_mode sim_left sim_right <<< "${snapshot}"
+    if [ $((SECONDS - last_progress)) -ge 10 ]; then
+      echo "[MATCH PROGRESS] pair_id=${pair_id} sim_time=${sim_time} half=${sim_half} play_mode=${sim_mode}"
+      last_progress=$SECONDS
+    fi
+    if [ "${sim_half}" = "2" ]; then
+      return 0
     fi
     sleep 1
   done
@@ -324,6 +353,7 @@ for opponent in "${opponents[@]}"; do
         status="parse_error"
         echo "[BENCH] warning: logfile not detected; marking parse_error"
       else
+        echo "[LOG] pair_id=${pair_id} logfile=${log_file}"
         sleep 1
         send_trainer_cmd "drop_ball" "(dropBall)" || true
         status="ok"
@@ -333,20 +363,24 @@ for opponent in "${opponents[@]}"; do
       left_goals="NA"
       right_goals="NA"
       if [[ "${status}" == "ok" ]]; then
-        if wait_for_half_time "${log_file}"; then
+        if wait_for_half_time "${pair_id}" "${log_file}"; then
           sleep 1
-          score_line="$(parse_log_field "${log_file}" "score_latest")"
-          if [[ -n "${score_line}" && "${score_line}" != "NOT_FOUND" ]]; then
-            left_goals="${score_line%,*}"
-            right_goals="${score_line#*,}"
+          snapshot="$(get_log_snapshot "${log_file}")"
+          IFS='|' read -r _ _ _ sim_left sim_right <<< "${snapshot}"
+          if [[ "${sim_left}" != "NOT_FOUND" && "${sim_right}" != "NOT_FOUND" ]]; then
+            left_goals="${sim_left}"
+            right_goals="${sim_right}"
           else
             status="parse_error"
           fi
         else
-          if server_alive; then
-            status="parse_error"
-          else
+          wait_status=$?
+          if [ "${wait_status}" -eq 1 ]; then
             status="server_dead"
+          elif [ "${wait_status}" -eq 2 ]; then
+            status="timeout"
+          else
+            status="parse_error"
           fi
         fi
       fi
