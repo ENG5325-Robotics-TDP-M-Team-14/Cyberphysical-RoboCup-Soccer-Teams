@@ -1,6 +1,14 @@
+# macOS system files
 .DS_Store
 
+# RoboCup 2D/3D logs
 *.rcg
 *.rcl
 
+*.log
+
+# Python virtual environment
 .venv/
+
+# Gradle local files
+environment/3d-environment/RoboViz/.gradle_local/
