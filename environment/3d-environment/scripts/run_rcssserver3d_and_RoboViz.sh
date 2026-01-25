@@ -2,12 +2,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ENV_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SERVER_PORT=3200
 
 # Filter only known, non-actionable startup noise from BOTH stdout and stderr.
 NOISE_RE='OpenGLServer not found|TextureServer|no FPSController|\(sparkgui\.rb\)|redefining Object#method_missing|^\(MonitorServer\) WARNING: SimulationServer not found\.$'
 
-ROBO_VIZ_DIR="$SCRIPT_DIR/environment/3d-environment/RoboViz"
+ROBO_VIZ_DIR="$ENV_ROOT/RoboViz"
 ROBO_VIZ_BIN="$ROBO_VIZ_DIR/bin/roboviz.sh"
 
 cleanup() {
