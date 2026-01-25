@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ENV_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+ROBOVIZ_DISABLE="${ROBOVIZ_DISABLE:-0}"
 SERVER_PORT=3200
 
 # Filter only known, non-actionable startup noise from BOTH stdout and stderr.
@@ -44,6 +45,12 @@ until ss -lnt | grep -q ":${SERVER_PORT}"; do
   sleep 0.5
 done
 echo "[INFO] Monitor port is open."
+
+if [[ "${ROBOVIZ_DISABLE}" == "1" ]]; then
+  echo "[INFO] RoboViz disabled. Server PID: $SERVER_PID"
+  wait "$SERVER_PID"
+  exit 0
+fi
 
 echo "[INFO] Starting RoboViz..."
 (

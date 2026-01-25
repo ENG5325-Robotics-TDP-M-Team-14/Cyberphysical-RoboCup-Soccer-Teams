@@ -10,6 +10,7 @@ venv_activate="${fcp_dir}/.venv/bin/activate"
 launcher="${env_root}/scripts/run_rcssserver3d_and_RoboViz.sh"
 log_dir="${repo_root}/benchmark_logs_3d"
 results_csv="${log_dir}/strategy_benchmark_results_3d.csv"
+roboviz_disable="${ROBOVIZ_DISABLE:-1}"
 
 use_setsid=0
 if command -v setsid >/dev/null 2>&1; then
@@ -75,7 +76,7 @@ wait_for_port() {
 send_trainer_cmd() {
   local name="$1"
   local payload="$2"
-  python3 - "$payload" <<'PY'
+  if ! python3 - "$payload" <<'PY'
 import socket, struct, sys
 host = "127.0.0.1"
 port = 3200
@@ -85,6 +86,10 @@ hdr = struct.pack("!I", len(data))
 with socket.create_connection((host, port), timeout=2) as s:
     s.sendall(hdr + data)
 PY
+  then
+    echo "[BENCH] trainer_send_failed=${name} raw=${payload}"
+    return 1
+  fi
   echo "[BENCH] trainer_sent=${name} raw=${payload}"
 }
 
@@ -169,19 +174,85 @@ cleanup() {
 trap cleanup EXIT
 trap 'cleanup; exit 130' INT TERM
 
+kill_stale_processes() {
+  if ! command -v pgrep >/dev/null 2>&1; then
+    return
+  fi
+  local patterns=("rcssserver3d" "RoboViz" "Run_Player.py")
+  local found=0
+  for pat in "${patterns[@]}"; do
+    if pgrep -f "$pat" >/dev/null 2>&1; then
+      echo "[BENCH] stopping stale processes: ${pat}"
+      pkill -TERM -f "$pat" >/dev/null 2>&1 || true
+      found=1
+    fi
+  done
+  if [ "$found" -eq 1 ]; then
+    sleep 1
+    for pat in "${patterns[@]}"; do
+      pkill -KILL -f "$pat" >/dev/null 2>&1 || true
+    done
+  fi
+}
+
+server_alive() {
+  if [ -z "${launcher_pid}" ]; then
+    return 1
+  fi
+  if ! kill -0 "${launcher_pid}" 2>/dev/null; then
+    return 1
+  fi
+  if command -v ss >/dev/null 2>&1; then
+    if ! ss -lnt 2>/dev/null | grep -q ":3200"; then
+      return 1
+    fi
+  fi
+  return 0
+}
+
+start_launcher() {
+  start_cmd env ROBOVIZ_DISABLE="${roboviz_disable}" "$launcher"
+  launcher_pid=$last_pid
+  if ! wait_for_port 3200; then
+    echo "[BENCH] warning: monitor port 3200 not detected; proceeding"
+  else
+    echo "[BENCH] monitor port 3200 open"
+  fi
+}
+
+ensure_server() {
+  if server_alive; then
+    return 0
+  fi
+  echo "[BENCH] server not running; restarting"
+  terminate_pid "${launcher_pid}"
+  kill_pid "${launcher_pid}"
+  kill_stale_processes
+  start_launcher
+}
+
+kill_stale_processes
+
 mkdir -p "${log_dir}"
+expected_header="pair_id,left_team,right_team,left_goals,right_goals,timestamp,status"
 if [[ ! -f "${results_csv}" ]]; then
-  echo "pair_id,left_team,right_team,left_goals,right_goals,timestamp" > "${results_csv}"
-fi
-
-start_cmd "$launcher"
-launcher_pid=$last_pid
-
-if ! wait_for_port 3200; then
-  echo "[BENCH] warning: monitor port 3200 not detected; proceeding"
+  echo "${expected_header}" > "${results_csv}"
 else
-  echo "[BENCH] monitor port 3200 open"
+  current_header="$(head -n 1 "${results_csv}")"
+  if [[ "${current_header}" != "${expected_header}" ]]; then
+    tmp_csv="$(mktemp)"
+    echo "${expected_header}" > "${tmp_csv}"
+    if tail -n +2 "${results_csv}" | grep -q .; then
+      while IFS= read -r line; do
+        [[ -z "${line}" ]] && continue
+        echo "${line},unknown" >> "${tmp_csv}"
+      done < <(tail -n +2 "${results_csv}")
+    fi
+    mv "${tmp_csv}" "${results_csv}"
+  fi
 fi
+
+start_launcher
 
 base_left="BASIC"
 opponents=(NOISE DEFLOCK HIPRESS DIRECT AGGRO)
@@ -204,6 +275,8 @@ for opponent in "${opponents[@]}"; do
       pair_id="${left}_${right}"
       echo "[MATCH START] pair_id=${pair_id} index=${match_index}/${match_total}"
 
+      ensure_server
+
       agent_pids=()
       for u in 1 2 3 4; do
         start_cmd bash -c "cd \"${fcp_dir}\" && source \"${venv_activate}\" && python Run_Player.py -t ${left} -u ${u} --strategy ${left}"
@@ -218,17 +291,33 @@ for opponent in "${opponents[@]}"; do
       done
 
       sleep 1
-      send_trainer_cmd "drop_ball" "(dropBall)"
+      send_trainer_cmd "drop_ball" "(dropBall)" || true
 
-      sleep 300
-      score_line="$(get_match_score || true)"
-      if [[ -z "${score_line}" ]]; then
-        score_line="0,0"
+      match_failed=0
+      match_end=$((SECONDS + 300))
+      while [ "$SECONDS" -lt "$match_end" ]; do
+        if ! server_alive; then
+          match_failed=1
+          break
+        fi
+        sleep 1
+      done
+      status="ok"
+      if [ "$match_failed" -eq 1 ]; then
+        echo "[BENCH] warning: server died during match; marking score NA,NA"
+        status="server_dead"
+        score_line="NA,NA"
+      else
+        score_line="$(get_match_score || true)"
+        if [[ -z "${score_line}" ]]; then
+          status="score_unavailable"
+          score_line="NA,NA"
+        fi
       fi
       left_goals="${score_line%,*}"
       right_goals="${score_line#*,}"
       timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-      echo "${pair_id},${left},${right},${left_goals},${right_goals},${timestamp}" >> "${results_csv}"
+      echo "${pair_id},${left},${right},${left_goals},${right_goals},${timestamp},${status}" >> "${results_csv}"
       echo "[MATCH END] pair_id=${pair_id}"
 
       for pid in "${agent_pids[@]}"; do

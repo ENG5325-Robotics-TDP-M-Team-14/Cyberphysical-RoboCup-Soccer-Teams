@@ -1,1 +1,4 @@
-pair_id,left_team,right_team,left_goals,right_goals,timestamp
+pair_id,left_team,right_team,left_goals,right_goals,timestamp,status
+BASIC_NOISE,BASIC,NOISE,0,0,2026-01-25T11:38:19Z,ok
+BASIC_NOISE,BASIC,NOISE,0,0,2026-01-25T11:43:26Z,ok
+BASIC_NOISE,BASIC,NOISE,NA,NA,2026-01-25T11:43:31Z,server_dead
