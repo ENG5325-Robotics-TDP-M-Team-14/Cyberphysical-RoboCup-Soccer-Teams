@@ -300,6 +300,8 @@ wait_for_half_time() {
 agent_pids=()
 launcher_pid=""
 launcher_log=""
+robo_pid=""
+server_pid=""
 cleanup_done=0
 
 agents_alive() {
@@ -317,6 +319,8 @@ cleanup_match() {
     terminate_pid "$pid"
   done
   terminate_pid "$launcher_pid"
+  terminate_pid "$robo_pid"
+  terminate_pid "$server_pid"
 
   sleep 1
 
@@ -324,6 +328,8 @@ cleanup_match() {
     kill_pid "$pid"
   done
   kill_pid "$launcher_pid"
+  kill_pid "$robo_pid"
+  kill_pid "$server_pid"
   if [ -n "${launcher_pid}" ]; then
     for _ in $(seq 1 20); do
       if ! kill -0 "${launcher_pid}" 2>/dev/null; then
@@ -332,7 +338,24 @@ cleanup_match() {
       sleep 0.1
     done
   fi
+  if [ -n "${robo_pid}" ]; then
+    for _ in $(seq 1 20); do
+      if ! kill -0 "${robo_pid}" 2>/dev/null; then
+        break
+      fi
+      sleep 0.1
+    done
+  fi
+  if [[ "${BENCH_KILL_STALE:-0}" == "1" ]] && command -v pkill >/dev/null 2>&1; then
+    pkill -TERM -f "RoboViz" 2>/dev/null || true
+    pkill -TERM -f "rcssserver3d" 2>/dev/null || true
+    sleep 0.5
+    pkill -KILL -f "RoboViz" 2>/dev/null || true
+    pkill -KILL -f "rcssserver3d" 2>/dev/null || true
+  fi
   launcher_log=""
+  robo_pid=""
+  server_pid=""
 }
 
 cleanup_all() {
@@ -360,7 +383,7 @@ trap cleanup_all EXIT
 trap 'cleanup_all; exit 130' INT TERM
 
 kill_stale_processes() {
-  if [[ "${BENCH_KILL_STALE:-0}" != "1" ]]; then
+  if [[ "${BENCH_KILL_STALE:-1}" != "1" ]]; then
     return
   fi
   if ! command -v pgrep >/dev/null 2>&1; then
@@ -400,12 +423,26 @@ server_alive() {
 
 start_launcher() {
   launcher_log="$(mktemp)"
+  robo_pid=""
+  server_pid=""
   start_cmd bash -c "env ROBOVIZ_DISABLE=\"${roboviz_disable}\" \"${launcher}\" >\"${launcher_log}\" 2>&1"
   launcher_pid=$last_pid
   if ! wait_for_port 3200; then
     echo "[BENCH] warning: monitor port 3200 not detected; proceeding"
   else
     echo "[BENCH] monitor port 3200 open"
+  fi
+  if [ -f "${launcher_log}" ]; then
+    local line
+    for _ in $(seq 1 20); do
+      line="$(grep -m1 -E 'RoboViz PID:' "${launcher_log}" || true)"
+      if [ -n "${line}" ]; then
+        robo_pid="$(echo "${line}" | sed -n 's/.*RoboViz PID: \([0-9]\+\) | Server PID: \([0-9]\+\).*/\1/p')"
+        server_pid="$(echo "${line}" | sed -n 's/.*RoboViz PID: \([0-9]\+\) | Server PID: \([0-9]\+\).*/\2/p')"
+        break
+      fi
+      sleep 0.2
+    done
   fi
 }
 

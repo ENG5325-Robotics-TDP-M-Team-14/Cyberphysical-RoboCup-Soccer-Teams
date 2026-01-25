@@ -7,7 +7,8 @@ import sys
 RE_TIME = re.compile(r"\(time\s+([0-9.+-eE]+)\)")
 RE_HALF = re.compile(r"\(half\s+([0-9]+)\)")
 RE_PLAY_MODE = re.compile(r"\(play_mode\s+([0-9]+)\)")
-RE_RDS = re.compile(r"\(RDS\s+([0-9]+)\s+([0-9]+)\)")
+RE_SCORE_LEFT = re.compile(r"\(score_left\s+([0-9]+)\)")
+RE_SCORE_RIGHT = re.compile(r"\(score_right\s+([0-9]+)\)")
 
 STOP_HALF = 2
 
@@ -27,18 +28,9 @@ def parse_log(path):
             time_match = RE_TIME.search(line)
             half_match = RE_HALF.search(line)
             play_mode_match = RE_PLAY_MODE.search(line)
-            rds_match = RE_RDS.search(line)
-
             if time_match and start_time is None:
                 try:
                     start_time = float(time_match.group(1))
-                except ValueError:
-                    pass
-
-            if rds_match:
-                try:
-                    latest_score_left = int(rds_match.group(1))
-                    latest_score_right = int(rds_match.group(2))
                 except ValueError:
                     pass
 
@@ -51,6 +43,15 @@ def parse_log(path):
                 play_mode_val = int(play_mode_match.group(1))
             except ValueError:
                 continue
+
+            score_left_match = RE_SCORE_LEFT.search(line)
+            score_right_match = RE_SCORE_RIGHT.search(line)
+            if score_left_match and score_right_match:
+                try:
+                    latest_score_left = int(score_left_match.group(1))
+                    latest_score_right = int(score_right_match.group(1))
+                except ValueError:
+                    pass
 
             latest_time = time_val
             latest_half = half_val
