@@ -9,7 +9,8 @@ class Agent(Base_Agent):
     def __init__(self, host:str, agent_port:int, monitor_port:int, unum:int,
                  team_name:str, enable_log, enable_draw, wait_for_server=True, is_fat_proxy=False,
                  strategy_formation_id: str = "BASELINE", press_margin: float = 0.5,
-                 goal_shot_dist_thresh_m: float = 6.0, kick_guard_max_speed: float = 0.05) -> None:
+                 goal_shot_dist_thresh_m: float = 6.0, kick_guard_max_speed: float = 0.05,
+                 safe_kick_enabled: bool = False) -> None:
         
         # define robot type
         robot_type = (0,1,1,1,2,3,3,3,4,4,4)[unum-1]
@@ -27,6 +28,8 @@ class Agent(Base_Agent):
         self.press_margin = press_margin
         self.goal_shot_dist_thresh_m = goal_shot_dist_thresh_m
         self.kick_guard_max_speed = kick_guard_max_speed
+        self.safe_kick_enabled = safe_kick_enabled
+        self.safe_kick_cmd = None
 
         self.init_pos = list(get_home_pos(strategy_formation_id, unum))
         print(
@@ -36,6 +39,10 @@ class Agent(Base_Agent):
         print(
             f"[KICK_GUARD] Team={team_name} Uniform={unum} "
             f"max_speed_mps={self.kick_guard_max_speed}"
+        )
+        print(
+            f"[SAFE_KICK] enabled={1 if self.safe_kick_enabled else 0} "
+            f"mode={'proxy' if self.safe_kick_enabled else 'physical'}"
         )
 
 
@@ -233,8 +240,12 @@ class Agent(Base_Agent):
 
         #--------------------------------------- 4. Send to server
         if self.fat_proxy_cmd is None: # normal behavior
+            if self.safe_kick_cmd is not None:
+                self.scom.commit(self.safe_kick_cmd)
+                self.safe_kick_cmd = None
             self.scom.commit_and_send( r.get_command() )
         else: # fat proxy behavior
+            self.safe_kick_cmd = None
             self.scom.commit_and_send( self.fat_proxy_cmd.encode() ) 
             self.fat_proxy_cmd = ""
 
@@ -252,6 +263,24 @@ class Agent(Base_Agent):
 
 
     #--------------------------------------- Fat proxy auxiliary methods
+
+
+    def queue_safe_kick(self) -> bool:
+        if not self.safe_kick_enabled:
+            return False
+
+        w = self.world
+        r = self.world.robot 
+        ball_2d = w.ball_abs_pos[:2]
+        my_head_pos_2d = r.loc_head_position[:2]
+        current_speed = (r.loc_head_velocity[0] ** 2 + r.loc_head_velocity[1] ** 2) ** 0.5
+
+        if np.linalg.norm(ball_2d - my_head_pos_2d) < 0.25 and current_speed <= self.kick_guard_max_speed:
+            rel_dir = M.normalize_deg(self.kick_direction - r.imu_torso_orientation)
+            self.safe_kick_cmd = f"(proxy kick 10 {rel_dir:.2f} 20)".encode()
+            return True
+
+        return False
 
 
     def fat_proxy_kick(self):

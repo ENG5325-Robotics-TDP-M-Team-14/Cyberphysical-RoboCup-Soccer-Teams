@@ -50,23 +50,30 @@ class Basic_Kick():
             
             max_speed = getattr(self.behavior.base_agent, "kick_guard_max_speed", 0.05)
             current_speed = (r.loc_head_velocity[0] ** 2 + r.loc_head_velocity[1] ** 2) ** 0.5
-            if (w.ball_last_seen > t - w.VISUALSTEP_MS and ang_diff < 5 and       # ball is visible & aligned
+            safe_kick_enabled = getattr(self.behavior.base_agent, "safe_kick_enabled", False)
+            ready_to_kick = (
+                w.ball_last_seen > t - w.VISUALSTEP_MS and ang_diff < 5 and       # ball is visible & aligned
                 self.ball_x_limits[0] < b[0] < self.ball_x_limits[1] and          # ball is in kick area (x)
                 self.ball_y_limits[0] < b[1] < self.ball_y_limits[1] and          # ball is in kick area (y)
                 t - w.ball_abs_pos_last_update < 100 and                          # ball absolute location is recent
                 dist_to_final_target < 0.03 and                                   # if absolute ball position is updated
                 not gait.state_is_left_active and gait.state_current_ts == 2 and  # walk gait phase is adequate
                 current_speed <= max_speed and                                    # avoid kicking while moving
-                t - self.reset_time > 500): # to avoid kicking immediately without preparation & stability
+                t - self.reset_time > 500                                         # avoid immediate kick without stability
+            )
 
-                self.phase += 1
+            if ready_to_kick:
+                if safe_kick_enabled:
+                    if self.behavior.base_agent.queue_safe_kick():
+                        return True
+                else:
+                    self.phase += 1
+                    return self.behavior.execute_sub_behavior("Kick_Motion", True)
 
-                return self.behavior.execute_sub_behavior("Kick_Motion", True)
-            else:
-                dist = max(0.07, dist_to_final_target)
-                reset_walk = reset and self.behavior.previous_behavior != "Walk" # reset walk if it wasn't the previous behavior
-                self.behavior.execute_sub_behavior("Walk", reset_walk, next_pos, True, next_ori, True, dist) # target, is_target_abs, ori, is_ori_abs, distance
-                return abort # abort only if self.phase == 0
+            dist = max(0.07, dist_to_final_target)
+            reset_walk = reset and self.behavior.previous_behavior != "Walk" # reset walk if it wasn't the previous behavior
+            self.behavior.execute_sub_behavior("Walk", reset_walk, next_pos, True, next_ori, True, dist) # target, is_target_abs, ori, is_ori_abs, distance
+            return abort # abort only if self.phase == 0
 
         else: # define kick parameters and execute 
             return self.behavior.execute_sub_behavior("Kick_Motion", False)

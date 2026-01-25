@@ -8,6 +8,7 @@ from strategy.shoot_mapping import shoot_range_to_goal_shot_dist
 
 _strategy_parser = argparse.ArgumentParser(add_help=False)
 _strategy_parser.add_argument("--strategy", default="BASIC")
+_strategy_parser.add_argument("--safe-kick", action="store_true")
 _strategy_args, _remaining_args = _strategy_parser.parse_known_args()
 sys.argv = [sys.argv[0]] + _remaining_args
 script = Script(cpp_builder_unum=1) # Initialize: load config file, parse arguments, build cpp modules
@@ -21,6 +22,7 @@ else: # normal agent
 strategy_config = get_strategy(_strategy_args.strategy)
 press_margin = press_threshold_to_margin(strategy_config.press_threshold)
 goal_shot_dist_thresh_m = shoot_range_to_goal_shot_dist(strategy_config.shoot_range)
+safe_kick_enabled = _strategy_args.safe_kick
 print(
     f"[STRATEGY] Team={a.t} Uniform={a.u} Strategy={strategy_config.name} "
     f"F={strategy_config.formation_id} P={strategy_config.press_threshold} "
@@ -53,6 +55,7 @@ if a.D: # debug mode
             strategy_config.formation_id,
             press_margin,
             goal_shot_dist_thresh_m,
+            safe_kick_enabled,
         )
 else:
     if a.P:
@@ -71,6 +74,7 @@ else:
             strategy_config.formation_id,
             press_margin,
             goal_shot_dist_thresh_m,
+            safe_kick_enabled,
         )
 
 player.strategy_config = strategy_config
