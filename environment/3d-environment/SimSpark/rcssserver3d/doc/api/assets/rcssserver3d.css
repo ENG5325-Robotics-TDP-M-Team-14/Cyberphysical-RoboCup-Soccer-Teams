@@ -1,0 +1,32 @@
+/* rcssserver3d.css */
+html {
+  /* define light-mode variable overrides here */
+  --content-maxwidth: 1280px;
+  --searchbar-width: 256px;
+  --side-nav-arrow-opacity: 0.5;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light-mode) {
+      /* define dark-mode variable overrides here if you DON'T use doxygen-awesome-darkmode-toggle.js */
+  }
+}
+
+html.dark-mode {
+  /* define dark-mode variable overrides here if you DO use doxygen-awesome-darkmode-toggle.js */
+}
+
+#MSearchBox {
+  display: inline-block;
+}
+
+doxygen-awesome-dark-mode-toggle {
+  vertical-align: top;
+  position: relative;
+  display: inline-block;
+}
+
+td.defcell {
+  vertical-align: top;
+  white-space: nowrap;
+}

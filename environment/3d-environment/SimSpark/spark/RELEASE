@@ -1,0 +1,11 @@
+[0.3.7]
+SimSpark 0.3.7 is ready. It contains the following updates and fixes:
+
+- After about 20 years, the TelnetServer has finally been repaired and can now
+  be used again.
+- The default logging frequency (specified in spark.rb) has been increased to
+  25 Hz.
+
+
+You can get the package on the Simspark page on Gitlab
+at https://robocup-sim.gitlab.io/SimSpark/

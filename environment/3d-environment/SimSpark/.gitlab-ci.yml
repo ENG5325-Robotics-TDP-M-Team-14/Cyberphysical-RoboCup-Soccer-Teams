@@ -1,0 +1,98 @@
+build-ubuntu-20:
+  stage: build
+  image: $CI_REGISTRY/robocup-sim/simspark/uspark:20.04
+  script:
+    - mkdir install
+    - mkdir -p spark/build
+    - cd spark/build
+    - cmake .. -DCMAKE_INSTALL_PREFIX=../../install
+    - make install
+    - cd ../../
+    - mkdir -p rcssserver3d/build
+    - cd rcssserver3d/build
+    - cmake .. -DCMAKE_INSTALL_PREFIX=../../install -DCMAKE_PREFIX_PATH=../../install
+    - make install
+  only:
+    - devel
+
+build-ubuntu-22:
+  stage: build
+  image: $CI_REGISTRY/robocup-sim/simspark/uspark:22.04
+  script:
+    - mkdir install
+    - mkdir -p spark/build
+    - cd spark/build
+    - cmake .. -DCMAKE_INSTALL_PREFIX=../../install
+    - make install
+    - cd ../../
+    - mkdir -p rcssserver3d/build
+    - cd rcssserver3d/build
+    - cmake .. -DCMAKE_INSTALL_PREFIX=../../install -DCMAKE_PREFIX_PATH=../../install
+    - make install
+  only:
+    - devel
+
+build-ubuntu-24:
+  stage: build
+  image: $CI_REGISTRY/robocup-sim/simspark/uspark:24.04
+  script:
+    - mkdir install
+    - mkdir -p spark/build
+    - cd spark/build
+    - cmake .. -DCMAKE_INSTALL_PREFIX=../../install
+    - make install
+    - cd ../../
+    - mkdir -p rcssserver3d/build
+    - cd rcssserver3d/build
+    - cmake .. -DCMAKE_INSTALL_PREFIX=../../install -DCMAKE_PREFIX_PATH=../../install
+    - make install
+  artifacts:
+    paths:
+      - install
+      - spark/build
+      - rcssserver3d/build
+    expire_in: 1 hour
+  only:
+    - devel
+
+build-doc:
+  stage: build
+  image: $CI_REGISTRY/robocup-sim/simspark/uspark:24.04
+  dependencies:
+    - build-ubuntu-24
+  needs:
+    - build-ubuntu-24
+  script:
+    - cd spark/build
+    - make doc
+    - cd ../../rcssserver3d/build
+    - make doc
+  artifacts:
+    paths:
+      - spark/build/doc/api
+      - rcssserver3d/build/doc/api
+  only:
+    - devel
+
+pages:
+  stage: deploy
+  image: alpine:latest
+  dependencies:
+    - build-doc
+  needs:
+    - build-doc
+  before_script:
+    - apk update
+    - apk add wget unzip
+  script:
+    - mkdir -p public/doc/simspark
+    - mkdir -p public/doc/rcssserver3d
+    - if [ ! -d html ]; then wget -O page-artifacts.zip https://gitlab.com/robocup-sim/SimSpark/-/jobs/artifacts/pages/download?job=build-page && unzip page-artifacts.zip; fi
+    - cp -r html/* public/
+    - cp -r spark/build/doc/api/* public/doc/simspark/
+    - cp -r rcssserver3d/build/doc/api/* public/doc/rcssserver3d/
+  artifacts:
+    paths:
+      - public
+  only:
+    - devel

@@ -1,0 +1,20 @@
+RELEASE News of rcssserver3d-0.7.8
+
+New changes for the RoboCup 2025 competition:
+
+* Rule Changes:
+    - A new foul perceptor has been added to the Nao robot. It allows an agent
+      to sense its own fouls. As an example, a message sent to the agent might
+      contain "(foul 8)" if a ball holding foul was called. Fouls of other
+      players are not perceived.
+    - Ball holding penalties will now be issued regardless of the opponent's
+      position.
+    - The kick pass effector has been removed from the Nao robot.
+
+* Bug Fixes:
+    - The catch effector now uses the global time of the simulation server
+      (instead of the game time) to determine the beginning/end of the cooldown
+      phase.
+
+You can get the package on the Simspark page on Gitlab
+at https://robocup-sim.gitlab.io/SimSpark/
