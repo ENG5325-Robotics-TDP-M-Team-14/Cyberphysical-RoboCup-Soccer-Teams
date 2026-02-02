@@ -1,0 +1,140 @@
+ACKNOWLEDGMENTS / LICENSE REFERENCES
+
+Generated: 2026-02-01
+Repo root: /home/nathan_sidib/Code/ENG5325-Robotics-TDP-M-Team-14/Cyberphysical-RoboCup-Soccer-Teams
+
+Notes:
+- This file lists license/notice/authors files found in-tree, including the Python virtualenv.
+- License detection is best-effort based on text signatures; verify with the source files for exact terms.
+
+Repository root
+---------------
+- LICENSE :: Apache-2.0
+
+Behaviour algorithm
+-------------------
+- behaviour_algorithm/rcss2d-opp-imitation-main/LICENSE :: Apache-2.0
+
+2D stack
+--------
+- environment/2d-environment/rcssmonitor-19.0.1/AUTHORS :: UNKNOWN
+- environment/2d-environment/rcssmonitor-19.0.1/COPYING :: GPL-3.0
+- environment/2d-environment/rcssmonitor-19.0.1/rcss/rcg/simdjson/LICENSE :: Apache-2.0
+- environment/2d-environment/rcssserver-19.0.0/AUTHORS :: UNKNOWN
+- environment/2d-environment/rcssserver-19.0.0/COPYING.LESSER :: LGPL-3.0
+- environment/2d-environment/starter-stack/Agent/AUTHORS :: UNKNOWN
+- environment/2d-environment/starter-stack/Agent/COPYING :: GPL-3.0
+- environment/2d-environment/starter-stack/COPYING :: GPL-3.0
+- environment/2d-environment/starter-stack/LICENSE :: GPL-3.0
+- environment/2d-environment/starter-stack/Lib/AUTHORS :: UNKNOWN
+- environment/2d-environment/starter-stack/Lib/COPYING.LESSER :: LGPL-3.0
+
+3D stack
+--------
+- environment/3d-environment/FCPCodebase/LICENSE :: GPL-3.0
+- environment/3d-environment/RoboViz/.gradle_local/wrapper/dists/gradle-9.0.0-bin/d6wjpkvcgsg3oed0qlfss3wgl/gradle-9.0.0/LICENSE :: Apache-2.0
+- environment/3d-environment/RoboViz/.gradle_local/wrapper/dists/gradle-9.0.0-bin/d6wjpkvcgsg3oed0qlfss3wgl/gradle-9.0.0/NOTICE :: UNKNOWN
+- environment/3d-environment/RoboViz/LICENSE.md :: Apache-2.0
+- environment/3d-environment/RoboViz/NOTICE.md :: UNKNOWN
+- environment/3d-environment/RoboViz/bin/LICENSE.md :: Apache-2.0
+- environment/3d-environment/RoboViz/bin/NOTICE.md :: UNKNOWN
+- environment/3d-environment/RoboViz/jsgl/LICENSE.md :: Apache-2.0
+- environment/3d-environment/SimSpark/rcssserver3d/AUTHORS :: UNKNOWN
+- environment/3d-environment/SimSpark/rcssserver3d/COPYING :: GPL-2.0
+- environment/3d-environment/SimSpark/rsgedit/AUTHORS :: UNKNOWN
+- environment/3d-environment/SimSpark/rsgedit/COPYING :: GPL-2.0
+- environment/3d-environment/SimSpark/simspark-utilities/AUTHORS :: UNKNOWN
+- environment/3d-environment/SimSpark/simspark-utilities/COPYING :: GPL-2.0
+- environment/3d-environment/SimSpark/spark/AUTHORS :: UNKNOWN
+- environment/3d-environment/SimSpark/spark/COPYING :: GPL-2.0
+
+Python virtualenv
+-----------------
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/numpy-2.4.1.dist-info/licenses/LICENSE.txt :: BSD-3-Clause
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/numpy-2.4.1.dist-info/licenses/numpy/_core/include/numpy/libdivide/LICENSE.txt :: Zlib
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/numpy-2.4.1.dist-info/licenses/numpy/_core/src/common/pythoncapi-compat/COPYING :: ISC
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/numpy-2.4.1.dist-info/licenses/numpy/_core/src/highway/LICENSE :: Apache-2.0
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/numpy-2.4.1.dist-info/licenses/numpy/_core/src/npysort/x86-simd-sort/LICENSE.md :: BSD-3-Clause
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/numpy-2.4.1.dist-info/licenses/numpy/_core/src/umath/svml/LICENSE :: BSD-3-Clause
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/numpy-2.4.1.dist-info/licenses/numpy/fft/pocketfft/LICENSE.md :: BSD-3-Clause
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/numpy-2.4.1.dist-info/licenses/numpy/linalg/lapack_lite/LICENSE.txt :: BSD-3-Clause
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/numpy-2.4.1.dist-info/licenses/numpy/ma/LICENSE :: BSD-3-Clause
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/numpy-2.4.1.dist-info/licenses/numpy/random/LICENSE.md :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/numpy-2.4.1.dist-info/licenses/numpy/random/src/distributions/LICENSE.md :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/numpy-2.4.1.dist-info/licenses/numpy/random/src/mt19937/LICENSE.md :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/numpy-2.4.1.dist-info/licenses/numpy/random/src/pcg64/LICENSE.md :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/numpy-2.4.1.dist-info/licenses/numpy/random/src/philox/LICENSE.md :: BSD-3-Clause
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/numpy-2.4.1.dist-info/licenses/numpy/random/src/sfc64/LICENSE.md :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/numpy-2.4.1.dist-info/licenses/numpy/random/src/splitmix64/LICENSE.md :: UNKNOWN
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/numpy/_core/include/numpy/random/LICENSE.txt :: Zlib
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/numpy/ma/LICENSE :: BSD-3-Clause
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/numpy/random/LICENSE.md :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/packaging-26.0.dist-info/licenses/LICENSE :: UNKNOWN
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/packaging-26.0.dist-info/licenses/LICENSE.APACHE :: Apache-2.0
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/packaging-26.0.dist-info/licenses/LICENSE.BSD :: BSD-3-Clause
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/AUTHORS.txt :: UNKNOWN
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/LICENSE.txt :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/cachecontrol/LICENSE.txt :: UNKNOWN
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/certifi/LICENSE :: UNKNOWN
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/dependency_groups/LICENSE.txt :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/distlib/LICENSE.txt :: UNKNOWN
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/distro/LICENSE :: Apache-2.0
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/idna/LICENSE.md :: BSD-3-Clause
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/msgpack/COPYING :: UNKNOWN
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/packaging/LICENSE :: UNKNOWN
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/packaging/LICENSE.APACHE :: Apache-2.0
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/packaging/LICENSE.BSD :: BSD-3-Clause
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/pkg_resources/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/platformdirs/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/pygments/LICENSE :: BSD-3-Clause
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/pyproject_hooks/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/requests/LICENSE :: Apache-2.0
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/resolvelib/LICENSE :: UNKNOWN
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/rich/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/tomli/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/tomli_w/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/truststore/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip-25.3.dist-info/licenses/src/pip/_vendor/urllib3/LICENSE.txt :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/cachecontrol/LICENSE.txt :: UNKNOWN
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/certifi/LICENSE :: UNKNOWN
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/dependency_groups/LICENSE.txt :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/distlib/LICENSE.txt :: UNKNOWN
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/distro/LICENSE :: Apache-2.0
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/idna/LICENSE.md :: BSD-3-Clause
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/msgpack/COPYING :: UNKNOWN
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/packaging/LICENSE :: UNKNOWN
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/packaging/LICENSE.APACHE :: Apache-2.0
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/packaging/LICENSE.BSD :: BSD-3-Clause
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/pkg_resources/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/platformdirs/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/pygments/LICENSE :: BSD-3-Clause
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/pyproject_hooks/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/requests/LICENSE :: Apache-2.0
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/resolvelib/LICENSE :: UNKNOWN
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/rich/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/tomli/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/tomli_w/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/truststore/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pip/_vendor/urllib3/LICENSE.txt :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/pybind11-3.0.1.dist-info/licenses/LICENSE :: BSD-3-Clause
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools-80.10.1.dist-info/licenses/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools/_vendor/autocommand-2.2.2.dist-info/LICENSE :: LGPL-3.0
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools/_vendor/backports.tarfile-1.2.0.dist-info/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools/_vendor/importlib_metadata-8.7.1.dist-info/licenses/LICENSE :: Apache-2.0
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools/_vendor/jaraco.text-4.0.0.dist-info/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools/_vendor/jaraco_context-6.1.0.dist-info/licenses/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools/_vendor/jaraco_functools-4.4.0.dist-info/licenses/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools/_vendor/more_itertools-10.8.0.dist-info/licenses/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools/_vendor/packaging-25.0.dist-info/licenses/LICENSE :: UNKNOWN
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools/_vendor/packaging-25.0.dist-info/licenses/LICENSE.APACHE :: Apache-2.0
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools/_vendor/packaging-25.0.dist-info/licenses/LICENSE.BSD :: BSD-3-Clause
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools/_vendor/platformdirs-4.4.0.dist-info/licenses/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools/_vendor/tomli-2.4.0.dist-info/licenses/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools/_vendor/wheel-0.45.1.dist-info/LICENSE.txt :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools/_vendor/wheel/vendored/packaging/LICENSE :: UNKNOWN
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools/_vendor/wheel/vendored/packaging/LICENSE.APACHE :: Apache-2.0
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools/_vendor/wheel/vendored/packaging/LICENSE.BSD :: BSD-3-Clause
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools/_vendor/zipp-3.23.0.dist-info/licenses/LICENSE :: MIT
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools/config/NOTICE :: UNKNOWN
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/setuptools/config/_validate_pyproject/NOTICE :: BSD-3-Clause
+- environment/3d-environment/FCPCodebase/.venv/lib/python3.11/site-packages/wheel-0.46.3.dist-info/licenses/LICENSE.txt :: MIT
