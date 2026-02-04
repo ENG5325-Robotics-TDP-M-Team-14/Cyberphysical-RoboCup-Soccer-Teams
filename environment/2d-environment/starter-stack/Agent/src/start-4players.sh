@@ -8,7 +8,8 @@ echo " Copyright 2007-2012.  Hidehisa Akiyama and Hiroki Shimora"
 echo " All rights reserved."
 echo "******************************************************************"
 
-LIBPATH=/Users/nathan.sidib/Code/ENG5325-Robotics-TDP-M-Team-14/Cyberphysical-RoboCup-Soccer-Teams/environment/2d-environment/starter-stack/Agent/Lib//lib
+DIR=$(cd "$(dirname "$0")" && pwd)
+LIBPATH="$DIR/../Lib/lib"
 if [ x"$LIBPATH" != x ]; then
   if [ x"$LD_LIBRARY_PATH" = x ]; then
     LD_LIBRARY_PATH=$LIBPATH
@@ -17,8 +18,6 @@ if [ x"$LIBPATH" != x ]; then
   fi
   export LD_LIBRARY_PATH
 fi
-
-DIR=`dirname $0`
 
 player="${DIR}/sample_player"
 coach="${DIR}/sample_coach"

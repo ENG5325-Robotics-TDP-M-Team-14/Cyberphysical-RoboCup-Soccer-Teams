@@ -3,25 +3,25 @@
 /* define if the Boost library is available */
 #undef HAVE_BOOST
 
-/* Define to 1 if you have the `floor' function. */
+/* Define to 1 if you have the 'floor' function. */
 #undef HAVE_FLOOR
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
-/* Define to 1 if you have the `rcsc_gz' library (-lrcsc_gz). */
+/* Define to 1 if you have the 'rcsc_gz' library (-lrcsc_gz). */
 #undef HAVE_LIBRCSC_GZ
 
-/* Define to 1 if you have the `z' library (-lz). */
+/* Define to 1 if you have the 'z' library (-lz). */
 #undef HAVE_LIBZ
 
-/* Define to 1 if you have the `pow' function. */
+/* Define to 1 if you have the 'pow' function. */
 #undef HAVE_POW
 
 /* Define to 1 if you have the <rcsc/types.h> header file. */
 #undef HAVE_RCSC_TYPES_H
 
-/* Define to 1 if you have the `sqrt' function. */
+/* Define to 1 if you have the 'sqrt' function. */
 #undef HAVE_SQRT
 
 /* Define to 1 if stdbool.h conforms to C99. */
@@ -36,7 +36,7 @@
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
 
-/* Define to 1 if you have the `strerror' function. */
+/* Define to 1 if you have the 'strerror' function. */
 #undef HAVE_STRERROR
 
 /* Define to 1 if you have the <strings.h> header file. */
@@ -57,7 +57,7 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
-/* Define to 1 if the system has the type `_Bool'. */
+/* Define to 1 if the system has the type '_Bool'. */
 #undef HAVE__BOOL
 
 /* Name of package */
@@ -81,7 +81,7 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
-/* Define to 1 if all of the C90 standard headers exist (not just the ones
+/* Define to 1 if all of the C89 standard headers exist (not just the ones
    required in a freestanding environment). This macro is provided for
    backward compatibility; new code need not use it. */
 #undef STDC_HEADERS
@@ -93,14 +93,14 @@
 /* Version number of package */
 #undef VERSION
 
-/* Define to empty if `const' does not conform to ANSI C. */
+/* Define to empty if 'const' does not conform to ANSI C. */
 #undef const
 
-/* Define to `__inline__' or `__inline' if that's what the C compiler
+/* Define to '__inline__' or '__inline' if that's what the C compiler
    calls it, or to nothing if 'inline' is not supported under any name.  */
 #ifndef __cplusplus
 #undef inline
 #endif
 
-/* Define to `unsigned int' if <sys/types.h> does not define. */
+/* Define as 'unsigned int' if <stddef.h> doesn't define. */
 #undef size_t

@@ -12,3 +12,9 @@
 
 # Gradle local files
 environment/3d-environment/RoboViz/.gradle_local/
+
+# 2D simulator build outputs (CMake)
+environment/2d-environment/rcssserver-19.0.0/build/
+environment/2d-environment/rcssserver-19.0.0/build-linux/
+environment/2d-environment/rcssmonitor-19.0.1/build/
+environment/2d-environment/rcssmonitor-19.0.1/build-linux/
