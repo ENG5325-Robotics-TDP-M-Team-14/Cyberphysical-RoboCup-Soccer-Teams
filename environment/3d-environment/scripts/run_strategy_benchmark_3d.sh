@@ -74,7 +74,7 @@ results_csv="${log_dir}/strategy_benchmark_results_3d.csv"
 if [[ -n "${results_csv_override}" ]]; then
   results_csv="${results_csv_override}"
 fi
-roboviz_disable="${ROBOVIZ_DISABLE:-1}"
+roboviz_disable="${ROBOVIZ_DISABLE:-0}"
 roboviz_log_dir="${log_dir}/match_logs"
 parser="${repo_root}/scripts/utils/parse_roboviz_log.py"
 half_eps="0.5"
