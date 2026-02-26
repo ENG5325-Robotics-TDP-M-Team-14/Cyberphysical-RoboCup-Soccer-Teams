@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: run_strategy_benchmark_3d.sh [--repeats N] [--out-csv PATH] [--half-time-timeout-sec N]
+Usage: run_strategy_benchmark_3d.sh [--repeats N] [--out-csv PATH] [--half-time-timeout-sec N] [--pairs STRAT_A,STRAT_B] [--unums N1,N2,...]
 EOF
 }
 
@@ -26,6 +26,8 @@ fi
 match_reps=5
 results_csv_override=""
 half_time_timeout_sec=420
+pairs_override=""
+unums_override=""
 match_wall_timeout_sec="${MATCH_WALL_TIMEOUT_SEC:-1800}"
 progress_interval_sec="${PROGRESS_INTERVAL_SEC:-60}"
 current_pair_id=""
@@ -48,6 +50,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --half-time-timeout-sec)
       half_time_timeout_sec="$2"
+      shift 2
+      ;;
+    --pairs)
+      pairs_override="$2"
+      shift 2
+      ;;
+    --unums)
+      unums_override="$2"
       shift 2
       ;;
     -h|--help)
@@ -490,6 +500,35 @@ fi
 
 base_left="BASIC"
 opponents=(NOISE DEFLOCK HIPRESS DIRECT AGGRO)
+if [[ -n "${pairs_override}" ]]; then
+  IFS=',' read -r pair_left pair_right pair_extra <<< "${pairs_override}"
+  if [[ -z "${pair_left}" || -z "${pair_right}" || -n "${pair_extra}" ]]; then
+    echo "Invalid --pairs '${pairs_override}'. Expected 'STRAT_A,STRAT_B'."
+    exit 1
+  fi
+  base_left="${pair_left}"
+  opponents=("${pair_right}")
+fi
+player_unums=(1 2 3 4)
+if [[ -n "${unums_override}" ]]; then
+  IFS=',' read -r -a player_unums <<< "${unums_override}"
+  if [[ "${#player_unums[@]}" -eq 0 ]]; then
+    echo "Invalid --unums '${unums_override}'. Expected 'N1,N2,...'."
+    exit 1
+  fi
+  declare -A _unums_seen=()
+  for u in "${player_unums[@]}"; do
+    if [[ ! "${u}" =~ ^[0-9]+$ ]] || [ "${u}" -lt 1 ] || [ "${u}" -gt 11 ]; then
+      echo "Invalid --unums '${unums_override}'. Uniforms must be 1-11."
+      exit 1
+    fi
+    if [[ -n "${_unums_seen[$u]:-}" ]]; then
+      echo "Invalid --unums '${unums_override}'. Duplicate uniform ${u}."
+      exit 1
+    fi
+    _unums_seen["$u"]=1
+  done
+fi
 match_total=$(( ${#opponents[@]} * 2 * match_reps ))
 
 declare -A expected_match_ids=()
@@ -579,13 +618,13 @@ for opponent in "${opponents[@]}"; do
       start_launcher
 
       agent_pids=()
-      for u in 1 2 3 4; do
+      for u in "${player_unums[@]}"; do
         start_cmd bash -c "cd \"${fcp_dir}\" && source \"${venv_activate}\" && python Run_Player.py -t ${left} -u ${u} --strategy ${left}"
         agent_pids+=("$last_pid")
         sleep 0.3
       done
       sleep 0.5
-      for u in 1 2 3 4; do
+      for u in "${player_unums[@]}"; do
         start_cmd bash -c "cd \"${fcp_dir}\" && source \"${venv_activate}\" && python Run_Player.py -t ${right} -u ${u} --strategy ${right}"
         agent_pids+=("$last_pid")
         sleep 0.3
