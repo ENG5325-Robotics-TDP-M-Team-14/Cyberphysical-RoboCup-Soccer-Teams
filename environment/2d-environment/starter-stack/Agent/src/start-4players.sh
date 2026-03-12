@@ -290,9 +290,11 @@ if [ $number -gt 0 ]; then
       $player ${opt} -g ${offline_number} &
       $sleepprog $goaliesleep
     fi
-  else # Player 1: goalie
-    $player ${opt} -g &
-    $sleepprog $goaliesleep
+  else # Player 1: goalie (in online mode, respect -u if provided)
+    if [ $unum -eq 0 ] || [ $unum -eq 1 ]; then
+      $player ${opt} -g &
+      $sleepprog $goaliesleep
+    fi
   fi
 fi
 
@@ -309,8 +311,10 @@ while [ $i -le ${number} ] ; do
       $sleepprog $sleeptime
     fi
   else # Players 2–4: defender (2), left forward (3), right forward (4)
-    $player ${opt} &
-    $sleepprog $sleeptime
+    if [ $unum -eq 0 ] || [ $unum -eq $i ]; then
+      $player ${opt} &
+      $sleepprog $sleeptime
+    fi
   fi
 
   i=`expr $i + 1`

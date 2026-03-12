@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: run_strategy_benchmark_3d.sh [--repeats N] [--out-csv PATH] [--half-time-timeout-sec N] [--pairs STRAT_A,STRAT_B] [--unums N1,N2,...]
+Usage: run_strategy_benchmark_3d.sh [--repeats N] [--out-csv PATH] [--log-dir PATH] [--half-time-timeout-sec N] [--pairs STRAT_A,STRAT_B] [--unums N1,N2,...]
 EOF
 }
 
@@ -25,6 +25,7 @@ fi
 
 match_reps=5
 results_csv_override=""
+log_dir_override=""
 half_time_timeout_sec=420
 pairs_override=""
 unums_override=""
@@ -46,6 +47,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --out-csv)
       results_csv_override="$2"
+      shift 2
+      ;;
+    --log-dir)
+      log_dir_override="$2"
       shift 2
       ;;
     --half-time-timeout-sec)
@@ -80,6 +85,9 @@ fcp_dir="${env_root}/FCPCodebase"
 venv_activate="${fcp_dir}/.venv/bin/activate"
 launcher="${env_root}/scripts/run_rcssserver3d_and_RoboViz.sh"
 log_dir="${env_root}/strategy_benchmark_logs_3d"
+if [[ -n "${log_dir_override}" ]]; then
+  log_dir="${log_dir_override}"
+fi
 results_csv="${log_dir}/strategy_benchmark_results_3d.csv"
 if [[ -n "${results_csv_override}" ]]; then
   results_csv="${results_csv_override}"

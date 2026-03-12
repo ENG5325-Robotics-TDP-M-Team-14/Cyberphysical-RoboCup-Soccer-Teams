@@ -135,6 +135,87 @@ StrategyConfig::fromTeamName( const std::string & team )
         return config;
     }
 
+    if ( team == "PRESLOW" )
+    {
+        StrategyConfig config;
+        config.formation_id = FormationId::BASELINE;
+        config.press_threshold = 2;
+        config.shoot_range = 25.0;
+        return config;
+    }
+
+    if ( team == "PRESBASE" )
+    {
+        StrategyConfig config;
+        config.formation_id = FormationId::BASELINE;
+        config.press_threshold = 3;
+        config.shoot_range = 25.0;
+        return config;
+    }
+
+    if ( team == "PRESHIGH" )
+    {
+        StrategyConfig config;
+        config.formation_id = FormationId::BASELINE;
+        config.press_threshold = 4;
+        config.shoot_range = 25.0;
+        return config;
+    }
+
+    if ( team == "SHOTLOW" )
+    {
+        StrategyConfig config;
+        config.formation_id = FormationId::BASELINE;
+        config.press_threshold = 3;
+        config.shoot_range = 20.0;
+        return config;
+    }
+
+    if ( team == "SHOTBASE" )
+    {
+        StrategyConfig config;
+        config.formation_id = FormationId::BASELINE;
+        config.press_threshold = 3;
+        config.shoot_range = 25.0;
+        return config;
+    }
+
+    if ( team == "SHOTHIGH" )
+    {
+        StrategyConfig config;
+        config.formation_id = FormationId::BASELINE;
+        config.press_threshold = 3;
+        config.shoot_range = 30.0;
+        return config;
+    }
+
+    if ( team == "FORMBASE" )
+    {
+        StrategyConfig config;
+        config.formation_id = FormationId::BASELINE;
+        config.press_threshold = 3;
+        config.shoot_range = 25.0;
+        return config;
+    }
+
+    if ( team == "FORMDEF" )
+    {
+        StrategyConfig config;
+        config.formation_id = FormationId::DEF_121;
+        config.press_threshold = 3;
+        config.shoot_range = 25.0;
+        return config;
+    }
+
+    if ( team == "FORMOFF" )
+    {
+        StrategyConfig config;
+        config.formation_id = FormationId::OFF_112;
+        config.press_threshold = 3;
+        config.shoot_range = 25.0;
+        return config;
+    }
+
     if ( team == "BASIC" )
     {
         return StrategyConfig::baseline();
