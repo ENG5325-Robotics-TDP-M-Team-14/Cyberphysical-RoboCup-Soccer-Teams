@@ -4,7 +4,6 @@ set -euo pipefail
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ENV2D_DIR=$(cd "${SCRIPT_DIR}/.." && pwd)
 AGENT_DIR="${SCRIPT_DIR}/Agent/src"
-RCSSSERVER_BIN="${ENV2D_DIR}/rcssserver-19.0.0/build/rcssserver"
 RESULTS_CSV="${SCRIPT_DIR}/strategy_benchmark_results.csv"
 LOG_DIR="${SCRIPT_DIR}/strategy_benchmark_log"
 
@@ -13,6 +12,30 @@ START_DELAY="${START_DELAY:-2}"
 SIDE_DELAY="${SIDE_DELAY:-2}"
 
 SERVER_PID=""
+
+resolve_rcssserver_bin() {
+  local candidate
+  local status
+  for candidate in \
+    "${ENV2D_DIR}/rcssserver-19.0.0/build-linux/rcssserver" \
+    "${ENV2D_DIR}/rcssserver-19.0.0/build/rcssserver"
+  do
+    if [[ ! -x "${candidate}" ]]; then
+      continue
+    fi
+
+    status=0
+    "${candidate}" --help >/dev/null 2>&1 || status=$?
+    if [[ "${status}" -ne 126 && "${status}" -ne 127 ]]; then
+      printf '%s\n' "${candidate}"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+RCSSSERVER_BIN="$(resolve_rcssserver_bin || true)"
 
 cleanup_match() {
   if [[ -n "${SERVER_PID}" ]]; then

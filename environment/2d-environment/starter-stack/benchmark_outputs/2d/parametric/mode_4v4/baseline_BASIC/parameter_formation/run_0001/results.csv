@@ -1,0 +1,3 @@
+run_id,benchmark_type,simulator,mode,baseline_controller,parameter_name,parameter_level,parameter_value,match_id,pair_id,left_team,right_team,left_goals,right_goals,timestamp,status,error_reason,wall_time_sec
+run_0001,parametric,2d,4v4,BASIC,formation,off,OFF_112,formation_off_4v4_s0_r1,BASIC_FORMOFF,BASIC,FORMOFF,0,0,2026-03-22T22:46:44Z,ok,,25
+run_0001,parametric,2d,4v4,BASIC,formation,off,OFF_112,formation_off_4v4_s1_r1,FORMOFF_BASIC,FORMOFF,BASIC,0,0,2026-03-22T22:47:09Z,ok,,25

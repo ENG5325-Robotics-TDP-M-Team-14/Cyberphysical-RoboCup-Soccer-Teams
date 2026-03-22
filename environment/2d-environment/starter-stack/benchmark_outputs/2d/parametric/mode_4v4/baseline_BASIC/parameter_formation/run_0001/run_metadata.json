@@ -1,0 +1,23 @@
+{
+  "baseline_controller": "BASIC",
+  "benchmark_type": "parametric",
+  "created_at_utc": "2026-03-22T22:46:18Z",
+  "levels": [
+    {
+      "parameter_level": "off",
+      "parameter_value": "OFF_112",
+      "variant_controller": "FORMOFF"
+    }
+  ],
+  "mode": "4v4",
+  "notes": {
+    "behavioural_metrics": "Scaffolded placeholders are emitted; requested behavioural metrics are not computed from current logs yet."
+  },
+  "output_root": "/home/nathan_sidib/Code/ENG5325-Robotics-TDP-M-Team-14/Cyberphysical-RoboCup-Soccer-Teams/environment/2d-environment/starter-stack/benchmark_outputs/2d/parametric/mode_4v4/baseline_BASIC/parameter_formation",
+  "parameter_name": "formation",
+  "run_dir": "/home/nathan_sidib/Code/ENG5325-Robotics-TDP-M-Team-14/Cyberphysical-RoboCup-Soccer-Teams/environment/2d-environment/starter-stack/benchmark_outputs/2d/parametric/mode_4v4/baseline_BASIC/parameter_formation/run_0001",
+  "run_id": "run_0001",
+  "server_port_base": 7200,
+  "server_port_stride": 10,
+  "simulator": "2d"
+}

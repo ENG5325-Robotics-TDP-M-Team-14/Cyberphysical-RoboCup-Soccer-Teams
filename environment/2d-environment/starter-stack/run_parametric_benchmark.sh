@@ -13,6 +13,10 @@ Options:
                            press_threshold/shoot_range: low,baseline,high
                            formation: baseline,def,off
   --out-csv PATH           Optional mirror path for final aggregated results CSV
+  RCSSSERVER_PORT_BASE     Optional env var for the first benchmark server port
+                           (default: 6100; later matches increment from there)
+  RCSSSERVER_PORT_STRIDE   Optional env var for the per-match/per-retry port stride
+                           (default: 10; keeps player/coach port groups from overlapping)
   -h, --help               Show this help
 EOF
 }
@@ -27,6 +31,9 @@ MATCH_TIMEOUT_SECONDS="${MATCH_TIMEOUT_SECONDS:-300}"
 START_DELAY="${START_DELAY:-2}"
 SIDE_DELAY="${SIDE_DELAY:-2}"
 HALF_TIME_CYCLES="${HALF_TIME_CYCLES:-150}"
+RCSSSERVER_PORT_BASE="${RCSSSERVER_PORT_BASE:-6100}"
+RCSSSERVER_PORT_RETRIES="${RCSSSERVER_PORT_RETRIES:-5}"
+RCSSSERVER_PORT_STRIDE="${RCSSSERVER_PORT_STRIDE:-10}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -69,10 +76,29 @@ SIMULATOR_ID="2d"
 BENCHMARK_KIND="parametric"
 BASELINE_CONTROLLER="BASIC"
 
-RCSSSERVER_BIN="${ENV2D_DIR}/rcssserver-19.0.0/build/rcssserver"
-if [[ ! -x "${RCSSSERVER_BIN}" ]]; then
-  RCSSSERVER_BIN="${ENV2D_DIR}/rcssserver-19.0.0/build-linux/rcssserver"
-fi
+resolve_rcssserver_bin() {
+  local candidate
+  local status
+  for candidate in \
+    "${ENV2D_DIR}/rcssserver-19.0.0/build-linux/rcssserver" \
+    "${ENV2D_DIR}/rcssserver-19.0.0/build/rcssserver"
+  do
+    if [[ ! -x "${candidate}" ]]; then
+      continue
+    fi
+
+    status=0
+    "${candidate}" --help >/dev/null 2>&1 || status=$?
+    if [[ "${status}" -ne 126 && "${status}" -ne 127 ]]; then
+      printf '%s\n' "${candidate}"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+RCSSSERVER_BIN="$(resolve_rcssserver_bin || true)"
 
 if [[ ! -x "${RCSSSERVER_BIN}" ]]; then
   echo "rcssserver not found/executable in build or build-linux directories" >&2
@@ -229,14 +255,15 @@ OUTPUT_ROOT="${SCRIPT_DIR}/benchmark_outputs/${SIMULATOR_ID}/${BENCHMARK_KIND}/m
 RUN_INDEX="$(next_run_index "${OUTPUT_ROOT}")"
 RUN_ID="run_${RUN_INDEX}"
 RUN_DIR="${OUTPUT_ROOT}/${RUN_ID}"
-MATCH_LOG_DIR="${RUN_DIR}/match_logs"
+MATCH_LOG_ROOT="${RUN_DIR}/match_logs"
+SERVER_LOG_DIR="${RUN_DIR}/server_logs"
 RESULTS_CSV="${RUN_DIR}/results.csv"
 LEVELS_CSV="${RUN_DIR}/levels.csv"
 RUN_METADATA_JSON="${RUN_DIR}/run_metadata.json"
 METRICS_CATALOG_CSV="${RUN_DIR}/metrics_catalog.csv"
 BEHAVIOURAL_SCAFFOLD_CSV="${RUN_DIR}/behavioural_metrics_scaffold.csv"
 
-mkdir -p "${RUN_DIR}" "${MATCH_LOG_DIR}"
+mkdir -p "${RUN_DIR}" "${MATCH_LOG_ROOT}" "${SERVER_LOG_DIR}"
 
 echo "parameter_level,parameter_value,variant_controller" > "${LEVELS_CSV}"
 for lvl in "${levels[@]}"; do
@@ -266,7 +293,7 @@ EOF
 echo "run_id,benchmark_type,simulator,mode,baseline_controller,parameter_name,parameter_level,parameter_value,match_id,pair_id,left_team,right_team,left_goals,right_goals,timestamp,status,error_reason,wall_time_sec" > "${RESULTS_CSV}"
 echo "run_id,match_id,simulator,mode,baseline_controller,parameter_name,parameter_level,parameter_value,shot_distance_m,shot_location_x,shot_location_y,press_initiation_distance_m,time_to_shot_s,time_to_engagement_s,spatial_occupancy_json,trajectory_path_length_m,trajectory_curvature_mean,availability_shot_distance,availability_press_distance,availability_time_to_shot,availability_time_to_engagement,availability_spatial_occupancy,availability_trajectory,notes" > "${BEHAVIOURAL_SCAFFOLD_CSV}"
 
-export RUN_METADATA_JSON LEVELS_CSV RUN_ID BENCHMARK_KIND SIMULATOR_ID mode BASELINE_CONTROLLER parameter OUTPUT_ROOT RUN_DIR
+export RUN_METADATA_JSON LEVELS_CSV RUN_ID BENCHMARK_KIND SIMULATOR_ID mode BASELINE_CONTROLLER parameter OUTPUT_ROOT RUN_DIR RCSSSERVER_PORT_BASE RCSSSERVER_PORT_STRIDE
 python3 - <<'PY'
 import csv
 import json
@@ -288,6 +315,8 @@ metadata = {
     "levels": levels,
     "output_root": os.environ["OUTPUT_ROOT"],
     "run_dir": os.environ["RUN_DIR"],
+    "server_port_base": int(os.environ["RCSSSERVER_PORT_BASE"]),
+    "server_port_stride": int(os.environ["RCSSSERVER_PORT_STRIDE"]),
     "created_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     "notes": {
         "behavioural_metrics": "Scaffolded placeholders are emitted; requested behavioural metrics are not computed from current logs yet."
@@ -299,6 +328,7 @@ with open(os.environ["RUN_METADATA_JSON"], "w", encoding="utf-8") as f:
 PY
 
 SERVER_PID=""
+MATCH_INDEX=0
 
 cleanup_match() {
   if [[ -n "${SERVER_PID}" ]]; then
@@ -314,6 +344,42 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+server_error_reason() {
+  local server_log="$1"
+  if grep -Eq "cannot execute binary file|Exec format error" "${server_log}"; then
+    printf '%s' "server_binary_incompatible"
+    return 0
+  fi
+  if grep -q "Error initializing sockets" "${server_log}"; then
+    printf '%s' "server_bind_failed"
+    return 0
+  fi
+  if grep -q "Waiting for players to connect" "${server_log}" && ! grep -q "Kick_off_" "${server_log}"; then
+    printf '%s' "players_failed_to_connect"
+    return 0
+  fi
+  if [[ ! -s "${server_log}" ]]; then
+    printf '%s' "empty_server_log"
+    return 0
+  fi
+  printf '%s' "parse_fail"
+}
+
+pid_is_active() {
+  local pid="$1"
+  local stat=""
+  if ! kill -0 "${pid}" >/dev/null 2>&1; then
+    return 1
+  fi
+
+  stat="$(ps -o stat= -p "${pid}" 2>/dev/null | awk 'NR==1 {print $1}')"
+  if [[ -z "${stat}" || "${stat}" == Z* ]]; then
+    return 1
+  fi
+
+  return 0
+}
+
 run_match() {
   local level="$1"
   local parameter_value="$2"
@@ -323,40 +389,77 @@ run_match() {
   local rep_idx="$6"
   local match_id="${parameter}_${level}_${mode}_s${side_idx}_r${rep_idx}"
   local pair_id="${left_team}_${right_team}"
-  local log_file
+  local match_log_dir="${MATCH_LOG_ROOT}/${match_id}"
+  local server_log="${SERVER_LOG_DIR}/${match_id}.server.log"
+  local server_port=""
+  local coach_port=""
   local left_goals="NA"
   local right_goals="NA"
   local status="ok"
   local error_reason=""
+  local hit_wall_timeout=0
   local wall_start wall_end wall_time_sec timestamp
+  local startup_try startup_port
 
-  log_file="$(mktemp)"
+  MATCH_INDEX=$((MATCH_INDEX + 1))
+  mkdir -p "${match_log_dir}"
   cleanup_match
 
   wall_start="$(date +%s)"
   echo "START ${match_id}: ${left_team} (L) vs ${right_team} (R) @ $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
-  "${RCSSSERVER_BIN}" \
-    server::auto_mode=on \
-    server::synch_mode=off \
-    server::slow_down_factor=1 \
-    server::half_time="${HALF_TIME_CYCLES}" \
-    server::game_log_dir="${MATCH_LOG_DIR}" \
-    server::text_log_dir="${MATCH_LOG_DIR}" \
-    > "${log_file}" 2>&1 &
-  SERVER_PID=$!
+  for startup_try in $(seq 0 $((RCSSSERVER_PORT_RETRIES - 1))); do
+    startup_port=$((RCSSSERVER_PORT_BASE + ((MATCH_INDEX - 1) * RCSSSERVER_PORT_STRIDE) + (startup_try * RCSSSERVER_PORT_STRIDE)))
+    coach_port=$((startup_port + 2))
+    : > "${server_log}"
+    "${RCSSSERVER_BIN}" \
+      server::auto_mode=on \
+      server::synch_mode=off \
+      server::slow_down_factor=1 \
+      server::port="${startup_port}" \
+      server::olcoach_port="$((startup_port + 1))" \
+      server::coach_port="${coach_port}" \
+      server::half_time="${HALF_TIME_CYCLES}" \
+      server::game_log_dir="${match_log_dir}" \
+      server::text_log_dir="${match_log_dir}" \
+      > "${server_log}" 2>&1 &
+    SERVER_PID=$!
 
-  sleep "${START_DELAY}"
-  "${AGENT_DIR}/start-4players.sh" -t "${left_team}" "${TEAM_ARGS[@]}" >/dev/null 2>&1
+    sleep "${START_DELAY}"
+    if kill -0 "${SERVER_PID}" >/dev/null 2>&1; then
+      server_port="${startup_port}"
+      break
+    fi
+
+    wait "${SERVER_PID}" >/dev/null 2>&1 || true
+    SERVER_PID=""
+    if ! grep -q "Error initializing sockets" "${server_log}"; then
+      break
+    fi
+    echo "WARN ${match_id}: benchmark port ${startup_port} unavailable, retrying" >&2
+  done
+
+  if [[ -z "${server_port}" ]]; then
+    status="error"
+    error_reason="$(server_error_reason "${server_log}")"
+    wall_end="$(date +%s)"
+    wall_time_sec=$((wall_end - wall_start))
+    timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    echo "${RUN_ID},${BENCHMARK_KIND},${SIMULATOR_ID},${mode},${BASELINE_CONTROLLER},${parameter},${level},${parameter_value},${match_id},${pair_id},${left_team},${right_team},${left_goals},${right_goals},${timestamp},${status},${error_reason},${wall_time_sec}" >> "${RESULTS_CSV}"
+    echo "${RUN_ID},${match_id},${SIMULATOR_ID},${mode},${BASELINE_CONTROLLER},${parameter},${level},${parameter_value},,,,,,,,,,not_available_from_current_logs,not_available_from_current_logs,not_available_from_current_logs,not_available_from_current_logs,not_available_from_current_logs,not_available_from_current_logs,requires_event_level_telemetry_for_shots_press_and_trajectories" >> "${BEHAVIOURAL_SCAFFOLD_CSV}"
+    echo "END   ${match_id}: ${left_team} ${left_goals} - ${right_goals} ${right_team} status=${status} error=${error_reason} wall=${wall_time_sec}s"
+    return
+  fi
+
+  "${AGENT_DIR}/start-4players.sh" -t "${left_team}" -p "${server_port}" "${TEAM_ARGS[@]}" >/dev/null 2>&1
   sleep "${SIDE_DELAY}"
-  "${AGENT_DIR}/start-4players.sh" -t "${right_team}" "${TEAM_ARGS[@]}" >/dev/null 2>&1
+  "${AGENT_DIR}/start-4players.sh" -t "${right_team}" -p "${server_port}" "${TEAM_ARGS[@]}" >/dev/null 2>&1
 
   local wait_start
   wait_start="$(date +%s)"
-  while kill -0 "${SERVER_PID}" >/dev/null 2>&1; do
+  while pid_is_active "${SERVER_PID}"; do
     if (( $(date +%s) - wait_start > MATCH_TIMEOUT_SECONDS )); then
-      status="timeout"
-      error_reason="timeout"
+      hit_wall_timeout=1
       kill -INT "${SERVER_PID}" >/dev/null 2>&1 || true
       break
     fi
@@ -368,16 +471,19 @@ run_match() {
   wall_end="$(date +%s)"
   wall_time_sec=$((wall_end - wall_start))
 
-  if [[ "${status}" == "ok" ]]; then
-    local score_line
-    score_line="$(awk '/Score:/{print $2","$4}' "${log_file}" | tail -n 1)"
-    if [[ -z "${score_line}" ]]; then
-      status="error"
-      error_reason="parse_fail"
-    else
-      left_goals="${score_line%,*}"
-      right_goals="${score_line#*,}"
-    fi
+  local score_line
+  score_line="$(awk '/Score:/{print $2","$4}' "${server_log}" | tail -n 1)"
+  if [[ -n "${score_line}" ]]; then
+    left_goals="${score_line%,*}"
+    right_goals="${score_line#*,}"
+    status="ok"
+    error_reason=""
+  elif [[ "${hit_wall_timeout}" -eq 1 ]]; then
+    status="error"
+    error_reason="timeout"
+  elif [[ "${status}" == "ok" ]]; then
+    status="error"
+    error_reason="$(server_error_reason "${server_log}")"
   fi
 
   timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
@@ -385,8 +491,7 @@ run_match() {
 
   echo "${RUN_ID},${match_id},${SIMULATOR_ID},${mode},${BASELINE_CONTROLLER},${parameter},${level},${parameter_value},,,,,,,,,,not_available_from_current_logs,not_available_from_current_logs,not_available_from_current_logs,not_available_from_current_logs,not_available_from_current_logs,not_available_from_current_logs,requires_event_level_telemetry_for_shots_press_and_trajectories" >> "${BEHAVIOURAL_SCAFFOLD_CSV}"
 
-  echo "END   ${match_id}: ${left_team} ${left_goals} - ${right_goals} ${right_team} status=${status} wall=${wall_time_sec}s"
-  rm -f "${log_file}"
+  echo "END   ${match_id}: ${left_team} ${left_goals} - ${right_goals} ${right_team} status=${status} port=${server_port} wall=${wall_time_sec}s"
 }
 
 for lvl in "${levels[@]}"; do
