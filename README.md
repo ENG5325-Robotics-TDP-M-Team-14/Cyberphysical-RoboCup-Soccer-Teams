@@ -1,138 +1,305 @@
 # Cyberphysical RoboCup Soccer Teams
 
-Team 14's workspace for the Cyberphysical RoboCup Soccer Teams project. This repo vendors the 2D simulator stack and a baseline agent, plus an imitation learning research codebase.
+Linux-first workspace for Team 14's RoboCup simulation work.
 
-## What is included
+This repository combines three tracks in one place:
 
-- `environment/2d-environment/`: Full 2D stack (rcssserver, rcssmonitor, StarterAgent2D).
-- `behaviour_algorithm/rcss2d-opp-imitation-main/`: Python/Poetry pipeline for imitation learning (not wired into the agent yet).
-- `environment/3d-environment/`: FCP 3D codebase (`FCPCodebase`) plus SimSpark server.
-- `model/`: Placeholder (empty currently).
+1. 2D simulator runtime and benchmarking.
+2. 3D simulator runtime and benchmarking.
+3. An offline RCSS2D imitation-learning pipeline.
 
-## Quickstart (2D, 4v4)
+The root `README.md` is the canonical project entrypoint. Start here, then use the linked `docs/` pages for deeper setup, benchmark, troubleshooting, and architecture details.
 
-From the 2D stack, you can run a 4v4 match where both teams use the current "basic" agent.
+## What This Repository Is
 
-Build the agent (once, or after changes):
-- `./makeAgent.sh` from `environment/2d-environment/starter-stack`
+This is a workspace, not a single application. It contains:
 
-1. Start the server:
-   - `./rcssserver` from `environment/2d-environment/rcssserver-19.0.0/build`
-2. Start the monitor:
-   - `./rcssmonitor` from `environment/2d-environment/rcssmonitor-19.0.1/build`
-3. Start the left team:
-   - `./start-4players.sh -t BASIC` from `environment/2d-environment/starter-stack/Agent/src`
-4. Start the right team:
-   - `./start-4players.sh -t BASIC` from `environment/2d-environment/starter-stack/Agent/src`
+- a 2D runtime stack built around the starter-stack launch and benchmark scripts,
+- a 3D runtime stack built around the FC Portugal Python codebase plus SimSpark/RoboViz,
+- benchmark tooling for strategy-level and parameter-level experiments,
+- a separate offline learning pipeline for RCSS2D logs.
 
-Stop a match with Ctrl+C or:
-- `killall sample_player`
-- `killall sample_coach`
-- `killall rcssserver`
+## Repository Architecture
 
-## Strategy switching (team name -> config)
+| Path | Purpose |
+|---|---|
+| `environment/2d-environment/` | RCSS2D server, monitor, and 2D runtime/benchmark assets |
+| `environment/2d-environment/starter-stack/` | 2D launch scripts, benchmark runners, compatibility bridge, and analyzed behavior code |
+| `environment/3d-environment/` | SimSpark, RoboViz, FCPCodebase, and 3D benchmark scripts |
+| `behaviour_algorithm/rcss2d-opp-imitation-main/` | Offline imitation-learning subproject |
+| `docs/setup/` | Linux-only setup and environment notes |
+| `docs/benchmarks/` | Benchmark workflow and methodology notes |
+| `docs/architecture/` | Role/FSM and architecture-level documentation |
+| `docs/troubleshooting/` | Common teammate issues and fixes |
+| `docs/development/` | Code entry points and extension notes |
 
-Strategy is selected solely by the team name passed via `-t`. Behaviors do not parse names directly; they read a `StrategyConfig` created once in `sample_player.cpp`.
+## Supported Platform
 
-Strategy parameters in `StrategyConfig`:
-- `formation_id`: `DEF_121` or `OFF_112` (baseline uses the existing formation path).
-- `press_threshold`: integer (low/high press).
-- `shoot_range`: distance threshold (conservative/aggressive).
+Linux is the only onboarding path documented and supported in this repository.
 
-Where these are wired:
-- Strategy mapping: `environment/2d-environment/starter-stack/Agent/src/sample_player.cpp`
-- Formation hook: `environment/2d-environment/starter-stack/Agent/src/bhv_basic_move.cpp`
-- Press threshold hook: `environment/2d-environment/starter-stack/Agent/src/bhv_basic_move.cpp`
-- Shooting range hook: `environment/2d-environment/starter-stack/Agent/src/bhv_basic_offensive_kick.cpp`
+If you are setting up the project for the first time, read [docs/setup/linux.md](docs/setup/linux.md) after this README.
 
-Canonical strategy team names (<= 12 chars):
-- `BASIC` (baseline)
-- `NOISE` (baseline, control)
-- `DEFLOCK` (DEF_121, low press, conservative shoot)
-- `HIPRESS` (DEF_121, high press, conservative shoot)
-- `DIRECT` (OFF_112, low press, aggressive shoot)
-- `AGGRO` (OFF_112, high press, aggressive shoot)
+## Quick Start
 
-## 3D simulator stack (current)
+1. Build the 2D simulator binaries in `environment/2d-environment/rcssserver-19.0.0/build-linux` and `environment/2d-environment/rcssmonitor-19.0.1/build-linux`.
+2. Build `StarterLibRCSC-V2` and `StarterAgent2D-V2`, then refresh the 2D compatibility bridge with `environment/2d-environment/starter-stack/link_starteragent2d_v2_compat_2d.sh --force`.
+3. Ensure 3D prerequisites are available: `rcssserver3d` on `PATH`, RoboViz under `environment/3d-environment/RoboViz/`, and the FCPCodebase virtual environment.
+4. Use the benchmark runners for repeatable experiments or the start scripts for manual sandbox runs.
 
-- Linux stack using SimSpark/rcssserver3d plus RoboViz.
-- Server + monitor launcher: `environment/3d-environment/scripts/run_rcssserver3d_and_RoboViz.sh`.
-- RoboViz config: `environment/3d-environment/RoboViz/config.txt` (log recording enabled to the 3D benchmark log directory).
+Detailed Linux setup lives in [docs/setup/linux.md](docs/setup/linux.md).
 
-## 3D strategy selection (current)
+## Core Dependencies And Setup Orientation
 
-- Agents are launched with `--strategy` (e.g., `BASIC`, `NOISE`, `DEFLOCK`, `HIPRESS`, `DIRECT`, `AGGRO`).
-- Strategy config is defined in `environment/3d-environment/FCPCodebase/strategy/strategy_registry.py` and attached to the player at startup.
-- Lever mappings:
-  - Formation: `environment/3d-environment/FCPCodebase/world/commons/formations.py` and `environment/3d-environment/FCPCodebase/agent/Agent.py`.
-  - Press threshold: `environment/3d-environment/FCPCodebase/strategy/press_mapping.py` and the engage decision in `environment/3d-environment/FCPCodebase/agent/Agent.py`.
-  - Shoot range: `environment/3d-environment/FCPCodebase/strategy/shoot_mapping.py` and the goal-directed kick decision in `environment/3d-environment/FCPCodebase/agent/Agent.py`.
+### 2D
 
-## Strategy benchmark (3D, current)
+- Vendored `rcssserver` and `rcssmonitor` are built from this repo with CMake.
+- The supported 2D agent build path is the maintained CMake-based `StarterLibRCSC-V2` + `StarterAgent2D-V2` pair.
+- The starter-stack launchers still expect `sample_player`, `sample_coach`, and `sample_trainer` under `environment/2d-environment/starter-stack/Agent/src/`, so the compatibility helper script links the maintained binaries into that legacy location.
 
-Script: `environment/3d-environment/scripts/run_strategy_benchmark_3d.sh`
+### 3D
 
-Design:
-- BASIC vs NOISE/DEFLOCK/HIPRESS/DIRECT/AGGRO
-- Sides swapped
-- Replicates per side: 5 (configurable via `--repeats`)
+- `rcssserver3d` must be installed and runnable on the machine.
+- RoboViz is used as part of the supported benchmark flow.
+- The Python runtime lives under `environment/3d-environment/FCPCodebase/.venv`.
 
-Execution notes:
-- Each match starts a fresh rcssserver3d + RoboViz instance.
-- Match end is detected by parsing RoboViz logs (half-time reached).
-- Key options: `--repeats`, `--half-time-timeout-sec`, `MATCH_WALL_TIMEOUT_SEC`, `PROGRESS_INTERVAL_SEC`.
+### Offline Pipeline
 
-## 3D results & logs
+- The imitation-learning project is separate from the live 2D and 3D runtime agents.
+- It uses Poetry and has its own subproject README for component-specific details.
 
-- CSV: `environment/3d-environment/strategy_benchmark_logs_3d/strategy_benchmark_results_3d.csv`
-  - Columns: `match_id,pair_id,left_team,right_team,left_goals,right_goals,timestamp,status,error_reason`
-- RoboViz logs: `environment/3d-environment/strategy_benchmark_logs_3d/match_logs/`
-- Parser: `scripts/utils/parse_roboviz_log.py` (reads `score_left/score_right` from world-state lines).
+## 2D Setup Summary
 
-## Known limitations (3D)
+Build the vendored simulator tools:
 
-- Physical kick motion is unstable; robots can fall during kicks.
-- RoboViz logging can be heavy; log parsing is required for match timing.
-- VM environments often emit OpenGL/llvmpipe warnings and may run slower than real time.
-
-## Strategy benchmark (DoE runner)
-
-Script: `environment/2d-environment/starter-stack/run_strategy_benchmark.sh`
-
-Design:
-- Pairs: BASIC vs NOISE/DEFLOCK/HIPRESS/DIRECT/AGGRO
-- Sides: swap left/right
-- Replicates: 5 per side
-- Total matches: 50
-
-Output:
-- CSV: `environment/2d-environment/starter-stack/strategy_benchmark_results.csv`
-  - Columns: `pair_id,left_team,right_team,left_goals,right_goals,timestamp`
-- Logs: `environment/2d-environment/starter-stack/strategy_benchmark_log/` (`.rcg`, `.rcl`)
-
-Defaults in the runner:
-- Headless server (no monitor required)
-- `server::auto_mode=on`
-- `server::half_time=150` (~3000 cycles total, ~5 min sim time)
-- Hard timeout: 300s wall-clock (set `MATCH_TIMEOUT_SECONDS=...` to override)
-
-Example run (from `environment/2d-environment/starter-stack`):
 ```bash
-./run_strategy_benchmark.sh
+cd environment/2d-environment/rcssserver-19.0.0
+mkdir -p build-linux
+cd build-linux
+cmake ..
+cmake --build . -j"$(nproc)"
 ```
 
-## Where to change behavior (strategy)
+```bash
+cd environment/2d-environment/rcssmonitor-19.0.1
+mkdir -p build-linux
+cd build-linux
+cmake ..
+cmake --build . -j"$(nproc)"
+```
 
-The baseline agent is in StarterAgent2D:
-- Main decision loop: `environment/2d-environment/starter-stack/Agent/src/sample_player.cpp`
-- Movement/positioning: `environment/2d-environment/starter-stack/Agent/src/bhv_basic_move.cpp`
-- Offensive actions: `environment/2d-environment/starter-stack/Agent/src/bhv_basic_offensive_kick.cpp`
-- Goalie behavior: `environment/2d-environment/starter-stack/Agent/src/bhv_goalie_basic_move.cpp`
-- 4v4 config: `environment/2d-environment/starter-stack/Agent/src/player-4players.conf`
-- 4v4 launch script: `environment/2d-environment/starter-stack/Agent/src/start-4players.sh`
+Build the maintained lib and agent pair:
 
-## Notes
+```bash
+cd environment/2d-environment
+git clone https://github.com/RCSS-IR/StarterLibRCSC-V2.git
+git clone https://github.com/RCSS-IR/StarterAgent2D-V2.git
+```
 
-- The 2D stack is vendored third-party code; keep the original licenses in place.
-- The imitation learning project is research-oriented and currently separate from the agent runtime.
-- Team names must be <= 12 chars due to RCSS2D protocol limits.
+```bash
+cd environment/2d-environment/StarterLibRCSC-V2
+mkdir -p build
+cd build
+cmake ..
+cmake --build . -j"$(nproc)"
+cmake --install .
+```
+
+```bash
+cd environment/2d-environment/StarterAgent2D-V2
+mkdir -p build
+cd build
+cmake -DLIBRCSC_INSTALL_DIR="$HOME/local/starter" ..
+cmake --build . -j"$(nproc)"
+```
+
+Bridge the maintained binaries into the starter-stack runtime layout:
+
+```bash
+cd environment/2d-environment/starter-stack
+./link_starteragent2d_v2_compat_2d.sh --force
+```
+
+Detailed setup, custom install-prefix notes, and the legacy build status are documented in [docs/setup/linux.md](docs/setup/linux.md).
+
+## 3D Setup Summary
+
+The repo assumes the following are already available on the Linux machine:
+
+- `rcssserver3d` on `PATH`,
+- RoboViz under `environment/3d-environment/RoboViz/`,
+- a working FCPCodebase virtual environment at `environment/3d-environment/FCPCodebase/.venv`.
+
+Typical activation:
+
+```bash
+cd environment/3d-environment/FCPCodebase
+source .venv/bin/activate
+```
+
+The 3D benchmark scripts build or verify their helper modules as needed. See [docs/setup/linux.md](docs/setup/linux.md) and [docs/troubleshooting/linux-runtime.md](docs/troubleshooting/linux-runtime.md) for environment caveats.
+
+## Main Workflows
+
+### Vanilla / Sandbox Runs
+
+#### 2D vanilla 4v4
+
+Terminal 1:
+
+```bash
+cd environment/2d-environment/rcssserver-19.0.0/build-linux
+./rcssserver
+```
+
+Terminal 2:
+
+```bash
+cd environment/2d-environment/rcssmonitor-19.0.1/build-linux
+./rcssmonitor
+```
+
+Terminal 3:
+
+```bash
+cd environment/2d-environment/starter-stack/Agent/src
+./start-4players.sh -t BASIC
+```
+
+Terminal 4:
+
+```bash
+cd environment/2d-environment/starter-stack/Agent/src
+./start-4players.sh -t AGGRO
+```
+
+Important: in RCSS2D, left and right teams must use different team names.
+
+#### 3D vanilla run
+
+Quick managed smoke:
+
+```bash
+cd environment/3d-environment/scripts
+./smoke_strategy_demo.sh
+```
+
+Manual launcher:
+
+```bash
+cd environment/3d-environment/scripts
+./run_rcssserver3d_and_RoboViz.sh
+```
+
+```bash
+cd environment/3d-environment/FCPCodebase
+source .venv/bin/activate
+for u in 1 2 3 4; do python Run_Player.py -t Home -u "$u" --strategy BASIC & done
+for u in 1 2 3 4; do python Run_Player.py -t Away -u "$u" --strategy BASIC & done
+```
+
+### 2D Benchmarking
+
+Project note: for 2D small-sided isolated benchmarking, the recommended duel-style mode is `2v2` because each side includes one field player and one goalkeeper. `1v1` still exists as an optional no-goalie microbenchmark.
+
+#### 2D 4v4 strategy benchmarking
+
+```bash
+cd environment/2d-environment/starter-stack
+./link_starteragent2d_v2_compat_2d.sh --force
+./run_strategy_benchmark_2d.sh
+```
+
+#### 2D 1v1 parametric benchmarking
+
+```bash
+cd environment/2d-environment/starter-stack
+./run_parametric_benchmark_2d.sh --parameter press_threshold --mode 1v1 --repeats 5
+```
+
+#### 2D 2v2 parametric benchmarking
+
+```bash
+cd environment/2d-environment/starter-stack
+./run_parametric_benchmark_2d.sh --parameter press_threshold --mode 2v2 --repeats 5
+```
+
+#### 2D 4v4 parametric benchmarking
+
+```bash
+cd environment/2d-environment/starter-stack
+./run_parametric_benchmark_2d.sh --parameter formation --mode 4v4 --levels baseline,def,off --repeats 5
+```
+
+### 3D Benchmarking
+
+#### 3D 4v4 strategy benchmarking
+
+```bash
+cd environment/3d-environment/scripts
+./run_strategy_benchmark_3d.sh
+```
+
+If DBus-backed `systemd-inhibit` is unavailable:
+
+```bash
+cd environment/3d-environment/scripts
+BENCH_NO_INHIBIT=1 ./run_strategy_benchmark_3d.sh
+```
+
+#### 3D 1v1 parametric benchmarking
+
+```bash
+cd environment/3d-environment/scripts
+./run_parametric_benchmark_3d.sh --parameter press_threshold --mode 1v1 --repeats 5
+```
+
+#### 3D 2v2 parametric benchmarking
+
+```bash
+cd environment/3d-environment/scripts
+./run_parametric_benchmark_3d.sh --parameter press_threshold --mode 2v2 --repeats 5
+```
+
+#### 3D 4v4 parametric benchmarking
+
+```bash
+cd environment/3d-environment/scripts
+./run_parametric_benchmark_3d.sh --parameter formation --mode 4v4 --levels baseline,def,off --repeats 5
+```
+
+### Offline Imitation-Learning Pipeline
+
+```bash
+cd behaviour_algorithm/rcss2d-opp-imitation-main
+poetry install
+poetry run python cli.py
+```
+
+This pipeline is research-oriented and separate from the live benchmark runners.
+
+## Output Locations
+
+- 2D strategy: `environment/2d-environment/starter-stack/strategy_benchmark_results_2d.csv` and `environment/2d-environment/starter-stack/strategy_benchmark_logs_2d/`
+- 2D parametric: `environment/2d-environment/starter-stack/benchmark_outputs/2d/parametric/`
+- 3D strategy: `environment/3d-environment/strategy_benchmark_logs_3d/` plus optional `--out-csv`
+- 3D parametric: `environment/3d-environment/benchmark_outputs/3d/parametric/`
+
+Detailed benchmark semantics and output structure are documented in [docs/benchmarks/workflows.md](docs/benchmarks/workflows.md).
+
+## Documentation Map
+
+- [docs/setup/linux.md](docs/setup/linux.md): Linux-only setup, build details, and the supported 2D compatibility bridge.
+- [docs/benchmarks/workflows.md](docs/benchmarks/workflows.md): benchmark modes, recommended usage, and output structure.
+- [docs/architecture/role-fsm-2d-3d.md](docs/architecture/role-fsm-2d-3d.md): code-faithful 2D and 3D role/FSM logic.
+- [docs/troubleshooting/linux-runtime.md](docs/troubleshooting/linux-runtime.md): teammate-facing setup and runtime failure modes.
+- [docs/development/extension-notes.md](docs/development/extension-notes.md): code entry points and where to extend behaviors or benchmark mappings.
+
+## Current Limitations / Caveats
+
+- Linux is the only documented onboarding platform.
+- The supported 2D build path is the maintained CMake-based lib/agent pair plus the compatibility bridge. The old starter-stack autotools build is legacy.
+- 2D strategy benchmarking is a fixed 4v4 suite. Reduced-player 2D strategy checks are manual only.
+- 2D `1v1` parametric mode is a no-goalie microbenchmark. For project-style isolated evaluation, use `2v2`.
+- 3D benchmarking is RoboViz-backed rather than fully headless.
+- In some Linux environments, 3D scripts need `BENCH_NO_INHIBIT=1`.
+- The offline imitation-learning pipeline is not wired into the live runtime agents.

@@ -1,0 +1,3 @@
+run_id,benchmark_type,simulator,mode,baseline_controller,parameter_name,parameter_level,parameter_value,match_id,pair_id,left_team,right_team,left_goals,right_goals,timestamp,status,error_reason,wall_time_sec
+run_0001,parametric,2d,1v1,BASIC,press_threshold,baseline,3,press_threshold_baseline_1v1_s0_r1,BASIC_PRESBASE,BASIC,PRESBASE,NA,NA,2026-03-22T22:08:52Z,error,parse_fail,2
+run_0001,parametric,2d,1v1,BASIC,press_threshold,baseline,3,press_threshold_baseline_1v1_s1_r1,PRESBASE_BASIC,PRESBASE,BASIC,NA,NA,2026-03-22T22:08:54Z,error,parse_fail,2

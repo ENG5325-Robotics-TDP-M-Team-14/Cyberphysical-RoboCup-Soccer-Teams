@@ -1,8 +1,10 @@
 # rcss2d-opp-imitation
 
+Canonical workspace entrypoint for this repository: [../../README.md](../../README.md)
+
 Research on the use of Deep Imitation Learning to obtain models of opponent behavior in the RoboCup Soccer Simulation 2D League by the Laboratory of Autonomous Computational Systems, Aeronautics Instute of Technology, Brazil.
 
-This has only been tested on OS X, but should work on Linux with few adjustments.
+Within this workspace, treat Linux as the supported platform for running this component.
 
 ## Preparation
 

@@ -1,5 +1,7 @@
 # FC Portugal Codebase <br> for RoboCup 3D Soccer Simulation League
 
+Canonical workspace entrypoint for this repository: [../../../README.md](../../../README.md)
+
 ![](https://s5.gifyu.com/images/Siov6.gif)
 
 ## About

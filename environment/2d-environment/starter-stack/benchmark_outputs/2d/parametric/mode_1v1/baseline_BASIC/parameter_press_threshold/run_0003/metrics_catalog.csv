@@ -1,0 +1,16 @@
+metric_name,status,scope,source,notes
+left_goals,available,match,rcssserver text log score line,Final left score from server log parsing
+right_goals,available,match,rcssserver text log score line,Final right score from server log parsing
+match_status,available,match,parametric runner,ok/timeout/error
+error_reason,available,match,parametric runner,timeout/parse_fail/empty
+timestamp_utc,available,match,parametric runner,Row timestamp in UTC
+wall_time_sec,available,match,parametric runner,Wall-clock duration measured in shell
+shot_distance_m,scaffolded,match,placeholder,Requires event-level kick telemetry
+shot_location_x,scaffolded,match,placeholder,Requires event-level kick telemetry
+shot_location_y,scaffolded,match,placeholder,Requires event-level kick telemetry
+press_initiation_distance_m,scaffolded,match,placeholder,Requires press trigger instrumentation
+time_to_shot_s,scaffolded,match,placeholder,Requires shot event timing instrumentation
+time_to_engagement_s,scaffolded,match,placeholder,Requires engagement event timing instrumentation
+spatial_occupancy_json,scaffolded,match,placeholder,Requires positional time-series logs
+trajectory_path_length_m,scaffolded,match,placeholder,Requires positional time-series logs
+trajectory_curvature_mean,scaffolded,match,placeholder,Requires positional time-series logs

@@ -11,6 +11,7 @@ import numpy as np
 
 
 class World():
+    USE_CHEATS = False  # Gate any use of server-provided ground-truth fields
     STEPTIME = 0.02    # Fixed step time
     STEPTIME_MS = 20   # Fixed step time in milliseconds
     VISUALSTEP = 0.04  # Fixed visual step time
@@ -99,6 +100,9 @@ class World():
         self.team_draw = Draw(enable_draw, 0, host, 32769)            # Draw object shared with teammates
         self.logger = logger
         self.robot = Robot(unum, robot_type)
+        config_msg = f"[CONFIG] Cheats enabled: {World.USE_CHEATS}"
+        self.log(config_msg)
+        print(config_msg)
 
 
     def log(self, msg:str):
@@ -226,6 +230,12 @@ class World():
 
         r.update_pose() # update forward kinematics
 
+        if not World.USE_CHEATS:
+            r.cheat_abs_pos[:] = 0.0
+            r.cheat_ori = 0.0
+            self.ball_cheat_abs_pos[:] = 0.0
+            self.ball_cheat_abs_vel[:] = 0.0
+
         if self.ball_is_visible:
             # Compute ball position, relative to torso
             self.ball_rel_torso_cart_pos = r.head_to_body_part_transform("torso",self.ball_rel_head_cart_pos)
@@ -243,7 +253,12 @@ class World():
             if rf_contact is not None:
                 feet_contact[3:6] = Matrix_4x4( r.body_parts["rfoot"].transform ).translate( rf_contact[0:3] , True).get_translation()
 
-            ball_pos = np.concatenate(( self.ball_rel_head_cart_pos, self.ball_cheat_abs_pos))
+            if World.USE_CHEATS:
+                ball_pos = np.concatenate(( self.ball_rel_head_cart_pos, self.ball_cheat_abs_pos))
+                cheat_abs_pos = r.cheat_abs_pos
+            else:
+                ball_pos = np.concatenate(( self.ball_rel_head_cart_pos, np.zeros(3)))
+                cheat_abs_pos = np.zeros(3)
             
             corners_list = [[key in self.flags_corners, 1.0, *key, *self.flags_corners.get(key,(0,0,0))] for key in World.FLAGS_CORNERS_POS]
             posts_list   = [[key in self.flags_posts  , 0.0, *key, *self.flags_posts.get(  key,(0,0,0))] for key in World.FLAGS_POSTS_POS]
@@ -257,7 +272,7 @@ class World():
                 feet_contact,
                 self.ball_is_visible,
                 ball_pos,
-                r.cheat_abs_pos,
+                cheat_abs_pos,
                 all_landmarks,
                 self.lines[0:self.line_count])  
 

@@ -322,28 +322,34 @@ class World_Parser():
                         self.world.ball_last_seen = self.world.time_local_ms
 
                     elif tag==b'mypos':
-
-                        self.world.robot.cheat_abs_pos[0], end = self.read_float(end+1)
-                        self.world.robot.cheat_abs_pos[1], end = self.read_float(end+1)
-                        self.world.robot.cheat_abs_pos[2], end = self.read_float(end+1)
+                        if World.USE_CHEATS:
+                            self.world.robot.cheat_abs_pos[0], end = self.read_float(end+1)
+                            self.world.robot.cheat_abs_pos[1], end = self.read_float(end+1)
+                            self.world.robot.cheat_abs_pos[2], end = self.read_float(end+1)
+                        else:
+                            _, end = self.read_float(end+1)
+                            _, end = self.read_float(end+1)
+                            _, end = self.read_float(end+1)
 
                     elif tag==b'myorien':
-
-                        self.world.robot.cheat_ori, end = self.read_float(end+1)
+                        if World.USE_CHEATS:
+                            self.world.robot.cheat_ori, end = self.read_float(end+1)
+                        else:
+                            _, end = self.read_float(end+1)
 
                     elif tag==b'ballpos':
-
                         c1, end = self.read_float(end+1)
                         c2, end = self.read_float(end+1)
                         c3, end = self.read_float(end+1)
 
-                        self.world.ball_cheat_abs_vel[0] = (c1 - self.world.ball_cheat_abs_pos[0]) / World.VISUALSTEP
-                        self.world.ball_cheat_abs_vel[1] = (c2 - self.world.ball_cheat_abs_pos[1]) / World.VISUALSTEP
-                        self.world.ball_cheat_abs_vel[2] = (c3 - self.world.ball_cheat_abs_pos[2]) / World.VISUALSTEP
+                        if World.USE_CHEATS:
+                            self.world.ball_cheat_abs_vel[0] = (c1 - self.world.ball_cheat_abs_pos[0]) / World.VISUALSTEP
+                            self.world.ball_cheat_abs_vel[1] = (c2 - self.world.ball_cheat_abs_pos[1]) / World.VISUALSTEP
+                            self.world.ball_cheat_abs_vel[2] = (c3 - self.world.ball_cheat_abs_pos[2]) / World.VISUALSTEP
 
-                        self.world.ball_cheat_abs_pos[0] = c1
-                        self.world.ball_cheat_abs_pos[1] = c2
-                        self.world.ball_cheat_abs_pos[2] = c3
+                            self.world.ball_cheat_abs_pos[0] = c1
+                            self.world.ball_cheat_abs_pos[1] = c2
+                            self.world.ball_cheat_abs_pos[2] = c3
 
                     elif tag==b'P':
 
@@ -427,4 +433,3 @@ class World_Parser():
             else:
                 self.world.log(f"{self.LOG_PREFIX}Unknown root tag: {tag} at {end}, \nMsg: {exp.decode()}")
                 tag, end, min_depth = self.get_next_tag(end)
-

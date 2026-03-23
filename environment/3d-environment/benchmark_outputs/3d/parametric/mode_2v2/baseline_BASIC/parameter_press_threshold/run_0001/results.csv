@@ -1,0 +1,3 @@
+run_id,benchmark_type,simulator,mode,baseline_controller,parameter_name,parameter_level,parameter_value,match_id,pair_id,left_team,right_team,left_goals,right_goals,timestamp,status,error_reason
+run_0001,parametric,3d,2v2,BASIC,press_threshold,low,2,BASIC_PRESLOW#1,BASIC_PRESLOW,BASIC,PRESLOW,NA,NA,2026-03-23T01:44:22Z,timeout,timeout
+run_0001,parametric,3d,2v2,BASIC,press_threshold,low,2,PRESLOW_BASIC#1,PRESLOW_BASIC,PRESLOW,BASIC,NA,NA,2026-03-23T01:51:45Z,timeout,timeout

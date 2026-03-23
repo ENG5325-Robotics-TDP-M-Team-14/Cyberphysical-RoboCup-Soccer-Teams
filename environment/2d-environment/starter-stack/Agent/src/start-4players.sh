@@ -8,7 +8,35 @@ echo " Copyright 2007-2012.  Hidehisa Akiyama and Hiroki Shimora"
 echo " All rights reserved."
 echo "******************************************************************"
 
-LIBPATH=/Users/nathan.sidib/Code/ENG5325-Robotics-TDP-M-Team-14/Cyberphysical-RoboCup-Soccer-Teams/environment/2d-environment/starter-stack/Agent/Lib//lib
+DIR=$(cd "$(dirname "$0")" && pwd)
+COMPAT_ENV="${DIR}/.starteragent2d_v2_compat.env"
+compat_helper="${DIR}/../../link_starteragent2d_v2_compat_2d.sh"
+
+if [ -f "${COMPAT_ENV}" ]; then
+  . "${COMPAT_ENV}"
+fi
+
+LIBPATH=""
+append_libpath()
+{
+  if [ $# -lt 1 ]; then
+    return 0
+  fi
+
+  if [ -z "$1" ] || [ ! -d "$1" ]; then
+    return 0
+  fi
+
+  if [ -z "${LIBPATH}" ]; then
+    LIBPATH="$1"
+  else
+    LIBPATH="$1:${LIBPATH}"
+  fi
+}
+
+append_libpath "${STARTER_LIBRCSC_LIB_DIR:-}"
+append_libpath "$DIR/../Lib/lib"
+
 if [ x"$LIBPATH" != x ]; then
   if [ x"$LD_LIBRARY_PATH" = x ]; then
     LD_LIBRARY_PATH=$LIBPATH
@@ -17,8 +45,6 @@ if [ x"$LIBPATH" != x ]; then
   fi
   export LD_LIBRARY_PATH
 fi
-
-DIR=`dirname $0`
 
 player="${DIR}/sample_player"
 coach="${DIR}/sample_coach"
@@ -75,7 +101,39 @@ usage()
    echo "  --log-dir DIRECTORY          specifies debug log directory (default: /tmp)"
    echo "  --debug-log-ext EXTENSION    specifies debug log file extension (default: .log)"
    echo "  --fullstate FULLSTATE_TYPE   specifies fullstate model handling"
-   echo "                               FULLSTATE_TYPE is one of [ignore|reference|override].") 1>&2
+   echo "                               FULLSTATE_TYPE is one of [ignore|reference|override]."
+   echo
+   echo "Important: left and right launches must use different team names."
+   echo "Reusing the same team name causes RCSS2D to join both launches to one side.") 1>&2
+}
+
+binary_runnable()
+{
+  if [ ! -x "$1" ]; then
+    return 1
+  fi
+
+  "$1" --help >/dev/null 2>&1
+  status=$?
+  if [ $status -eq 126 ] || [ $status -eq 127 ]; then
+    return 1
+  fi
+  return 0
+}
+
+require_runtime_binary()
+{
+  if binary_runnable "$1"; then
+    return 0
+  fi
+
+  echo "Required runtime binary is missing or not runnable: $1" 1>&2
+  if [ -x "${compat_helper}" ]; then
+    echo "Build StarterAgent2D-V2 and refresh starter-stack links with:" 1>&2
+    echo "  ${compat_helper} --force" 1>&2
+  fi
+  echo "See docs/setup/linux.md for the supported 2D build path." 1>&2
+  exit 1
 }
 
 while [ $# -gt 0 ]
@@ -270,6 +328,11 @@ if [ X"${debug_server_port}" = X'' ]; then
   debug_server_port=`expr ${port} + 32`
 fi
 
+require_runtime_binary "${player}"
+if [ "${usecoach}" = "true" ]; then
+  require_runtime_binary "${coach}"
+fi
+
 opt="--player-config ${player_conf}"
 opt="${opt} -h ${host} -p ${port} -t ${teamname}"
 opt="${opt} ${fullstateopt}"
@@ -291,9 +354,11 @@ if [ $number -gt 0 ]; then
       $player ${opt} -g ${offline_number} &
       $sleepprog $goaliesleep
     fi
-  else # Player 1: goalie
-    $player ${opt} -g &
-    $sleepprog $goaliesleep
+  else # Player 1: goalie (in online mode, respect -u if provided)
+    if [ $unum -eq 0 ] || [ $unum -eq 1 ]; then
+      $player ${opt} -g &
+      $sleepprog $goaliesleep
+    fi
   fi
 fi
 
@@ -310,8 +375,10 @@ while [ $i -le ${number} ] ; do
       $sleepprog $sleeptime
     fi
   else # Players 2–4: defender (2), left forward (3), right forward (4)
-    $player ${opt} &
-    $sleepprog $sleeptime
+    if [ $unum -eq 0 ] || [ $unum -eq $i ]; then
+      $player ${opt} &
+      $sleepprog $sleeptime
+    fi
   fi
 
   i=`expr $i + 1`

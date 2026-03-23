@@ -1,0 +1,15 @@
+metric_name,status,scope,source,notes
+left_goals,available,match,run_strategy_benchmark_3d aggregated CSV,Final left score from strategy benchmark row
+right_goals,available,match,run_strategy_benchmark_3d aggregated CSV,Final right score from strategy benchmark row
+match_status,available,match,run_strategy_benchmark_3d aggregated CSV,ok/timeout/error
+error_reason,available,match,run_strategy_benchmark_3d aggregated CSV,timeout/server_dead/agent_dead/parser_fail/unknown
+timestamp_utc,available,match,run_strategy_benchmark_3d aggregated CSV,Row timestamp in UTC
+shot_distance_m,scaffolded,match,placeholder,Requires event-level kick telemetry
+shot_location_x,scaffolded,match,placeholder,Requires event-level kick telemetry
+shot_location_y,scaffolded,match,placeholder,Requires event-level kick telemetry
+press_initiation_distance_m,scaffolded,match,placeholder,Requires press trigger instrumentation
+time_to_shot_s,scaffolded,match,placeholder,Requires shot event timing instrumentation
+time_to_engagement_s,scaffolded,match,placeholder,Requires engagement event timing instrumentation
+spatial_occupancy_json,scaffolded,match,placeholder,Requires positional time-series logs
+trajectory_path_length_m,scaffolded,match,placeholder,Requires positional time-series logs
+trajectory_curvature_mean,scaffolded,match,placeholder,Requires positional time-series logs

@@ -1,8 +1,50 @@
+# Striker role hook: active_player_unum routes to StrikerController in think_and_send.
+# This makes striker logic explicit without changing world-modeling or role assignment.
 from agent.Base_Agent import Base_Agent
 from math_ops.Math_Ops import Math_Ops as M
 from world.commons.formations import get_home_pos
 import math
 import numpy as np
+
+
+class StrikerController:
+    SEARCH = "SEARCH"
+    APPROACH = "APPROACH"
+    ALIGN = "ALIGN"
+    KICK = "KICK"
+    RECOVER = "RECOVER"
+
+    def __init__(self) -> None:
+        self.state = self.SEARCH
+
+    def run(self, agent, w, r, ball_2d, ball_dir, slow_ball_pos, goal_dir, PM, PM_GROUP, ball_dist):
+        path_draw_options = agent.path_manager.draw_options
+        path_draw_options(enable_obstacles=True, enable_path=True, use_team_drawing_channel=True)
+        enable_pass_command = (PM == w.M_PLAY_ON and ball_2d[0] < 6)
+
+        if r.unum == 1 and PM_GROUP == w.MG_THEIR_KICK: # goalkeeper during their kick
+            self.state = self.RECOVER
+            agent.move(agent.init_pos, orientation=ball_dir) # walk in place 
+        if PM == w.M_OUR_CORNER_KICK:
+            self.state = self.KICK
+            agent.kick(-np.sign(ball_2d[1]) * 95, 5.5) # kick the ball into the space in front of the opponent's goal
+            # no need to change the state when PM is not Play On
+        elif agent.min_opponent_ball_dist + agent.press_margin < agent.min_teammate_ball_dist: # defend if opponent is considerably closer to the ball
+            if agent.state == 2: # commit to kick while aborting
+                self.state = self.RECOVER
+                agent.state = 0 if agent.kick(abort=True) else 2
+            else: # move towards ball, but position myself between ball and our goal
+                self.state = self.APPROACH
+                agent.move(slow_ball_pos + M.normalize_vec((-16,0) - slow_ball_pos) * 0.2, is_aggressive=True)
+        else:
+            dist_goal = np.linalg.norm(ball_2d - (15.05, 0))
+            allow_goal_shot = dist_goal <= agent.goal_shot_dist_thresh_m
+            alt_dir = M.target_abs_angle(ball_2d, (7.5, 0))
+            kick_dir = goal_dir if allow_goal_shot else alt_dir
+            self.state = self.KICK if agent.state == 2 else (self.ALIGN if ball_dist <= 0.7 else self.APPROACH)
+            agent.state = 0 if agent.kick(kick_dir, 9, False, enable_pass_command) else 2
+
+        path_draw_options(enable_obstacles=False, enable_path=False) # disable path drawings
 
 
 class Agent(Base_Agent):
@@ -27,6 +69,7 @@ class Agent(Base_Agent):
         self.press_margin = press_margin
         self.goal_shot_dist_thresh_m = goal_shot_dist_thresh_m
         self.kick_guard_max_speed = kick_guard_max_speed
+        self.striker_controller = StrikerController()
 
         self.init_pos = list(get_home_pos(strategy_formation_id, unum))
         print(
@@ -206,27 +249,18 @@ class Agent(Base_Agent):
                 self.move((new_x,self.init_pos[1]), orientation=ball_dir, priority_unums=[active_player_unum])
 
         else: # I am the active player
-            path_draw_options(enable_obstacles=True, enable_path=True, use_team_drawing_channel=True) # enable path drawings for active player (ignored if self.enable_draw is False)
-            enable_pass_command = (PM == w.M_PLAY_ON and ball_2d[0]<6)
-
-            if r.unum == 1 and PM_GROUP == w.MG_THEIR_KICK: # goalkeeper during their kick
-                self.move(self.init_pos, orientation=ball_dir) # walk in place 
-            if PM == w.M_OUR_CORNER_KICK:
-                self.kick( -np.sign(ball_2d[1])*95, 5.5) # kick the ball into the space in front of the opponent's goal
-                # no need to change the state when PM is not Play On
-            elif self.min_opponent_ball_dist + self.press_margin < self.min_teammate_ball_dist: # defend if opponent is considerably closer to the ball
-                if self.state == 2: # commit to kick while aborting
-                    self.state = 0 if self.kick(abort=True) else 2
-                else: # move towards ball, but position myself between ball and our goal
-                    self.move(slow_ball_pos + M.normalize_vec((-16,0) - slow_ball_pos) * 0.2, is_aggressive=True)
-            else:
-                dist_goal = np.linalg.norm(ball_2d - (15.05, 0))
-                allow_goal_shot = dist_goal <= self.goal_shot_dist_thresh_m
-                alt_dir = M.target_abs_angle(ball_2d, (7.5, 0))
-                kick_dir = goal_dir if allow_goal_shot else alt_dir
-                self.state = 0 if self.kick(kick_dir,9,False,enable_pass_command) else 2
-
-            path_draw_options(enable_obstacles=False, enable_path=False) # disable path drawings
+            self.striker_controller.run(
+                self,
+                w,
+                r,
+                ball_2d,
+                ball_dir,
+                slow_ball_pos,
+                goal_dir,
+                PM,
+                PM_GROUP,
+                ball_dist,
+            )
 
         #--------------------------------------- 3. Broadcast
         self.radio.broadcast()

@@ -1,0 +1,21 @@
+{
+  "baseline_controller": "BASIC",
+  "benchmark_type": "parametric",
+  "created_at_utc": "2026-03-22T22:08:50Z",
+  "levels": [
+    {
+      "parameter_level": "baseline",
+      "parameter_value": "3",
+      "variant_controller": "PRESBASE"
+    }
+  ],
+  "mode": "1v1",
+  "notes": {
+    "behavioural_metrics": "Scaffolded placeholders are emitted; requested behavioural metrics are not computed from current logs yet."
+  },
+  "output_root": "/home/nathan_sidib/Code/ENG5325-Robotics-TDP-M-Team-14/Cyberphysical-RoboCup-Soccer-Teams/environment/2d-environment/starter-stack/benchmark_outputs/2d/parametric/mode_1v1/baseline_BASIC/parameter_press_threshold",
+  "parameter_name": "press_threshold",
+  "run_dir": "/home/nathan_sidib/Code/ENG5325-Robotics-TDP-M-Team-14/Cyberphysical-RoboCup-Soccer-Teams/environment/2d-environment/starter-stack/benchmark_outputs/2d/parametric/mode_1v1/baseline_BASIC/parameter_press_threshold/run_0001",
+  "run_id": "run_0001",
+  "simulator": "2d"
+}
