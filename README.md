@@ -201,6 +201,10 @@ for u in 1 2 3 4; do python Run_Player.py -t Away -u "$u" --strategy BASIC & don
 
 Project note: for 2D small-sided isolated benchmarking, the recommended duel-style mode is `2v2` because each side includes one field player and one goalkeeper. `1v1` still exists as an optional no-goalie microbenchmark.
 
+After the compatibility bridge is in place, the 2D benchmark scripts auto-discover the starter-stack runtime library directories. You should not need to export `LD_LIBRARY_PATH` manually for normal benchmark use.
+
+If a 2D benchmark only works when you manually export `LD_LIBRARY_PATH`, treat that as a setup problem rather than the normal workflow. Re-run `./link_starteragent2d_v2_compat_2d.sh --force` and use the plain benchmark command again.
+
 #### 2D 4v4 strategy benchmarking
 
 ```bash
@@ -223,6 +227,16 @@ cd environment/2d-environment/starter-stack
 ./run_parametric_benchmark_2d.sh --parameter press_threshold --mode 2v2 --repeats 5
 ```
 
+#### 2D fast parametric validation
+
+Use this when you want a short end-to-end pipeline check rather than a real experiment batch:
+
+```bash
+cd environment/2d-environment/starter-stack
+RCSSSERVER_PORT_BASE=7800 MATCH_TIMEOUT_SECONDS=20 START_DELAY=1 SIDE_DELAY=1 HALF_TIME_CYCLES=30 \
+./run_parametric_benchmark_2d.sh --parameter shoot_range --mode 2v2 --levels low --repeats 1
+```
+
 #### 2D 4v4 parametric benchmarking
 
 ```bash
@@ -231,6 +245,8 @@ cd environment/2d-environment/starter-stack
 ```
 
 ### 3D benchmarking
+
+If a plain 3D benchmark command fails in your Linux session because of `systemd-inhibit` / DBus session issues, retry the same command with `BENCH_NO_INHIBIT=1` prefixed.
 
 #### 3D 4v4 strategy benchmarking
 
@@ -246,11 +262,23 @@ cd environment/3d-environment/scripts
 BENCH_NO_INHIBIT=1 ./run_strategy_benchmark_3d.sh
 ```
 
+The same `BENCH_NO_INHIBIT=1` prefix can be used with the 3D parametric runner.
+
 #### 3D 1v1 parametric benchmarking
 
 ```bash
 cd environment/3d-environment/scripts
 ./run_parametric_benchmark_3d.sh --parameter press_threshold --mode 1v1 --repeats 5
+```
+
+#### 3D fast parametric validation
+
+Use this when you want the lightest currently reliable end-to-end validation run:
+
+```bash
+cd environment/3d-environment/scripts
+BENCH_NO_INHIBIT=1 MATCH_WALL_TIMEOUT_SEC=900 PROGRESS_INTERVAL_SEC=30 \
+./run_parametric_benchmark_3d.sh --parameter shoot_range --mode 1v1 --levels low --repeats 1 --half-time-timeout-sec 420
 ```
 
 #### 3D 2v2 parametric benchmarking
