@@ -65,7 +65,7 @@ require_agent_binary() {
   echo "${path} is missing or not runnable on this machine." >&2
   echo "Build StarterAgent2D-V2 and refresh starter-stack links with:" >&2
   echo "  ${COMPAT_HELPER} --force" >&2
-  echo "See LINUX_SETUP.md for the supported 2D build path." >&2
+  echo "See docs/setup/linux.md for the supported 2D build path." >&2
   exit 1
 }
 

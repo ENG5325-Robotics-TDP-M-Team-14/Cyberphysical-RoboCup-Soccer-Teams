@@ -1,5 +1,7 @@
 # Starter-Stack (Legacy Compatibility Layer)
 
+Canonical project entrypoint: [../../../README.md](../../../README.md)
+
 This directory remains in the repo for two reasons:
 
 - it contains the 2D behavior code used for analysis and benchmarking,
@@ -17,8 +19,8 @@ Use the maintained CMake-based pair instead:
 
 See:
 
-- [../../../LINUX_SETUP.md](../../../LINUX_SETUP.md)
 - [../../../README.md](../../../README.md)
+- [../../../docs/setup/linux.md](../../../docs/setup/linux.md)
 
 ## Legacy path
 

@@ -1,5 +1,7 @@
 # Role FSM Specification (2D + 3D)
 
+Canonical project entrypoint: [README.md](../../README.md). This page is the detailed architecture/reference document for role logic only.
+
 This document formalizes current role behavior from code into explicit FSM/logic/policy for:
 - Striker
 - Defender
@@ -286,4 +288,3 @@ Transitions:
 `Run_Player.py -P` uses `Agent_Penalty.py`, which has a different role FSM:
 - goalkeeper dive-left/dive-right/wait states, kicker wait-and-kick policy:
   - `environment/3d-environment/FCPCodebase/agent/Agent_Penalty.py:7`
-

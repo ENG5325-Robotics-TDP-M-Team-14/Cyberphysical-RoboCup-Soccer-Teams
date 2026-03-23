@@ -131,7 +131,7 @@ require_runtime_binary()
     echo "Build StarterAgent2D-V2 and refresh starter-stack links with:" 1>&2
     echo "  ${compat_helper} --force" 1>&2
   fi
-  echo "See LINUX_SETUP.md for the supported 2D build path." 1>&2
+  echo "See docs/setup/linux.md for the supported 2D build path." 1>&2
   exit 1
 }
 
