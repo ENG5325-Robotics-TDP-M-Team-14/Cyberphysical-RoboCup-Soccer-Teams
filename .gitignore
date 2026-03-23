@@ -19,5 +19,9 @@ environment/2d-environment/rcssserver-19.0.0/build-linux/
 environment/2d-environment/rcssmonitor-19.0.1/build/
 environment/2d-environment/rcssmonitor-19.0.1/build-linux/
 
+# Generated benchmark outputs
+environment/2d-environment/starter-stack/benchmark_outputs/
+environment/3d-environment/benchmark_outputs/
+
 # Results and other locally generated files
 work/*
