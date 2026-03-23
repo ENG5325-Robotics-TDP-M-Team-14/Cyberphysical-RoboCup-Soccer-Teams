@@ -7,7 +7,7 @@ Usage: run_parametric_benchmark_3d.sh [options]
 
 Options:
   --parameter PARAM             One of: press_threshold, shoot_range, formation
-  --mode MODE                   One of: 4v4, 1v1 (default: 4v4)
+  --mode MODE                   One of: 4v4, 2v2, 1v1 (default: 4v4)
   --repeats N                   Replicates per side per level (default: 5)
   --levels CSV                  Comma-separated levels for selected parameter
                                 press_threshold/shoot_range: low,baseline,high
@@ -207,12 +207,16 @@ case "${mode}" in
   4v4)
     mode_args=()
     ;;
+  2v2)
+    # 2v2 uses goalkeeper (unum 1) + one field robot (unum 2) per side.
+    mode_args=(--unums 1,2)
+    ;;
   1v1)
-    # 1v1 runs one field robot (unum 2) per side. Formation effects are limited.
+    # 1v1 is a no-goalie duel using only field robot 2 per side.
     mode_args=(--unums 2)
     ;;
   *)
-    echo "Invalid --mode '${mode}' (expected: 4v4 or 1v1)" >&2
+    echo "Invalid --mode '${mode}' (expected: 4v4, 2v2 or 1v1)" >&2
     exit 1
     ;;
 esac
