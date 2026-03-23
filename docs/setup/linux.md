@@ -1,4 +1,4 @@
-# Linux Setup
+# Linux setup
 
 This is the detailed Linux-only setup companion to the root [README.md](../../README.md).
 
@@ -13,7 +13,7 @@ The supported Linux workflow is:
 3. bridge those built binaries into the legacy starter-stack runtime layout,
 4. ensure 3D runtime prerequisites are present on the machine.
 
-## System Packages
+## System packages
 
 2D build dependencies:
 
@@ -28,7 +28,7 @@ Additional 3D runtime/build dependencies vary by machine, but at minimum you nee
 - Java/OpenGL support sufficient for RoboViz,
 - Python tooling for the FCPCodebase virtual environment.
 
-## Detailed 2D Setup
+## Detailed 2D setup
 
 ### 1) Build vendored rcssserver and rcssmonitor
 
@@ -146,7 +146,7 @@ cd environment/2d-environment/starter-stack/Agent/src
 
 Important: RCSS2D left and right teams must use different team names. Reusing the same name causes both launches to join one side.
 
-## Detailed 3D Orientation
+## Detailed 3D orientation
 
 The repo does not vendor a full Linux installer for the 3D stack. The supported assumptions are:
 
@@ -170,7 +170,7 @@ BENCH_NO_INHIBIT=1 ./run_strategy_benchmark_3d.sh --pairs BASIC,AGGRO --repeats 
 
 See [../troubleshooting/linux-runtime.md](../troubleshooting/linux-runtime.md) for Linux-specific 3D caveats.
 
-## Unsupported 2D Legacy Build Path
+## Unsupported 2D legacy build path
 
 The following are retained only as historical compatibility artifacts and are not the supported teammate path:
 

@@ -1,4 +1,4 @@
-# FC Portugal Codebase <br> for RoboCup 3D Soccer Simulation League
+# FC Portugal codebase <br> for RoboCup 3D Soccer Simulation League
 
 Canonical workspace entrypoint for this repository: [../../../README.md](../../../README.md)
 
@@ -52,7 +52,7 @@ The documentation is available [here](https://docs.google.com/document/d/1aJhwK2
     - Sample train environments
     - User-friendly interface to check active arguments and launch utilities & gyms
 
-## Citing the Project
+## Citing the project
 
 ```
 @article{abreu2025designing,

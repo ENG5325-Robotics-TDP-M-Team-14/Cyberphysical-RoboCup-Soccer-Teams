@@ -120,7 +120,7 @@ Therefore, commands receive the patch as an argument to choose the right module 
 | RoboCup 2019 | CYRUS2019, FCPGPR2019, FRAUnited2019, HFutEngine2019, Hillstone2019, MT2019, Razi2019, Rione2019, Yushan2019 | [https://archive.robocup.info/Soccer/Simulation/2D/binaries/RoboCup/2019/Elimination/](https://archive.robocup.info/Soccer/Simulation/2D/binaries/RoboCup/2019/Elimination/) |
 
 
-## Postgres Cluster
+## Postgres cluster
 
 The repo also contains scripts for setting up a PostgreSQL cluster that can be used to manage v1 data using SQL.
 New dataset major versions might require different DB schemas.

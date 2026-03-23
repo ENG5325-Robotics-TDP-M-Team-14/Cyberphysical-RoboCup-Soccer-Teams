@@ -1,4 +1,4 @@
-# Linux Runtime Troubleshooting
+# Linux runtime troubleshooting
 
 This page collects the main teammate-facing issues for the current Linux workflow.
 
