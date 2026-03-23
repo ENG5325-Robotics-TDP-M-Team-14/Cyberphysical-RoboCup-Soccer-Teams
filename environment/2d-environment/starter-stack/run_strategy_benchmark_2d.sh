@@ -5,6 +5,7 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ENV2D_DIR=$(cd "${SCRIPT_DIR}/.." && pwd)
 AGENT_DIR="${SCRIPT_DIR}/Agent/src"
 COMPAT_HELPER="${SCRIPT_DIR}/link_starteragent2d_v2_compat_2d.sh"
+COMPAT_ENV="${AGENT_DIR}/.starteragent2d_v2_compat.env"
 RESULTS_CSV="${SCRIPT_DIR}/strategy_benchmark_results_2d.csv"
 LOG_DIR="${SCRIPT_DIR}/strategy_benchmark_logs_2d"
 
@@ -17,6 +18,50 @@ RCSSSERVER_PORT_STRIDE="${RCSSSERVER_PORT_STRIDE:-10}"
 
 SERVER_PID=""
 MATCH_INDEX=0
+
+append_runtime_libdir() {
+  local current="$1"
+  local candidate="$2"
+  if [[ -z "${candidate}" || ! -d "${candidate}" ]]; then
+    printf '%s' "${current}"
+    return 0
+  fi
+
+  case ":${current}:" in
+    *":${candidate}:"*)
+      printf '%s' "${current}"
+      ;;
+    *)
+      if [[ -n "${current}" ]]; then
+        printf '%s:%s' "${candidate}" "${current}"
+      else
+        printf '%s' "${candidate}"
+      fi
+      ;;
+  esac
+}
+
+setup_agent_runtime_libpath() {
+  local runtime_libpath=""
+
+  if [[ -f "${COMPAT_ENV}" ]]; then
+    # shellcheck disable=SC1090
+    . "${COMPAT_ENV}"
+  fi
+
+  runtime_libpath="$(append_runtime_libdir "${runtime_libpath}" "${STARTER_LIBRCSC_LIB_DIR:-}")"
+  runtime_libpath="$(append_runtime_libdir "${runtime_libpath}" "${AGENT_DIR}/../Lib/lib")"
+
+  if [[ -z "${runtime_libpath}" ]]; then
+    return 0
+  fi
+
+  if [[ -n "${LD_LIBRARY_PATH:-}" ]]; then
+    export LD_LIBRARY_PATH="${runtime_libpath}:${LD_LIBRARY_PATH}"
+  else
+    export LD_LIBRARY_PATH="${runtime_libpath}"
+  fi
+}
 
 resolve_rcssserver_bin() {
   local candidate
@@ -41,6 +86,7 @@ resolve_rcssserver_bin() {
 }
 
 RCSSSERVER_BIN="$(resolve_rcssserver_bin || true)"
+setup_agent_runtime_libpath
 
 agent_binary_runnable() {
   local path="$1"

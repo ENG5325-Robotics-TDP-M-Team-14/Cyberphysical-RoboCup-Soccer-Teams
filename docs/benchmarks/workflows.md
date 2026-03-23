@@ -26,6 +26,8 @@ cd environment/2d-environment/starter-stack
 ./link_starteragent2d_v2_compat_2d.sh --force
 ```
 
+After the compatibility bridge is in place, the 2D benchmark scripts automatically prepend the known starter-stack runtime library directories. A normal benchmark run should not require a manual `LD_LIBRARY_PATH` export.
+
 ### 2D strategy benchmarking
 
 The supported automated strategy runner is the 4v4 suite:
@@ -80,6 +82,16 @@ cd environment/2d-environment/starter-stack
 ./run_parametric_benchmark_2d.sh --parameter formation --mode 4v4 --levels baseline,def,off --repeats 5
 ```
 
+### 2D fast validation
+
+Use this for a short end-to-end pipeline check:
+
+```bash
+cd environment/2d-environment/starter-stack
+RCSSSERVER_PORT_BASE=7800 MATCH_TIMEOUT_SECONDS=20 START_DELAY=1 SIDE_DELAY=1 HALF_TIME_CYCLES=30 \
+./run_parametric_benchmark_2d.sh --parameter shoot_range --mode 2v2 --levels low --repeats 1
+```
+
 ## 3D benchmarking
 
 3D benchmark entrypoints live under `environment/3d-environment/scripts/`.
@@ -101,6 +113,8 @@ If `systemd-inhibit` is unavailable in the current Linux session:
 cd environment/3d-environment/scripts
 BENCH_NO_INHIBIT=1 ./run_strategy_benchmark_3d.sh
 ```
+
+The same `BENCH_NO_INHIBIT=1` prefix can be used with the 3D parametric runner.
 
 ### 3D parametric modes
 
@@ -140,6 +154,16 @@ cd environment/3d-environment/scripts
 ```bash
 cd environment/3d-environment/scripts
 ./run_parametric_benchmark_3d.sh --parameter formation --mode 4v4 --levels baseline,def,off --repeats 5
+```
+
+### 3D fast validation
+
+Use this for the lightest currently reliable end-to-end validation run:
+
+```bash
+cd environment/3d-environment/scripts
+BENCH_NO_INHIBIT=1 MATCH_WALL_TIMEOUT_SEC=900 PROGRESS_INTERVAL_SEC=30 \
+./run_parametric_benchmark_3d.sh --parameter shoot_range --mode 1v1 --levels low --repeats 1 --half-time-timeout-sec 420
 ```
 
 ## Output structure
