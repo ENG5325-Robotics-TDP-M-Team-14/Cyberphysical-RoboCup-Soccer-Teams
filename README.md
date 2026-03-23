@@ -58,6 +58,12 @@ Read first:
 
 ## 2D setup (minimum)
 
+The supported Ubuntu path is:
+
+1. build the vendored `rcssserver` and `rcssmonitor` with CMake,
+2. build the maintained `StarterLibRCSC-V2` and `StarterAgent2D-V2` with CMake,
+3. bridge the built `sample_*` binaries into `starter-stack/Agent/src/` with the helper script below.
+
 Build server and monitor (Linux-native build dirs):
 
 ```bash
@@ -76,14 +82,37 @@ cmake ..
 make -j"$(nproc)"
 ```
 
-Build the 2D agent runtime:
+Clone and build the maintained 2D lib + agent pair:
+
+```bash
+cd environment/2d-environment
+git clone https://github.com/RCSS-IR/StarterLibRCSC-V2.git
+git clone https://github.com/RCSS-IR/StarterAgent2D-V2.git
+```
+
+```bash
+cd environment/2d-environment/StarterLibRCSC-V2
+mkdir -p build
+cd build
+cmake ..
+cmake --build . -j"$(nproc)"
+cmake --install .
+```
+
+```bash
+cd environment/2d-environment/StarterAgent2D-V2
+mkdir -p build
+cd build
+cmake -DLIBRCSC_INSTALL_DIR="$HOME/local/starter" ..
+cmake --build . -j"$(nproc)"
+```
 
 ```bash
 cd environment/2d-environment/starter-stack
-./makeAgent.sh
+./link_starteragent2d_v2_compat_2d.sh --force
 ```
 
-If `makeAgent.sh` is insufficient in your environment, follow full librcsc/bootstrap instructions in [LINUX_SETUP.md](LINUX_SETUP.md).
+The old `starter-stack/Lib` + `starter-stack/Agent` autotools source build is legacy and is not the primary teammate setup path. Use [LINUX_SETUP.md](LINUX_SETUP.md) for the full supported flow and caveats.
 
 ## 3D setup (minimum)
 
@@ -125,8 +154,10 @@ Terminal 4 (right team):
 
 ```bash
 cd environment/2d-environment/starter-stack/Agent/src
-./start-4players.sh -t BASIC
+./start-4players.sh -t AGGRO
 ```
+
+Important: RCSS2D treats identical team names as the same team. The two launches must use different team names or both sides will join one side.
 
 ### 3D vanilla sandbox
 
@@ -158,6 +189,13 @@ for u in 1 2 3 4; do python Run_Player.py -t Away -u "$u" --strategy BASIC & don
 ## 2) 4v4 Strategy Benchmarking
 
 ### 2D (fixed 4v4 benchmark suite)
+
+Before running any 2D benchmark, refresh the compatibility bridge after rebuilding `StarterAgent2D-V2`:
+
+```bash
+cd environment/2d-environment/starter-stack
+./link_starteragent2d_v2_compat_2d.sh --force
+```
 
 ```bash
 cd environment/2d-environment/starter-stack
@@ -202,14 +240,14 @@ Terminal 2:
 
 ```bash
 cd environment/2d-environment/starter-stack/Agent/src
-./start-4players.sh -t BASIC -n 4 -u 2 -C
+./start-4players.sh -t BASIC -n 2 -u 2 -C
 ```
 
 Terminal 3:
 
 ```bash
 cd environment/2d-environment/starter-stack/Agent/src
-./start-4players.sh -t AGGRO -n 4 -u 2 -C
+./start-4players.sh -t AGGRO -n 2 -u 2 -C
 ```
 
 This is a manual run path, not the same automated CSV pipeline as `run_strategy_benchmark_2d.sh`.
@@ -309,7 +347,7 @@ Structure (both sims):
 
 ```text
 .../benchmark_outputs/<2d|3d>/parametric/
-  mode_<1v1|4v4>/
+  mode_<1v1|2v2|4v4>/
     baseline_BASIC/
       parameter_<press_threshold|shoot_range|formation>/
         run_<NNNN>/
@@ -392,6 +430,7 @@ Behavior documentation:
 - 2D strategy benchmark script is a fixed 4v4 suite; it does not provide built-in 1v1 mode.
 - 2D 1v1 strategy comparisons are currently manual.
 - 1v1 mode in parametric benchmarks uses a single field player (`unum 2`), so formation effects are limited.
+- RCSS2D left and right teams must use different team names. Reusing the same name causes both launches to join one side.
 - 3D benchmark flow depends on RoboViz logs for match progression detection.
 - In headless/container environments, `BENCH_NO_INHIBIT=1` may be required for 3D benchmark scripts.
 - Team names in RCSS2D should remain within protocol limits (<= 12 chars).

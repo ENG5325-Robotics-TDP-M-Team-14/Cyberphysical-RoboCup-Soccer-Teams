@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ENV2D_DIR=$(cd "${SCRIPT_DIR}/.." && pwd)
 AGENT_DIR="${SCRIPT_DIR}/Agent/src"
+COMPAT_HELPER="${SCRIPT_DIR}/link_starteragent2d_v2_compat_2d.sh"
 RESULTS_CSV="${SCRIPT_DIR}/strategy_benchmark_results_2d.csv"
 LOG_DIR="${SCRIPT_DIR}/strategy_benchmark_logs_2d"
 
@@ -41,6 +42,33 @@ resolve_rcssserver_bin() {
 
 RCSSSERVER_BIN="$(resolve_rcssserver_bin || true)"
 
+agent_binary_runnable() {
+  local path="$1"
+  local status=0
+
+  if [[ ! -x "${path}" ]]; then
+    return 1
+  fi
+
+  "${path}" --help >/dev/null 2>&1 || status=$?
+  [[ "${status}" -ne 126 && "${status}" -ne 127 ]]
+}
+
+require_agent_binary() {
+  local name="$1"
+  local path="${AGENT_DIR}/${name}"
+
+  if agent_binary_runnable "${path}"; then
+    return 0
+  fi
+
+  echo "${path} is missing or not runnable on this machine." >&2
+  echo "Build StarterAgent2D-V2 and refresh starter-stack links with:" >&2
+  echo "  ${COMPAT_HELPER} --force" >&2
+  echo "See LINUX_SETUP.md for the supported 2D build path." >&2
+  exit 1
+}
+
 cleanup_match() {
   if [[ -n "${SERVER_PID}" ]]; then
     kill -INT "${SERVER_PID}" >/dev/null 2>&1 || true
@@ -66,6 +94,9 @@ if [[ ! -x "${AGENT_DIR}/start-4players.sh" ]]; then
   echo "start-4players.sh not found at ${AGENT_DIR}/start-4players.sh" >&2
   exit 1
 fi
+
+require_agent_binary sample_player
+require_agent_binary sample_coach
 
 if [[ ! -f "${RESULTS_CSV}" ]]; then
   echo "pair_id,left_team,right_team,left_goals,right_goals,timestamp" > "${RESULTS_CSV}"

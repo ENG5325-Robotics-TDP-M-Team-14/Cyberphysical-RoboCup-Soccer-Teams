@@ -1,58 +1,34 @@
-![2D Soccer Simulation Screenshot](https://rcss.ir/docs/2D/FA/img/doc/intro/2d-overview-field.jpg)
+# Starter-Stack (Legacy Compatibility Layer)
 
-# **Starter2DStack**   
+This directory remains in the repo for two reasons:
 
-![Agent2D Buid + Binary](https://github.com/KN2C2D/starter-stack/workflows/Agent2D%20Buid%20+%20Binary/badge.svg?branch=master&event=push)
+- it contains the 2D behavior code used for analysis and benchmarking,
+- its launch and benchmark scripts are still the project entrypoints for 2D runtime experiments.
 
-This project is based on **[HELIOS Base](https://osdn.net/projects/rctools/releases/)** ( **[StarterAgent2D](https://github.com/naderzare/StarterAgent2D)**  & **[StarterLibRCSC](https://github.com/naderzare/StarterLibRCSC)** by [Nader Zare](https://github.com/naderzare)) & Licensed under _GNU GPL 3_. 
+It is not the supported place to compile the 2D agent from source on a fresh Ubuntu clone.
 
-## First time build
+## Supported teammate workflow
 
-1. Install dependencies.
+Use the maintained CMake-based pair instead:
 
-   ```bash
-   sudo apt-get update && sudo apt-get install -y g++ build-essential libboost-all-dev qt4-dev-tools libaudio-dev libgtk-3-dev libxt-dev bison flex
-   ```
+1. build `environment/2d-environment/rcssserver-19.0.0` and `environment/2d-environment/rcssmonitor-19.0.1`,
+2. build `StarterLibRCSC-V2` and `StarterAgent2D-V2`,
+3. run `./link_starteragent2d_v2_compat_2d.sh` to link `sample_player`, `sample_coach`, and `sample_trainer` into `Agent/src/`.
 
-2. Clone this repository.
+See:
 
-   ```bash
-    git clone git@github.com:KN2C2D/starter-stack.git && cd starter-stack
-   ```
+- [../../../LINUX_SETUP.md](../../../LINUX_SETUP.md)
+- [../../../README.md](../../../README.md)
 
-3. Then build agent & lib with included script:
+## Legacy path
 
-   ```bash
-   ./makeFirstTime.sh
-   ```
+The older `starter-stack/Lib` and `starter-stack/Agent` autotools build path is kept only as a historical snapshot.
 
-   Done ! 🙂
+Treat these as legacy or unsupported unless you already maintain a matching older librcsc environment:
 
-## Build after changes
+- `makeFirstTime.sh`
+- `makeAll.sh`
+- `makeAgent.sh`
+- direct `starter-stack/Lib` + `starter-stack/Agent` source builds
 
-After changing any part of the code you can easily build it with `makeAll.sh` & `makeAgent.sh`
-
-## Run A Game
-
-After building the project, you can run the team with these instructions:
-
-1. Open a terminal and run [rcssserver](https://github.com/rcsoccersim/rcssserver)  
-
-   ```bash
-   rcssserver
-   ```
-
-2. Open new terminal and got to project folder then run your team
-
-   ```bash
-   cd starter2d-stack/Agent/src
-   ./start.sh -t YOUR_TEAM_NAME
-   ```
-
-3. Now open a monitor like [rcssmonitor](https://github.com/rcsoccersim/rcssmonitor) and watch the game 
-
-   ```bash
-   rcssmonitor
-   ```
-
-> For further instructions you can use [this link](https://github.com/ibots/tutorial) (English) or [مستندات شبیه‌ساز دوبعدی فوتبال](https://rcss.ir/2D/FA)(Farsi).
+The main known issues are missing autotools metadata in some clones, the older split-librcsc layout, and API mismatches against modern librcsc builds.

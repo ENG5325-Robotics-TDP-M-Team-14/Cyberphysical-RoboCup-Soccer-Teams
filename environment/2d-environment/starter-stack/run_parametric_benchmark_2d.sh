@@ -72,6 +72,7 @@ done
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV2D_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 AGENT_DIR="${SCRIPT_DIR}/Agent/src"
+COMPAT_HELPER="${SCRIPT_DIR}/link_starteragent2d_v2_compat_2d.sh"
 SIMULATOR_ID="2d"
 BENCHMARK_KIND="parametric"
 BASELINE_CONTROLLER="BASIC"
@@ -100,6 +101,33 @@ resolve_rcssserver_bin() {
 
 RCSSSERVER_BIN="$(resolve_rcssserver_bin || true)"
 
+agent_binary_runnable() {
+  local path="$1"
+  local status=0
+
+  if [[ ! -x "${path}" ]]; then
+    return 1
+  fi
+
+  "${path}" --help >/dev/null 2>&1 || status=$?
+  [[ "${status}" -ne 126 && "${status}" -ne 127 ]]
+}
+
+require_agent_binary() {
+  local name="$1"
+  local path="${AGENT_DIR}/${name}"
+
+  if agent_binary_runnable "${path}"; then
+    return 0
+  fi
+
+  echo "${path} is missing or not runnable on this machine." >&2
+  echo "Build StarterAgent2D-V2 and refresh starter-stack links with:" >&2
+  echo "  ${COMPAT_HELPER} --force" >&2
+  echo "See LINUX_SETUP.md for the supported 2D build path." >&2
+  exit 1
+}
+
 if [[ ! -x "${RCSSSERVER_BIN}" ]]; then
   echo "rcssserver not found/executable in build or build-linux directories" >&2
   exit 1
@@ -108,6 +136,9 @@ if [[ ! -x "${AGENT_DIR}/start-4players.sh" ]]; then
   echo "start-4players.sh not found at ${AGENT_DIR}/start-4players.sh" >&2
   exit 1
 fi
+
+require_agent_binary sample_player
+require_agent_binary sample_coach
 
 normalize_level() {
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
