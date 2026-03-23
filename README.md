@@ -250,13 +250,22 @@ cd environment/3d-environment/scripts
 ./run_parametric_benchmark_3d.sh --parameter formation --mode 4v4 --repeats 5 --levels baseline,def,off
 ```
 
-## 5) 1v1 Parametric Benchmarking
+## 5) Reduced-Player Parametric Benchmarking
+
+`--mode 1v1` is a no-goalie duel in both simulators.
+
+`--mode 2v2` is goalkeeper + one field player per side in both simulators.
 
 ### 2D
 
 ```bash
 cd environment/2d-environment/starter-stack
 ./run_parametric_benchmark_2d.sh --parameter press_threshold --mode 1v1 --repeats 5
+```
+
+```bash
+cd environment/2d-environment/starter-stack
+./run_parametric_benchmark_2d.sh --parameter press_threshold --mode 2v2 --repeats 5
 ```
 
 ### 3D
@@ -266,15 +275,20 @@ cd environment/3d-environment/scripts
 ./run_parametric_benchmark_3d.sh --parameter press_threshold --mode 1v1 --repeats 5
 ```
 
-For both 2D and 3D parametric flows, `--mode 1v1` currently runs one field player (`unum 2`) per side; formation effects are naturally limited in 1v1.
+```bash
+cd environment/3d-environment/scripts
+./run_parametric_benchmark_3d.sh --parameter press_threshold --mode 2v2 --repeats 5
+```
+
+Formation effects are naturally limited outside `4v4`, especially in `1v1`.
 
 ## Benchmark Outputs
 
 ## Strategy benchmark outputs
 
 ### 2D strategy output
-- CSV: `environment/2d-environment/starter-stack/strategy_benchmark_results.csv`
-- Match logs: `environment/2d-environment/starter-stack/strategy_benchmark_log/`
+- CSV: `environment/2d-environment/starter-stack/strategy_benchmark_results_2d.csv`
+- Match logs: `environment/2d-environment/starter-stack/strategy_benchmark_logs_2d/`
 
 ### 3D strategy output
 - Default root: `environment/3d-environment/strategy_benchmark_logs_3d/`

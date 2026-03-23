@@ -4,8 +4,8 @@ set -euo pipefail
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ENV2D_DIR=$(cd "${SCRIPT_DIR}/.." && pwd)
 AGENT_DIR="${SCRIPT_DIR}/Agent/src"
-RESULTS_CSV="${SCRIPT_DIR}/strategy_benchmark_results.csv"
-LOG_DIR="${SCRIPT_DIR}/strategy_benchmark_log"
+RESULTS_CSV="${SCRIPT_DIR}/strategy_benchmark_results_2d.csv"
+LOG_DIR="${SCRIPT_DIR}/strategy_benchmark_logs_2d"
 
 MATCH_TIMEOUT_SECONDS="${MATCH_TIMEOUT_SECONDS:-300}"
 START_DELAY="${START_DELAY:-2}"
