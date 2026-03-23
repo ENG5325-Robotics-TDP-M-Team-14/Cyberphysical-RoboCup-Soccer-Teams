@@ -289,6 +289,25 @@ with open(os.environ["RUN_METADATA_JSON"], "w", encoding="utf-8") as f:
     json.dump(metadata, f, indent=2, sort_keys=True)
 PY
 
+append_level_results() {
+  local level_csv="$1"
+  local normalized_level="$2"
+  local parameter_value="$3"
+
+  if [[ ! -f "${level_csv}" ]]; then
+    echo "[PARAM] warning: missing strategy results CSV: ${level_csv}" >&2
+    return 1
+  fi
+
+  while IFS=, read -r match_id pair_id left_team right_team left_goals right_goals timestamp status error_reason; do
+    [[ -z "${match_id}" || "${match_id}" == "match_id" ]] && continue
+    echo "${RUN_ID},${BENCHMARK_KIND},${SIMULATOR_ID},${mode},${BASELINE_CONTROLLER},${parameter},${normalized_level},${parameter_value},${match_id},${pair_id},${left_team},${right_team},${left_goals},${right_goals},${timestamp},${status},${error_reason}" >> "${RESULTS_CSV}"
+
+    echo "${RUN_ID},${match_id},${SIMULATOR_ID},${mode},${BASELINE_CONTROLLER},${parameter},${normalized_level},${parameter_value},,,,,,,,,,not_available_from_current_logs,not_available_from_current_logs,not_available_from_current_logs,not_available_from_current_logs,not_available_from_current_logs,not_available_from_current_logs,requires_event_level_telemetry_for_shots_press_and_trajectories" >> "${BEHAVIOURAL_SCAFFOLD_CSV}"
+  done < "${level_csv}"
+}
+
+overall_status=0
 for lvl in "${levels[@]}"; do
   normalized_level="$(normalize_level "${lvl}")"
   parameter_value="$(level_to_value "${normalized_level}")"
@@ -314,14 +333,23 @@ for lvl in "${levels[@]}"; do
   fi
 
   echo "[PARAM] Running ${parameter}=${normalized_level} (value=${parameter_value}) with strategy ${strategy_name} (mode=${mode})"
+  set +e
   "${cmd[@]}" | tee "${level_stdout}"
+  level_status=$?
+  set -e
 
-  while IFS=, read -r match_id pair_id left_team right_team left_goals right_goals timestamp status error_reason; do
-    [[ -z "${match_id}" || "${match_id}" == "match_id" ]] && continue
-    echo "${RUN_ID},${BENCHMARK_KIND},${SIMULATOR_ID},${mode},${BASELINE_CONTROLLER},${parameter},${normalized_level},${parameter_value},${match_id},${pair_id},${left_team},${right_team},${left_goals},${right_goals},${timestamp},${status},${error_reason}" >> "${RESULTS_CSV}"
+  if [[ "${level_status}" -ne 0 ]]; then
+    echo "[PARAM] warning: strategy benchmark exited with status ${level_status} for level ${normalized_level}" >&2
+  fi
 
-    echo "${RUN_ID},${match_id},${SIMULATOR_ID},${mode},${BASELINE_CONTROLLER},${parameter},${normalized_level},${parameter_value},,,,,,,,,,not_available_from_current_logs,not_available_from_current_logs,not_available_from_current_logs,not_available_from_current_logs,not_available_from_current_logs,not_available_from_current_logs,requires_event_level_telemetry_for_shots_press_and_trajectories" >> "${BEHAVIOURAL_SCAFFOLD_CSV}"
-  done < "${level_csv}"
+  if ! append_level_results "${level_csv}" "${normalized_level}" "${parameter_value}"; then
+    overall_status=1
+    continue
+  fi
+
+  if [[ "${level_status}" -ne 0 ]]; then
+    overall_status="${level_status}"
+  fi
 done
 
 if [[ -n "${results_csv_mirror}" ]]; then
@@ -336,3 +364,5 @@ echo "Run metadata: ${RUN_METADATA_JSON}"
 if [[ -n "${results_csv_mirror}" ]]; then
   echo "Mirrored results CSV: ${results_csv_mirror}"
 fi
+
+exit "${overall_status}"

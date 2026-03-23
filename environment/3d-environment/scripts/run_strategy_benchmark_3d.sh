@@ -389,13 +389,7 @@ cleanup_all() {
     current_row_written=1
     current_pair_id=""
   fi
-  if [ -n "${bench_pgid}" ]; then
-    kill -TERM -- "-${bench_pgid}" 2>/dev/null || true
-    sleep 1
-    kill -KILL -- "-${bench_pgid}" 2>/dev/null || true
-  else
-    cleanup_match
-  fi
+  cleanup_match
 }
 
 trap cleanup_all EXIT

@@ -1,0 +1,3 @@
+match_id,pair_id,left_team,right_team,left_goals,right_goals,timestamp,status,error_reason
+BASIC_PRESLOW#1,BASIC_PRESLOW,BASIC,PRESLOW,NA,NA,2026-03-22T23:22:28Z,timeout,timeout
+PRESLOW_BASIC#1,PRESLOW_BASIC,PRESLOW,BASIC,NA,NA,2026-03-22T23:24:07Z,timeout,timeout
