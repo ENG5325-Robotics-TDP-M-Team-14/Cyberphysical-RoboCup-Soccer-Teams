@@ -10,8 +10,12 @@ LOG_DIR="${SCRIPT_DIR}/strategy_benchmark_log"
 MATCH_TIMEOUT_SECONDS="${MATCH_TIMEOUT_SECONDS:-300}"
 START_DELAY="${START_DELAY:-2}"
 SIDE_DELAY="${SIDE_DELAY:-2}"
+RCSSSERVER_PORT_BASE="${RCSSSERVER_PORT_BASE:-6000}"
+RCSSSERVER_PORT_RETRIES="${RCSSSERVER_PORT_RETRIES:-5}"
+RCSSSERVER_PORT_STRIDE="${RCSSSERVER_PORT_STRIDE:-10}"
 
 SERVER_PID=""
+MATCH_INDEX=0
 
 resolve_rcssserver_bin() {
   local candidate
@@ -77,6 +81,10 @@ run_match() {
   local right_team="$3"
   local side_idx="${4:-}"
   local rep_idx="${5:-}"
+  local server_port=""
+  local coach_port=""
+  local startup_try
+  local startup_port
   local meta=""
   if [[ -n "${side_idx}" && -n "${rep_idx}" ]]; then
     meta=" side=${side_idx} rep=${rep_idx}"
@@ -84,24 +92,51 @@ run_match() {
   local log_file
   log_file="$(mktemp)"
 
+  MATCH_INDEX=$((MATCH_INDEX + 1))
   cleanup_match
 
   echo "START ${pair_id}: ${left_team} (L) vs ${right_team} (R)${meta} @ $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
-  "${RCSSSERVER_BIN}" \
-    server::auto_mode=on \
-    server::synch_mode=off \
-    server::slow_down_factor=1 \
-    server::half_time=150 \
-    server::game_log_dir="${LOG_DIR}" \
-    server::text_log_dir="${LOG_DIR}" \
-    > "${log_file}" 2>&1 &
-  SERVER_PID=$!
+  for startup_try in $(seq 0 $((RCSSSERVER_PORT_RETRIES - 1))); do
+    startup_port=$((RCSSSERVER_PORT_BASE + ((MATCH_INDEX - 1) * RCSSSERVER_PORT_STRIDE) + (startup_try * RCSSSERVER_PORT_STRIDE)))
+    coach_port=$((startup_port + 2))
+    : > "${log_file}"
+    "${RCSSSERVER_BIN}" \
+      server::auto_mode=on \
+      server::synch_mode=off \
+      server::slow_down_factor=1 \
+      server::port="${startup_port}" \
+      server::olcoach_port="$((startup_port + 1))" \
+      server::coach_port="${coach_port}" \
+      server::half_time=150 \
+      server::game_log_dir="${LOG_DIR}" \
+      server::text_log_dir="${LOG_DIR}" \
+      > "${log_file}" 2>&1 &
+    SERVER_PID=$!
 
-  sleep "${START_DELAY}"
-  "${AGENT_DIR}/start-4players.sh" -t "${left_team}" >/dev/null 2>&1
+    sleep "${START_DELAY}"
+    if kill -0 "${SERVER_PID}" >/dev/null 2>&1; then
+      server_port="${startup_port}"
+      break
+    fi
+
+    wait "${SERVER_PID}" >/dev/null 2>&1 || true
+    SERVER_PID=""
+    if ! grep -q "Error initializing sockets" "${log_file}"; then
+      break
+    fi
+    echo "WARN ${pair_id}${meta}: benchmark port ${startup_port} unavailable, retrying" >&2
+  done
+
+  if [[ -z "${server_port}" ]]; then
+    echo "Failed to start rcssserver for ${pair_id}${meta}" >&2
+    echo "Server log: ${log_file}" >&2
+    exit 1
+  fi
+
+  "${AGENT_DIR}/start-4players.sh" -p "${server_port}" -P "${coach_port}" -t "${left_team}" >/dev/null 2>&1
   sleep "${SIDE_DELAY}"
-  "${AGENT_DIR}/start-4players.sh" -t "${right_team}" >/dev/null 2>&1
+  "${AGENT_DIR}/start-4players.sh" -p "${server_port}" -P "${coach_port}" -t "${right_team}" >/dev/null 2>&1
 
   local start_ts
   start_ts="$(date +%s)"
