@@ -1,8 +1,8 @@
-# Benchmark Workflows
+# Benchmark workflows
 
 This document expands the benchmark commands from the root [README.md](../../README.md) and explains how to interpret the supported modes.
 
-## Benchmark Families
+## Benchmark families
 
 The repository supports two benchmark families:
 
@@ -15,7 +15,7 @@ Supported tunable parameters are:
 - `shoot_range`
 - `formation`
 
-## 2D Benchmarking
+## 2D benchmarking
 
 2D benchmark entrypoints live under `environment/2d-environment/starter-stack/`.
 
@@ -26,7 +26,7 @@ cd environment/2d-environment/starter-stack
 ./link_starteragent2d_v2_compat_2d.sh --force
 ```
 
-### 2D Strategy Benchmarking
+### 2D strategy benchmarking
 
 The supported automated strategy runner is the 4v4 suite:
 
@@ -37,7 +37,7 @@ cd environment/2d-environment/starter-stack
 
 There is no dedicated automated reduced-player 2D strategy runner. Reduced-player strategy checks are manual only.
 
-### 2D Parametric Modes
+### 2D parametric modes
 
 `1v1`
 
@@ -57,7 +57,7 @@ There is no dedicated automated reduced-player 2D strategy runner. Reduced-playe
 - the team-level benchmark mode,
 - the only mode where `formation` is strongly meaningful.
 
-### 2D Parametric Commands
+### 2D parametric commands
 
 1v1:
 
@@ -80,13 +80,13 @@ cd environment/2d-environment/starter-stack
 ./run_parametric_benchmark_2d.sh --parameter formation --mode 4v4 --levels baseline,def,off --repeats 5
 ```
 
-## 3D Benchmarking
+## 3D benchmarking
 
 3D benchmark entrypoints live under `environment/3d-environment/scripts/`.
 
 3D benchmarking is supported with RoboViz in the loop. It is not documented here as a fully headless workflow.
 
-### 3D Strategy Benchmarking
+### 3D strategy benchmarking
 
 Default 4v4 strategy suite:
 
@@ -102,7 +102,7 @@ cd environment/3d-environment/scripts
 BENCH_NO_INHIBIT=1 ./run_strategy_benchmark_3d.sh
 ```
 
-### 3D Parametric Modes
+### 3D parametric modes
 
 `1v1`
 
@@ -119,7 +119,7 @@ BENCH_NO_INHIBIT=1 ./run_strategy_benchmark_3d.sh
 - the fuller team benchmark,
 - the main mode for formation comparisons.
 
-### 3D Parametric Commands
+### 3D parametric commands
 
 1v1:
 
@@ -142,7 +142,7 @@ cd environment/3d-environment/scripts
 ./run_parametric_benchmark_3d.sh --parameter formation --mode 4v4 --levels baseline,def,off --repeats 5
 ```
 
-## Output Structure
+## Output structure
 
 2D strategy:
 
@@ -177,7 +177,7 @@ Shared parametric structure:
 
 3D additionally writes per-level strategy logs below `levels/level_<name>/`.
 
-## Interpretation Notes
+## Interpretation notes
 
 - `formation` is mainly a 4v4 experiment.
 - A benchmark run can still contain `timeout` rows; that is benchmark data, not necessarily a wrapper failure.

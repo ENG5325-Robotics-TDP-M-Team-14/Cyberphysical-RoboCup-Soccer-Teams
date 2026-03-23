@@ -10,7 +10,7 @@ This repository combines three tracks in one place:
 
 The root `README.md` is the canonical project entrypoint. Start here, then use the linked `docs/` pages for deeper setup, benchmark, troubleshooting, and architecture details.
 
-## What This Repository Is
+## What this repository is
 
 This is a workspace, not a single application. It contains:
 
@@ -19,7 +19,7 @@ This is a workspace, not a single application. It contains:
 - benchmark tooling for strategy-level and parameter-level experiments,
 - a separate offline learning pipeline for RCSS2D logs.
 
-## Repository Architecture
+## Repository architecture
 
 | Path | Purpose |
 |---|---|
@@ -33,13 +33,13 @@ This is a workspace, not a single application. It contains:
 | `docs/troubleshooting/` | Common teammate issues and fixes |
 | `docs/development/` | Code entry points and extension notes |
 
-## Supported Platform
+## Supported platform
 
 Linux is the only onboarding path documented and supported in this repository.
 
 If you are setting up the project for the first time, read [docs/setup/linux.md](docs/setup/linux.md) after this README.
 
-## Quick Start
+## Quick start
 
 1. Build the 2D simulator binaries in `environment/2d-environment/rcssserver-19.0.0/build-linux` and `environment/2d-environment/rcssmonitor-19.0.1/build-linux`.
 2. Build `StarterLibRCSC-V2` and `StarterAgent2D-V2`, then refresh the 2D compatibility bridge with `environment/2d-environment/starter-stack/link_starteragent2d_v2_compat_2d.sh --force`.
@@ -48,7 +48,7 @@ If you are setting up the project for the first time, read [docs/setup/linux.md]
 
 Detailed Linux setup lives in [docs/setup/linux.md](docs/setup/linux.md).
 
-## Core Dependencies And Setup Orientation
+## Core dependencies and setup orientation
 
 ### 2D
 
@@ -62,12 +62,12 @@ Detailed Linux setup lives in [docs/setup/linux.md](docs/setup/linux.md).
 - RoboViz is used as part of the supported benchmark flow.
 - The Python runtime lives under `environment/3d-environment/FCPCodebase/.venv`.
 
-### Offline Pipeline
+### Offline pipeline
 
 - The imitation-learning project is separate from the live 2D and 3D runtime agents.
 - It uses Poetry and has its own subproject README for component-specific details.
 
-## 2D Setup Summary
+## 2D setup summary
 
 Build the vendored simulator tools:
 
@@ -121,7 +121,7 @@ cd environment/2d-environment/starter-stack
 
 Detailed setup, custom install-prefix notes, and the legacy build status are documented in [docs/setup/linux.md](docs/setup/linux.md).
 
-## 3D Setup Summary
+## 3D setup summary
 
 The repo assumes the following are already available on the Linux machine:
 
@@ -138,9 +138,9 @@ source .venv/bin/activate
 
 The 3D benchmark scripts build or verify their helper modules as needed. See [docs/setup/linux.md](docs/setup/linux.md) and [docs/troubleshooting/linux-runtime.md](docs/troubleshooting/linux-runtime.md) for environment caveats.
 
-## Main Workflows
+## Main workflows
 
-### Vanilla / Sandbox Runs
+### Vanilla / sandbox runs
 
 #### 2D vanilla 4v4
 
@@ -197,7 +197,7 @@ for u in 1 2 3 4; do python Run_Player.py -t Home -u "$u" --strategy BASIC & don
 for u in 1 2 3 4; do python Run_Player.py -t Away -u "$u" --strategy BASIC & done
 ```
 
-### 2D Benchmarking
+### 2D benchmarking
 
 Project note: for 2D small-sided isolated benchmarking, the recommended duel-style mode is `2v2` because each side includes one field player and one goalkeeper. `1v1` still exists as an optional no-goalie microbenchmark.
 
@@ -230,7 +230,7 @@ cd environment/2d-environment/starter-stack
 ./run_parametric_benchmark_2d.sh --parameter formation --mode 4v4 --levels baseline,def,off --repeats 5
 ```
 
-### 3D Benchmarking
+### 3D benchmarking
 
 #### 3D 4v4 strategy benchmarking
 
@@ -267,7 +267,7 @@ cd environment/3d-environment/scripts
 ./run_parametric_benchmark_3d.sh --parameter formation --mode 4v4 --levels baseline,def,off --repeats 5
 ```
 
-### Offline Imitation-Learning Pipeline
+### Offline imitation-learning pipeline
 
 ```bash
 cd behaviour_algorithm/rcss2d-opp-imitation-main
@@ -277,7 +277,7 @@ poetry run python cli.py
 
 This pipeline is research-oriented and separate from the live benchmark runners.
 
-## Output Locations
+## Output locations
 
 - 2D strategy: `environment/2d-environment/starter-stack/strategy_benchmark_results_2d.csv` and `environment/2d-environment/starter-stack/strategy_benchmark_logs_2d/`
 - 2D parametric: `environment/2d-environment/starter-stack/benchmark_outputs/2d/parametric/`
@@ -286,7 +286,7 @@ This pipeline is research-oriented and separate from the live benchmark runners.
 
 Detailed benchmark semantics and output structure are documented in [docs/benchmarks/workflows.md](docs/benchmarks/workflows.md).
 
-## Documentation Map
+## Documentation map
 
 - [docs/setup/linux.md](docs/setup/linux.md): Linux-only setup, build details, and the supported 2D compatibility bridge.
 - [docs/benchmarks/workflows.md](docs/benchmarks/workflows.md): benchmark modes, recommended usage, and output structure.
@@ -294,7 +294,7 @@ Detailed benchmark semantics and output structure are documented in [docs/benchm
 - [docs/troubleshooting/linux-runtime.md](docs/troubleshooting/linux-runtime.md): teammate-facing setup and runtime failure modes.
 - [docs/development/extension-notes.md](docs/development/extension-notes.md): code entry points and where to extend behaviors or benchmark mappings.
 
-## Current Limitations / Caveats
+## Current limitations / caveats
 
 - Linux is the only documented onboarding platform.
 - The supported 2D build path is the maintained CMake-based lib/agent pair plus the compatibility bridge. The old starter-stack autotools build is legacy.

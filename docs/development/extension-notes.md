@@ -1,8 +1,8 @@
-# Development Extension Notes
+# Development extension notes
 
 This page is for contributors who already understand the basic runtime and benchmark workflows from the root [README.md](../../README.md).
 
-## 2D Code Entry Points
+## 2D code entry points
 
 Main behavior files:
 
@@ -22,7 +22,7 @@ Compatibility bridge:
 
 Strategy and parameter mapping currently rely on team-name driven aliases in the 2D runtime. Keep that in mind before changing team-name conventions.
 
-## 3D Code Entry Points
+## 3D code entry points
 
 Main runtime files:
 
@@ -41,7 +41,7 @@ Parsing utility:
 
 - `scripts/utils/parse_roboviz_log.py`
 
-## Extending Benchmarks
+## Extending benchmarks
 
 When you add a new controller preset or parameter level:
 
@@ -51,7 +51,7 @@ When you add a new controller preset or parameter level:
 
 Keep the root README as the canonical user entrypoint. Deep implementation notes belong here or in the more focused docs pages.
 
-## Offline Pipeline
+## Offline pipeline
 
 The imitation-learning project remains separate:
 

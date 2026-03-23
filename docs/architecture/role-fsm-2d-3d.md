@@ -1,4 +1,4 @@
-# Role FSM Specification (2D + 3D)
+# Role FSM specification (2D + 3D)
 
 Canonical project entrypoint: [README.md](../../README.md). This page is the detailed architecture/reference document for role logic only.
 
@@ -10,7 +10,7 @@ This document formalizes current role behavior from code into explicit FSM/logic
 
 It is intentionally code-faithful, not aspirational.
 
-## 2D Simulator (rcssserver + sample_player)
+## 2D simulator (rcssserver + sample_player)
 
 ### Role allocation rule (2D)
 
@@ -148,7 +148,7 @@ Set-play goalkeeper behavior:
 - Goalie free kick behavior except back-pass/indirect free kick modes:
   - `environment/2d-environment/starter-stack/Agent/src/bhv_set_play.cpp:82`
 
-## 3D Simulator (SimSpark + FCPCodebase)
+## 3D simulator (SimSpark + FCPCodebase)
 
 ### Role allocation rule (3D)
 

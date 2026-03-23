@@ -1,4 +1,4 @@
-# Starter-Stack (Legacy Compatibility Layer)
+# Starter-stack (legacy compatibility layer)
 
 Canonical project entrypoint: [../../../README.md](../../../README.md)
 
