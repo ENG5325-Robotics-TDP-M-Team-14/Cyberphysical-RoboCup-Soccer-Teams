@@ -26,8 +26,8 @@ Use this repo when you need to:
 |---|---|
 | `environment/2d-environment/` | RCSS2D server/monitor + StarterAgent2D runtime stack |
 | `environment/2d-environment/starter-stack/Agent/src/` | 2D agent behavior code and launch scripts |
-| `environment/2d-environment/starter-stack/run_strategy_benchmark.sh` | 2D strategy benchmark runner (4v4, fixed pair set) |
-| `environment/2d-environment/starter-stack/run_parametric_benchmark.sh` | 2D parametric benchmark runner (4v4 + 1v1 modes) |
+| `environment/2d-environment/starter-stack/run_strategy_benchmark_2d.sh` | 2D strategy benchmark runner (4v4, fixed pair set) |
+| `environment/2d-environment/starter-stack/run_parametric_benchmark_2d.sh` | 2D parametric benchmark runner (4v4 + 2v2 + 1v1 modes) |
 | `environment/3d-environment/FCPCodebase/` | 3D team runtime code (Python + C++ modules) |
 | `environment/3d-environment/scripts/run_strategy_benchmark_3d.sh` | 3D strategy benchmark runner |
 | `environment/3d-environment/scripts/run_parametric_benchmark_3d.sh` | 3D parametric benchmark runner |
@@ -161,7 +161,7 @@ for u in 1 2 3 4; do python Run_Player.py -t Away -u "$u" --strategy BASIC & don
 
 ```bash
 cd environment/2d-environment/starter-stack
-./run_strategy_benchmark.sh
+./run_strategy_benchmark_2d.sh
 ```
 
 ### 3D (default suite)
@@ -212,7 +212,7 @@ cd environment/2d-environment/starter-stack/Agent/src
 ./start-4players.sh -t AGGRO -n 4 -u 2 -C
 ```
 
-This is a manual run path, not the same automated CSV pipeline as `run_strategy_benchmark.sh`.
+This is a manual run path, not the same automated CSV pipeline as `run_strategy_benchmark_2d.sh`.
 
 ## 4) 4v4 Parametric Benchmarking
 
@@ -220,17 +220,17 @@ This is a manual run path, not the same automated CSV pipeline as `run_strategy_
 
 ```bash
 cd environment/2d-environment/starter-stack
-./run_parametric_benchmark.sh --parameter press_threshold --mode 4v4 --repeats 5
+./run_parametric_benchmark_2d.sh --parameter press_threshold --mode 4v4 --repeats 5
 ```
 
 ```bash
 cd environment/2d-environment/starter-stack
-./run_parametric_benchmark.sh --parameter shoot_range --mode 4v4 --repeats 5
+./run_parametric_benchmark_2d.sh --parameter shoot_range --mode 4v4 --repeats 5
 ```
 
 ```bash
 cd environment/2d-environment/starter-stack
-./run_parametric_benchmark.sh --parameter formation --mode 4v4 --repeats 5 --levels baseline,def,off
+./run_parametric_benchmark_2d.sh --parameter formation --mode 4v4 --repeats 5 --levels baseline,def,off
 ```
 
 ### 3D
@@ -256,7 +256,7 @@ cd environment/3d-environment/scripts
 
 ```bash
 cd environment/2d-environment/starter-stack
-./run_parametric_benchmark.sh --parameter press_threshold --mode 1v1 --repeats 5
+./run_parametric_benchmark_2d.sh --parameter press_threshold --mode 1v1 --repeats 5
 ```
 
 ### 3D

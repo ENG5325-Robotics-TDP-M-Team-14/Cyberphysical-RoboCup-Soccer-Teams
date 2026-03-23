@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: run_parametric_benchmark.sh [options]
+Usage: run_parametric_benchmark_2d.sh [options]
 
 Options:
   --parameter PARAM        One of: press_threshold, shoot_range, formation
