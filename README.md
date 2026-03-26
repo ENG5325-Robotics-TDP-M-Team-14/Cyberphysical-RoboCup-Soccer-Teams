@@ -48,6 +48,15 @@ If you are setting up the project for the first time, read [docs/setup/linux.md]
 
 Detailed Linux setup lives in [docs/setup/linux.md](docs/setup/linux.md).
 
+## Demo videos
+
+Click a preview to open the full MP4 in GitHub.
+
+| 2D demo | 3D demo |
+|---|---|
+| [![2D demo preview](docs/media/2d-demo-preview.gif)](2D_demo_sped-up.mp4) | [![3D demo preview](docs/media/3d-demo-preview.gif)](3D_demo_sped-up.mp4) |
+| [2D_demo_sped-up.mp4](2D_demo_sped-up.mp4) | [3D_demo_sped-up.mp4](3D_demo_sped-up.mp4) |
+
 ## Core dependencies and setup orientation
 
 ### 2D
