@@ -168,6 +168,11 @@ BENCH_NO_INHIBIT=1 MATCH_WALL_TIMEOUT_SEC=900 PROGRESS_INTERVAL_SEC=30 \
 
 ## Output structure
 
+Benchmark outputs are local generated artifacts. They are ignored by Git so the
+public repository stays reproducible without shipping previous users' raw runs.
+Regenerate them from the commands above when auditing or extending the report
+results.
+
 2D strategy:
 
 - `environment/2d-environment/starter-stack/strategy_benchmark_results_2d.csv`

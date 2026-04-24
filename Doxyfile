@@ -1,0 +1,50 @@
+PROJECT_NAME           = "Cyberphysical RoboCup Soccer Teams"
+PROJECT_BRIEF          = "Team 14 ENG5325 RoboCup simulation and benchmarking workspace"
+OUTPUT_DIRECTORY       = docs/api
+CREATE_SUBDIRS         = NO
+OUTPUT_LANGUAGE        = English
+
+INPUT                  = README.md \
+                         docs \
+                         environment/2d-environment/starter-stack/Agent/src \
+                         environment/3d-environment/FCPCodebase/agent \
+                         environment/3d-environment/FCPCodebase/strategy \
+                         environment/3d-environment/FCPCodebase/world/commons \
+                         environment/3d-environment/scripts \
+                         scripts
+
+RECURSIVE              = YES
+FILE_PATTERNS          = *.h *.hpp *.c *.cc *.cpp *.py *.sh *.md
+USE_MDFILE_AS_MAINPAGE = README.md
+
+EXCLUDE_PATTERNS       = */build/* \
+                         */build-linux/* \
+                         */benchmark_outputs/* \
+                         */strategy_benchmark_logs_2d/* \
+                         */strategy_benchmark_logs_3d/* \
+                         */.venv/* \
+                         */__pycache__/* \
+                         */logs/* \
+                         */work/*
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_LATEX         = NO
+GENERATE_XML           = NO
+
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+MARKDOWN_SUPPORT       = YES
+AUTOLINK_SUPPORT       = YES
+
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+CALL_GRAPH             = NO
+CALLER_GRAPH           = NO
+
+QUIET                  = NO
+WARN_IF_UNDOCUMENTED   = NO
+WARN_IF_DOC_ERROR      = YES
