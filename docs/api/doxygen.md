@@ -1,8 +1,8 @@
 # API Documentation
 
-This repository includes a root `Doxyfile` for optional source navigation across
-the project-specific 2D agent code, 3D FC Portugal adaptations, benchmark
-scripts, and architecture notes.
+This repository includes a root `Doxyfile` for source navigation across the
+project-specific 2D agent code, 3D FC Portugal adaptations, benchmark scripts,
+and architecture notes.
 
 ## Generate Docs
 
@@ -26,7 +26,11 @@ changes.
 The repository also includes a GitHub Actions workflow at
 `.github/workflows/doxygen-pages.yml`. On pushes to `develop` or `main`, and on
 manual dispatch, the workflow installs Doxygen, builds `docs/api/html/`, and
-publishes the generated HTML through GitHub Pages.
+publishes the generated HTML through GitHub Pages when the ref is `main`.
+
+Published documentation:
+
+<https://eng5325-robotics-tdp-m-team-14.github.io/Cyberphysical-RoboCup-Soccer-Teams/>
 
 The generated HTML should stay out of Git. Source files, Markdown
 documentation, `Doxyfile`, and the workflow are the maintained documentation
@@ -52,7 +56,6 @@ environments, caches, and benchmark run directories.
 
 ## Notes
 
-The inherited simulator source trees are large and include upstream code that is
-not specific to Team 14's behaviour changes. The default Doxygen scope therefore
-focuses on the code most directly connected to the report: strategy wiring,
-role behaviour, benchmark orchestration, and project documentation.
+The inherited simulator source trees are large and include upstream code. The
+default Doxygen scope therefore focuses on strategy wiring, role behaviour,
+benchmark orchestration, and project documentation.

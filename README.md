@@ -1,8 +1,7 @@
 # Cyberphysical RoboCup Soccer Teams
 
 Public, Linux-first workspace for Team 14's RoboCup simulation and benchmarking
-tooling. This repository is the reproducible software companion to the ENG5325
-final report; the report itself is intentionally maintained outside this repo.
+tooling.
 
 This repository combines three tracks in one place:
 
@@ -11,8 +10,8 @@ This repository combines three tracks in one place:
 3. An offline RCSS2D imitation-learning pipeline.
 
 The root `README.md` is the canonical project entrypoint. Start here, then use
-the linked `docs/` pages for setup, benchmark, architecture, API, report
-companion, and troubleshooting details.
+the linked `docs/` pages for setup, benchmark, architecture, API, and
+troubleshooting details.
 
 ## What this repository is
 
@@ -22,31 +21,23 @@ This is a workspace, not a single application. It contains:
 - a 3D runtime stack built around the FC Portugal Python codebase plus SimSpark/RoboViz,
 - benchmark tooling for strategy-level and parameter-level experiments,
 - a separate offline learning pipeline for RCSS2D logs,
-- public documentation explaining how the report's Stage 1 simulation evidence
-  maps back to code and commands.
+- public documentation for setup, architecture, benchmark workflows, and source
+  navigation.
 
 The repository does not intentionally include local benchmark outputs, CMake
 build directories, virtual environments, raw match logs, spreadsheets, or
 one-off work folders. Those files are generated when you run the workflows.
 
-## Relationship to the ENG5325 report
+Documentation highlights:
 
-The final report used this repository as the software and evidence-generation
-toolchain for Stage 1: simulation setup, strategy benchmarking, OFAT parameter
-benchmarking, and role-level interpretation. The report is a separate academic
-artifact; this repository is the public tool that lets someone rebuild the
-runtime environment and reproduce the same classes of experiments.
-
-Report-aligned documentation:
-
-- [docs/report/companion.md](docs/report/companion.md): how the report claims
-  map to repository code, commands, figures, and reproducibility boundaries.
 - [docs/benchmarks/workflows.md](docs/benchmarks/workflows.md): benchmark
   families, modes, output structure, and interpretation notes.
 - [docs/architecture/role-fsm-2d-3d.md](docs/architecture/role-fsm-2d-3d.md):
   code-faithful role/FSM reference for striker, defender, and goalkeeper logic.
 - [docs/api/doxygen.md](docs/api/doxygen.md): optional Doxygen generation for
   C++/Python source navigation, with GitHub Pages deployment via CI.
+- [Doxygen API docs](https://eng5325-robotics-tdp-m-team-14.github.io/Cyberphysical-RoboCup-Soccer-Teams/):
+  generated source browser and API reference.
 
 ## Repository architecture
 
@@ -59,7 +50,7 @@ Report-aligned documentation:
 | `docs/setup/` | Linux-only setup and environment notes |
 | `docs/benchmarks/` | Benchmark workflow and methodology notes |
 | `docs/architecture/` | Role/FSM and architecture-level documentation |
-| `docs/report/` | Report companion notes and selected public figures |
+| `docs/figures/` | Public benchmark and documentation figures |
 | `docs/api/` | API documentation generation notes |
 | `docs/troubleshooting/` | Common teammate issues and fixes |
 | `docs/development/` | Code entry points and extension notes |
@@ -110,7 +101,7 @@ Click a preview to open the full MP4 in GitHub.
 ## Clean clone policy
 
 A fresh clone should contain source code, scripts, documentation, compact public
-demo media, and selected report figures. It should not contain previous users'
+demo media, and selected public figures. It should not contain previous users'
 generated run outputs. The following paths are intentionally local-only:
 
 - CMake/Gradle build directories such as `build/`, `build-linux/`, and
@@ -378,8 +369,8 @@ Detailed benchmark semantics and output structure are documented in [docs/benchm
 - [docs/setup/linux.md](docs/setup/linux.md): Linux-only setup, build details, and the supported 2D compatibility bridge.
 - [docs/benchmarks/workflows.md](docs/benchmarks/workflows.md): benchmark modes, recommended usage, and output structure.
 - [docs/architecture/role-fsm-2d-3d.md](docs/architecture/role-fsm-2d-3d.md): code-faithful 2D and 3D role/FSM logic.
-- [docs/report/companion.md](docs/report/companion.md): report-to-repo traceability and selected figures.
 - [docs/api/doxygen.md](docs/api/doxygen.md): Doxygen generation, GitHub Pages deployment, and output policy.
+- [Doxygen API docs](https://eng5325-robotics-tdp-m-team-14.github.io/Cyberphysical-RoboCup-Soccer-Teams/): published source browser and API reference.
 - [docs/troubleshooting/linux-runtime.md](docs/troubleshooting/linux-runtime.md): teammate-facing setup and runtime failure modes.
 - [docs/development/extension-notes.md](docs/development/extension-notes.md): code entry points and where to extend behaviors or benchmark mappings.
 

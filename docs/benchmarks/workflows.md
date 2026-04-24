@@ -170,7 +170,7 @@ BENCH_NO_INHIBIT=1 MATCH_WALL_TIMEOUT_SEC=900 PROGRESS_INTERVAL_SEC=30 \
 
 Benchmark outputs are local generated artifacts. They are ignored by Git so the
 public repository stays reproducible without shipping previous users' raw runs.
-Regenerate them from the commands above when auditing or extending the report
+Regenerate them from the commands above when auditing or extending benchmark
 results.
 
 2D strategy:
