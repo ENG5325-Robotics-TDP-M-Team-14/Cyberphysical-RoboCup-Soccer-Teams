@@ -1,28 +1,53 @@
-# macOS system files
+# OS/editor files
 .DS_Store
+.vscode/
+.idea/
 .codex
 
 # RoboCup 2D/3D logs
 *.rcg
 *.rcl
-
 *.log
 
-# Python virtual environment
+# Python local files
 .venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# C/C++ and CMake build outputs
+build/
+build-linux/
+cmake-build-*/
+compile_commands.json
+CMakeCache.txt
+CMakeFiles/
 
 # Gradle local files
-environment/3d-environment/RoboViz/.gradle_local/
-
-# 2D simulator build outputs (CMake)
-environment/2d-environment/rcssserver-19.0.0/build/
-environment/2d-environment/rcssserver-19.0.0/build-linux/
-environment/2d-environment/rcssmonitor-19.0.1/build/
-environment/2d-environment/rcssmonitor-19.0.1/build-linux/
+.gradle/
+.gradle_local/
 
 # Generated benchmark outputs
 environment/2d-environment/starter-stack/benchmark_outputs/
+environment/2d-environment/starter-stack/strategy_benchmark_logs_2d/
+environment/2d-environment/starter-stack/strategy_benchmark_results_2d.csv
+environment/2d-environment/starter-stack/strategy_benchmark_analysis_2d.xlsx
+environment/2d-environment/starter-stack/strategy_benchmark_analysis_win-rate_2d.png
 environment/3d-environment/benchmark_outputs/
+environment/3d-environment/strategy_benchmark_logs_3d/
+
+# Generated docs
+docs/api/html/
+
+# Local spreadsheets and office scratch files
+*.xlsx
+*.xls
+*.docx
+~$*
 
 # Results and other locally generated files
 work/*
+
+# Local duplicate/raw demo captures. Keep compressed public MP4s only.
+*.mov
